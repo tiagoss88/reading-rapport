@@ -8,9 +8,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Users, Edit, Trash2 } from 'lucide-react'
+import { Plus, Users, Edit, Trash2, Upload, History } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import BulkCreateDialog from '@/components/clientes/BulkCreateDialog'
+import ClienteHistorico from '@/components/clientes/ClienteHistorico'
 
 interface Cliente {
   id: string
@@ -36,7 +38,10 @@ export default function Clientes() {
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false)
+  const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false)
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null)
+  const [selectedClienteHistorico, setSelectedClienteHistorico] = useState<Cliente | null>(null)
   const [formData, setFormData] = useState({
     identificacao_unidade: '',
     nome: '',
@@ -186,6 +191,11 @@ export default function Clientes() {
     }
   }
 
+  const openHistoricoDialog = (cliente: Cliente) => {
+    setSelectedClienteHistorico(cliente)
+    setHistoricoDialogOpen(true)
+  }
+
   return (
     <Layout title="Clientes">
       <div className="flex justify-between items-center mb-6">
@@ -193,16 +203,21 @@ export default function Clientes() {
           <h1 className="text-2xl font-bold">Clientes</h1>
           <p className="text-muted-foreground">Gerencie as unidades dos empreendimentos</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={(open) => {
-          setDialogOpen(open)
-          if (!open) resetForm()
-        }}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Unidade
-            </Button>
-          </DialogTrigger>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => setBulkDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Cadastro em Massa
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open)
+            if (!open) resetForm()
+          }}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Unidade
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
@@ -291,6 +306,7 @@ export default function Clientes() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -324,7 +340,7 @@ export default function Clientes() {
                   <TableHead>CPF</TableHead>
                   <TableHead>Empreendimento</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-24">Ações</TableHead>
+                  <TableHead className="w-32">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -350,7 +366,16 @@ export default function Clientes() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => openHistoricoDialog(cliente)}
+                          title="Ver histórico"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => openEditDialog(cliente)}
+                          title="Editar"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -358,6 +383,7 @@ export default function Clientes() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(cliente.id)}
+                          title="Excluir"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -370,6 +396,19 @@ export default function Clientes() {
           )}
         </CardContent>
       </Card>
+
+      <BulkCreateDialog
+        open={bulkDialogOpen}
+        onOpenChange={setBulkDialogOpen}
+        empreendimentos={empreendimentos}
+        onSuccess={fetchData}
+      />
+
+      <ClienteHistorico
+        open={historicoDialogOpen}
+        onOpenChange={setHistoricoDialogOpen}
+        cliente={selectedClienteHistorico}
+      />
     </Layout>
   )
 }
