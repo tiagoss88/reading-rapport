@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast'
 interface Cliente {
   id: string
   identificacao_unidade: string
+  nome?: string
+  cpf?: string
   status: string
   empreendimento_id: string
   created_at: string
@@ -37,6 +39,8 @@ export default function Clientes() {
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null)
   const [formData, setFormData] = useState({
     identificacao_unidade: '',
+    nome: '',
+    cpf: '',
     status: 'ativo',
     empreendimento_id: ''
   })
@@ -150,6 +154,8 @@ export default function Clientes() {
     setEditingCliente(cliente)
     setFormData({
       identificacao_unidade: cliente.identificacao_unidade,
+      nome: cliente.nome || '',
+      cpf: cliente.cpf || '',
       status: cliente.status,
       empreendimento_id: cliente.empreendimento_id
     })
@@ -160,6 +166,8 @@ export default function Clientes() {
     setEditingCliente(null)
     setFormData({
       identificacao_unidade: '',
+      nome: '',
+      cpf: '',
       status: 'ativo',
       empreendimento_id: ''
     })
@@ -171,6 +179,8 @@ export default function Clientes() {
         return <Badge variant="default">Ativo</Badge>
       case 'inativo':
         return <Badge variant="secondary">Inativo</Badge>
+      case 'bloqueado':
+        return <Badge variant="destructive">Bloqueado</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
@@ -236,6 +246,24 @@ export default function Clientes() {
                 />
               </div>
               <div>
+                <Label htmlFor="nome">Nome do Cliente</Label>
+                <Input
+                  id="nome"
+                  value={formData.nome}
+                  onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                  placeholder="Ex: João Silva"
+                />
+              </div>
+              <div>
+                <Label htmlFor="cpf">CPF</Label>
+                <Input
+                  id="cpf"
+                  value={formData.cpf}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
+                  placeholder="Ex: 123.456.789-00"
+                />
+              </div>
+              <div>
                 <Label htmlFor="status">Status *</Label>
                 <Select
                   value={formData.status}
@@ -248,6 +276,7 @@ export default function Clientes() {
                   <SelectContent>
                     <SelectItem value="ativo">Ativo</SelectItem>
                     <SelectItem value="inativo">Inativo</SelectItem>
+                    <SelectItem value="bloqueado">Bloqueado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -291,6 +320,8 @@ export default function Clientes() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Unidade</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>CPF</TableHead>
                   <TableHead>Empreendimento</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-24">Ações</TableHead>
@@ -301,6 +332,12 @@ export default function Clientes() {
                   <TableRow key={cliente.id}>
                     <TableCell className="font-medium">
                       {cliente.identificacao_unidade}
+                    </TableCell>
+                    <TableCell>
+                      {cliente.nome || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {cliente.cpf || '-'}
                     </TableCell>
                     <TableCell>
                       {cliente.empreendimentos?.nome || 'N/A'}

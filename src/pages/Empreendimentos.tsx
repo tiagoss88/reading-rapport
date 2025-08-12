@@ -15,6 +15,7 @@ interface Empreendimento {
   id: string
   nome: string
   endereco: string
+  cnpj?: string
   observacoes?: string
   created_at: string
   updated_at: string
@@ -28,6 +29,7 @@ export default function Empreendimentos() {
   const [formData, setFormData] = useState({
     nome: '',
     endereco: '',
+    cnpj: '',
     observacoes: ''
   })
   const { toast } = useToast()
@@ -128,6 +130,7 @@ export default function Empreendimentos() {
     setFormData({
       nome: empreendimento.nome,
       endereco: empreendimento.endereco,
+      cnpj: empreendimento.cnpj || '',
       observacoes: empreendimento.observacoes || ''
     })
     setDialogOpen(true)
@@ -138,6 +141,7 @@ export default function Empreendimentos() {
     setFormData({
       nome: '',
       endereco: '',
+      cnpj: '',
       observacoes: ''
     })
   }
@@ -193,6 +197,15 @@ export default function Empreendimentos() {
                 />
               </div>
               <div>
+                <Label htmlFor="cnpj">CNPJ</Label>
+                <Input
+                  id="cnpj"
+                  value={formData.cnpj}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
+                  placeholder="Ex: 12.345.678/0001-90"
+                />
+              </div>
+              <div>
                 <Label htmlFor="observacoes">Observações</Label>
                 <Textarea
                   id="observacoes"
@@ -243,6 +256,7 @@ export default function Empreendimentos() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Endereço</TableHead>
+                  <TableHead>CNPJ</TableHead>
                   <TableHead>Observações</TableHead>
                   <TableHead className="w-24">Ações</TableHead>
                 </TableRow>
@@ -252,6 +266,7 @@ export default function Empreendimentos() {
                   <TableRow key={empreendimento.id}>
                     <TableCell className="font-medium">{empreendimento.nome}</TableCell>
                     <TableCell>{empreendimento.endereco}</TableCell>
+                    <TableCell>{empreendimento.cnpj || '-'}</TableCell>
                     <TableCell className="max-w-xs truncate">
                       {empreendimento.observacoes || '-'}
                     </TableCell>

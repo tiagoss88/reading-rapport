@@ -16,26 +16,32 @@ export type Database = {
     Tables: {
       clientes: {
         Row: {
+          cpf: string | null
           created_at: string
           empreendimento_id: string
           id: string
           identificacao_unidade: string
+          nome: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          cpf?: string | null
           created_at?: string
           empreendimento_id: string
           id?: string
           identificacao_unidade: string
+          nome?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          cpf?: string | null
           created_at?: string
           empreendimento_id?: string
           id?: string
           identificacao_unidade?: string
+          nome?: string | null
           status?: string
           updated_at?: string
         }
@@ -51,6 +57,7 @@ export type Database = {
       }
       empreendimentos: {
         Row: {
+          cnpj: string | null
           created_at: string
           endereco: string
           id: string
@@ -59,6 +66,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cnpj?: string | null
           created_at?: string
           endereco: string
           id?: string
@@ -67,6 +75,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cnpj?: string | null
           created_at?: string
           endereco?: string
           id?: string
