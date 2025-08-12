@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FileText, Search, Download, Eye } from 'lucide-react'
+import { FileText, Search, Download, Eye, Plus } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import NovaLeituraDialog from '@/components/leituras/NovaLeituraDialog'
 
 interface Leitura {
   id: string
@@ -39,6 +40,7 @@ export default function Leituras() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [novaLeituraOpen, setNovaLeituraOpen] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -141,10 +143,16 @@ export default function Leituras() {
             <h1 className="text-2xl font-bold">Leituras</h1>
             <p className="text-muted-foreground">Visualize e gerencie as leituras realizadas</p>
           </div>
-          <Button onClick={exportToCSV} disabled={filteredLeituras.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar CSV
-          </Button>
+          <div className="flex space-x-2">
+            <Button onClick={() => setNovaLeituraOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Leitura
+            </Button>
+            <Button variant="outline" onClick={exportToCSV} disabled={filteredLeituras.length === 0}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar CSV
+            </Button>
+          </div>
         </div>
 
         {/* Filtros */}
@@ -252,7 +260,11 @@ export default function Leituras() {
                         </TableCell>
                         <TableCell>
                           {leitura.foto_url ? (
-                            <Button variant="ghost" size="icon">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => window.open(leitura.foto_url!, '_blank')}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                           ) : (
@@ -264,10 +276,16 @@ export default function Leituras() {
                   </TableBody>
                 </Table>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </Layout>
-  )
+          )}
+        </CardContent>
+      </Card>
+
+      <NovaLeituraDialog
+        open={novaLeituraOpen}
+        onOpenChange={setNovaLeituraOpen}
+        onSuccess={fetchLeituras}
+      />
+    </div>
+  </Layout>
+)
 }
