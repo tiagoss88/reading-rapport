@@ -6,6 +6,7 @@ import {
   Building2, 
   Users, 
   FileText, 
+  UserCheck,
   LogOut,
   Menu
 } from 'lucide-react'
@@ -25,6 +26,7 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2 },
     { name: 'Clientes', href: '/clientes', icon: Users },
     { name: 'Leituras', href: '/leituras', icon: FileText },
+    { name: 'Operadores', href: '/operadores', icon: UserCheck },
   ]
 
   return (

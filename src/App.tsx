@@ -8,6 +8,7 @@ import Dashboard from '@/pages/Dashboard'
 import Empreendimentos from '@/pages/Empreendimentos'
 import Clientes from '@/pages/Clientes'
 import Leituras from '@/pages/Leituras'
+import Operadores from '@/pages/Operadores'
 import OperadorApp from '@/pages/OperadorApp'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import NotFound from "./pages/NotFound";
@@ -41,6 +42,11 @@ const App = () => (
               <Route path="/leituras" element={
                 <ProtectedRoute>
                   <Leituras />
+                </ProtectedRoute>
+              } />
+              <Route path="/operadores" element={
+                <ProtectedRoute>
+                  <Operadores />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
