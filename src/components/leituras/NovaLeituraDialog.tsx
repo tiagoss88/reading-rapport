@@ -275,7 +275,7 @@ export default function NovaLeituraDialog({ open, onOpenChange, onSuccess }: Nov
                 <SelectValue placeholder="Selecione o tipo (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma observação</SelectItem>
+                <SelectItem value="none">Nenhuma observação</SelectItem>
                 <SelectItem value="medidor_danificado">Medidor Danificado</SelectItem>
                 <SelectItem value="local_inacessivel">Local Inacessível</SelectItem>
                 <SelectItem value="cliente_ausente">Cliente Ausente</SelectItem>
