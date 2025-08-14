@@ -36,7 +36,6 @@ export default function CriarServico() {
     empreendimento_id: '',
     cliente_id: '',
     data_agendamento: '',
-    hora_agendamento: '',
     observacoes: ''
   })
 
@@ -114,7 +113,7 @@ export default function CriarServico() {
     e.preventDefault()
     
     if (!formData.tipo_servico || !formData.empreendimento_id || !formData.cliente_id || 
-        !formData.data_agendamento || !formData.hora_agendamento) {
+        !formData.data_agendamento) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha todos os campos obrigatórios",
@@ -131,7 +130,7 @@ export default function CriarServico() {
           empreendimento_id: formData.empreendimento_id,
           cliente_id: formData.cliente_id,
           data_agendamento: formData.data_agendamento,
-          hora_agendamento: formData.hora_agendamento,
+          
           observacoes: formData.observacoes || null
         })
 
