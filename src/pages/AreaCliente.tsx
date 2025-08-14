@@ -46,11 +46,34 @@ export default function AreaCliente() {
   const [empreendimento, setEmpreendimento] = useState<EmpreendimentoData | null>(null)
   const [loading, setLoading] = useState(true)
   const [leituras, setLeituras] = useState<Leitura[]>([])
-  const [competencias, setCompetencias] = useState<string[]>([])
-  const [selectedCompetencia, setSelectedCompetencia] = useState<string>('')
+  const [selectedMes, setSelectedMes] = useState<string>('')
+  const [selectedAno, setSelectedAno] = useState<string>('')
   const [loadingLeituras, setLoadingLeituras] = useState(false)
   const { user, signOut } = useAuth()
   const { toast } = useToast()
+
+  // Gerar lista de meses
+  const meses = [
+    { value: '01', label: 'Janeiro' },
+    { value: '02', label: 'Fevereiro' },
+    { value: '03', label: 'Março' },
+    { value: '04', label: 'Abril' },
+    { value: '05', label: 'Maio' },
+    { value: '06', label: 'Junho' },
+    { value: '07', label: 'Julho' },
+    { value: '08', label: 'Agosto' },
+    { value: '09', label: 'Setembro' },
+    { value: '10', label: 'Outubro' },
+    { value: '11', label: 'Novembro' },
+    { value: '12', label: 'Dezembro' }
+  ]
+
+  // Gerar lista de anos (últimos 5 anos e próximos 2)
+  const currentYear = new Date().getFullYear()
+  const anos = Array.from({ length: 8 }, (_, i) => {
+    const year = currentYear - 5 + i
+    return { value: year.toString(), label: year.toString() }
+  })
 
   useEffect(() => {
     if (user) {
@@ -60,15 +83,18 @@ export default function AreaCliente() {
 
   useEffect(() => {
     if (empreendimento) {
-      fetchCompetencias()
+      // Definir mês e ano atual como padrão
+      const currentDate = new Date()
+      setSelectedMes(String(currentDate.getMonth() + 1).padStart(2, '0'))
+      setSelectedAno(currentDate.getFullYear().toString())
     }
   }, [empreendimento])
 
   useEffect(() => {
-    if (empreendimento && selectedCompetencia) {
+    if (empreendimento && selectedMes && selectedAno) {
       fetchLeituras()
     }
-  }, [empreendimento, selectedCompetencia])
+  }, [empreendimento, selectedMes, selectedAno])
 
   const fetchEmpreendimentoData = async () => {
     try {
@@ -104,53 +130,13 @@ export default function AreaCliente() {
     }
   }
 
-  const fetchCompetencias = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('leituras')
-        .select('data_leitura, clientes!inner(empreendimento_id)')
-        .eq('clientes.empreendimento_id', empreendimento?.id)
-        .order('data_leitura', { ascending: false })
-
-      if (error) throw error
-
-      // Extract unique month/year combinations
-      const uniqueCompetencias = new Set<string>()
-      data?.forEach(leitura => {
-        const date = new Date(leitura.data_leitura)
-        const competencia = format(date, 'MM/yyyy', { locale: ptBR })
-        uniqueCompetencias.add(competencia)
-      })
-
-      const sortedCompetencias = Array.from(uniqueCompetencias).sort((a, b) => {
-        const [monthA, yearA] = a.split('/')
-        const [monthB, yearB] = b.split('/')
-        const dateA = new Date(parseInt(yearA), parseInt(monthA) - 1)
-        const dateB = new Date(parseInt(yearB), parseInt(monthB) - 1)
-        return dateB.getTime() - dateA.getTime()
-      })
-
-      setCompetencias(sortedCompetencias)
-      if (sortedCompetencias.length > 0) {
-        setSelectedCompetencia(sortedCompetencias[0])
-      }
-    } catch (error: any) {
-      toast({
-        title: "Erro ao carregar competências",
-        description: error.message,
-        variant: "destructive",
-      })
-    }
-  }
-
   const fetchLeituras = async () => {
-    if (!selectedCompetencia) return
+    if (!selectedMes || !selectedAno) return
     
     setLoadingLeituras(true)
     try {
-      const [month, year] = selectedCompetencia.split('/')
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1)
-      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59)
+      const startDate = new Date(parseInt(selectedAno), parseInt(selectedMes) - 1, 1)
+      const endDate = new Date(parseInt(selectedAno), parseInt(selectedMes), 0, 23, 59, 59)
 
       const { data, error } = await supabase
         .from('leituras')
@@ -181,13 +167,14 @@ export default function AreaCliente() {
   const exportToPDF = () => {
     if (!leituras.length) return
 
+    const competenciaLabel = `${meses.find(m => m.value === selectedMes)?.label}/${selectedAno}`
     const doc = new jsPDF()
     
     // Header
     doc.setFontSize(16)
     doc.text(`Relatório de Leituras - ${empreendimento?.nome}`, 20, 20)
     doc.setFontSize(12)
-    doc.text(`Competência: ${selectedCompetencia}`, 20, 30)
+    doc.text(`Competência: ${competenciaLabel}`, 20, 30)
     doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, 20, 40)
 
     // Table data
@@ -216,7 +203,7 @@ export default function AreaCliente() {
       }
     })
 
-    doc.save(`leituras-${empreendimento?.nome}-${selectedCompetencia.replace('/', '-')}.pdf`)
+    doc.save(`leituras-${empreendimento?.nome}-${selectedMes}-${selectedAno}.pdf`)
   }
 
   const getStatusBadge = (status: string) => {
@@ -391,21 +378,39 @@ export default function AreaCliente() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Filtro por Competência */}
-            <div className="mb-6">
-              <Label className="text-sm font-medium mb-2 block">Competência</Label>
-              <Select value={selectedCompetencia} onValueChange={setSelectedCompetencia}>
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue placeholder="Selecione uma competência" />
-                </SelectTrigger>
-                <SelectContent>
-                  {competencias.map(competencia => (
-                    <SelectItem key={competencia} value={competencia}>
-                      {competencia}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Filtros por Mês e Ano */}
+            <div className="mb-6 flex gap-4">
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Mês</Label>
+                <Select value={selectedMes} onValueChange={setSelectedMes}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Selecione o mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {meses.map(mes => (
+                      <SelectItem key={mes.value} value={mes.value}>
+                        {mes.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Ano</Label>
+                <Select value={selectedAno} onValueChange={setSelectedAno}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Selecione o ano" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {anos.map(ano => (
+                      <SelectItem key={ano.value} value={ano.value}>
+                        {ano.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Tabela de Leituras */}
@@ -462,20 +467,20 @@ export default function AreaCliente() {
                   </TableBody>
                 </Table>
               </div>
-            ) : selectedCompetencia ? (
+            ) : selectedMes && selectedAno ? (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Nenhuma leitura encontrada</h3>
                 <p className="text-muted-foreground">
-                  Não há leituras registradas para a competência {selectedCompetencia}.
+                  Não há leituras registradas para {meses.find(m => m.value === selectedMes)?.label}/{selectedAno}.
                 </p>
               </div>
             ) : (
               <div className="text-center py-8">
                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Selecione uma competência</h3>
+                <h3 className="text-lg font-semibold mb-2">Selecione mês e ano</h3>
                 <p className="text-muted-foreground">
-                  Escolha uma competência para visualizar as leituras.
+                  Escolha o mês e ano para visualizar as leituras.
                 </p>
               </div>
             )}
