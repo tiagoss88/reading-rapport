@@ -10,10 +10,13 @@ import Clientes from '@/pages/Clientes'
 import Leituras from '@/pages/Leituras'
 import Operadores from '@/pages/Operadores'
 import OperadorApp from '@/pages/OperadorApp'
+import ColetorLogin from '@/pages/ColetorLogin'
+import ColetorMenu from '@/pages/ColetorMenu'
 import ColetorSync from '@/pages/ColetorSync'
 import ColetorUnidades from '@/pages/ColetorUnidades'
 import ColetorLeitura from '@/pages/ColetorLeitura'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import ColetorProtectedRoute from '@/components/ColetorProtectedRoute'
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,9 +30,27 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/operador" element={<OperadorApp />} />
-              <Route path="/coletor-sync" element={<ColetorSync />} />
-              <Route path="/coletor/unidades/:empreendimentoId" element={<ColetorUnidades />} />
-              <Route path="/coletor/leitura/:clienteId" element={<ColetorLeitura />} />
+              <Route path="/coletor/login" element={<ColetorLogin />} />
+              <Route path="/coletor" element={
+                <ColetorProtectedRoute>
+                  <ColetorMenu />
+                </ColetorProtectedRoute>
+              } />
+              <Route path="/coletor-sync" element={
+                <ColetorProtectedRoute>
+                  <ColetorSync />
+                </ColetorProtectedRoute>
+              } />
+              <Route path="/coletor/unidades/:empreendimentoId" element={
+                <ColetorProtectedRoute>
+                  <ColetorUnidades />
+                </ColetorProtectedRoute>
+              } />
+              <Route path="/coletor/leitura/:clienteId" element={
+                <ColetorProtectedRoute>
+                  <ColetorLeitura />
+                </ColetorProtectedRoute>
+              } />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Dashboard />
