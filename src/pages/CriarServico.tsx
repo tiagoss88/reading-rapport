@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { CalendarDays, Clock, MapPin, Plus } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Plus, Building2, Home } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
 
 const tiposServico = [
@@ -19,14 +20,90 @@ const tiposServico = [
 
 export default function CriarServico() {
   const { toast } = useToast()
+  const [empreendimentos, setEmpreendimentos] = useState<any[]>([])
+  const [clientes, setClientes] = useState<any[]>([])
+  const [loadingClientes, setLoadingClientes] = useState(false)
+  
   const [formData, setFormData] = useState({
     tipo_servico: '',
+    empreendimento_id: '',
     cliente_id: '',
     data_agendamento: '',
     hora_agendamento: '',
     endereco: '',
     observacoes: ''
   })
+
+  // Carregar empreendimentos ao montar o componente
+  useEffect(() => {
+    const fetchEmpreendimentos = async () => {
+      const { data, error } = await supabase
+        .from('empreendimentos')
+        .select('id, nome')
+        .order('nome')
+      
+      if (error) {
+        toast({
+          title: "Erro ao carregar empreendimentos",
+          description: error.message,
+          variant: "destructive"
+        })
+      } else {
+        setEmpreendimentos(data || [])
+      }
+    }
+
+    fetchEmpreendimentos()
+  }, [])
+
+  // Carregar clientes quando empreendimento for selecionado
+  useEffect(() => {
+    const fetchClientes = async () => {
+      if (!formData.empreendimento_id) {
+        setClientes([])
+        return
+      }
+
+      setLoadingClientes(true)
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('id, nome, identificacao_unidade')
+        .eq('empreendimento_id', formData.empreendimento_id)
+        .eq('status', 'ativo')
+        .order('identificacao_unidade')
+      
+      if (error) {
+        toast({
+          title: "Erro ao carregar clientes",
+          description: error.message,
+          variant: "destructive"
+        })
+      } else {
+        setClientes(data || [])
+      }
+      setLoadingClientes(false)
+    }
+
+    fetchClientes()
+  }, [formData.empreendimento_id])
+
+  const handleEmpreendimentoChange = (value: string) => {
+    setFormData({
+      ...formData,
+      empreendimento_id: value,
+      cliente_id: '', // Limpar seleção de cliente ao mudar empreendimento
+      endereco: ''
+    })
+  }
+
+  const handleClienteChange = (value: string) => {
+    const cliente = clientes.find(c => c.id === value)
+    setFormData({
+      ...formData,
+      cliente_id: value,
+      endereco: cliente ? `${cliente.identificacao_unidade}` : ''
+    })
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,6 +116,7 @@ export default function CriarServico() {
     // Reset form
     setFormData({
       tipo_servico: '',
+      empreendimento_id: '',
       cliente_id: '',
       data_agendamento: '',
       hora_agendamento: '',
@@ -83,14 +161,57 @@ export default function CriarServico() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="cliente_id">Unidade/Cliente</Label>
-                  <Input
-                    id="cliente_id"
-                    placeholder="Buscar unidade..."
-                    value={formData.cliente_id}
-                    onChange={(e) => setFormData({...formData, cliente_id: e.target.value})}
-                  />
+                  <Label htmlFor="empreendimento_id" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Empreendimento
+                  </Label>
+                  <Select 
+                    value={formData.empreendimento_id} 
+                    onValueChange={handleEmpreendimentoChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o empreendimento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {empreendimentos.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          {emp.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cliente_id" className="flex items-center gap-2">
+                  <Home className="h-4 w-4" />
+                  Unidade/Cliente
+                </Label>
+                <Select 
+                  value={formData.cliente_id} 
+                  onValueChange={handleClienteChange}
+                  disabled={!formData.empreendimento_id || loadingClientes}
+                >
+                  <SelectTrigger>
+                    <SelectValue 
+                      placeholder={
+                        !formData.empreendimento_id 
+                          ? "Primeiro selecione um empreendimento" 
+                          : loadingClientes 
+                          ? "Carregando unidades..." 
+                          : "Selecione a unidade"
+                      } 
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
