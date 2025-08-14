@@ -172,7 +172,16 @@ export default function ColetorUnidades() {
                       </CardDescription>
                     )}
                   </div>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs font-medium ${
+                      cliente.status === 'ativo' 
+                        ? 'bg-green-100 text-green-800 border-green-300' 
+                        : cliente.status === 'bloqueado'
+                        ? 'bg-orange-100 text-orange-800 border-orange-300'
+                        : 'bg-red-100 text-red-800 border-red-300'
+                    }`}
+                  >
                     {cliente.status.toUpperCase()}
                   </Badge>
                 </div>
