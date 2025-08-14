@@ -40,10 +40,8 @@ export default function ColetorServicos() {
   }, [user])
 
   useEffect(() => {
-    if (operadorId) {
-      fetchServicos()
-    }
-  }, [operadorId])
+    fetchServicos()
+  }, [])
 
   const fetchOperadorId = async () => {
     if (!user) return
@@ -68,8 +66,6 @@ export default function ColetorServicos() {
   }
 
   const fetchServicos = async () => {
-    if (!operadorId) return
-
     try {
       setLoading(true)
       const { data, error } = await supabase
@@ -90,7 +86,6 @@ export default function ColetorServicos() {
             endereco
           )
         `)
-        .eq('operador_responsavel_id', operadorId)
         .in('status', ['agendado', 'em_andamento'])
         .order('data_agendamento', { ascending: true })
 
@@ -196,9 +191,9 @@ export default function ColetorServicos() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Meus Serviços</h1>
+              <h1 className="text-xl font-bold text-gray-900">Serviços Agendados</h1>
               <p className="text-sm text-gray-600">
-                Serviços agendados para você
+                Todos os serviços agendados
               </p>
             </div>
           </div>
