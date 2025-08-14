@@ -207,137 +207,143 @@ export default function ColetorLeitura() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center space-x-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-3">
+      <div className="max-w-md mx-auto space-y-3">
+        {/* Header Compacto */}
+        <div className="flex items-center space-x-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={voltarParaUnidades}
-            className="flex-shrink-0"
+            className="flex-shrink-0 h-8 w-8"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-gray-900">Nova Leitura</h1>
-            <p className="text-sm text-gray-600">
-              Registre a leitura do medidor
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-gray-900 truncate">Nova Leitura</h1>
+            <p className="text-xs text-gray-600 truncate">
+              {cliente.identificacao_unidade}
             </p>
           </div>
         </div>
 
-        {/* Informações da Unidade */}
+        {/* Informações da Unidade - Compacta */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center">
-              <Home className="w-4 h-4 mr-2 text-primary" />
-              {cliente.identificacao_unidade}
-            </CardTitle>
-            <CardDescription className="space-y-1">
+          <CardContent className="p-3">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <Home className="w-3 h-3 text-primary flex-shrink-0" />
+                  <span className="text-sm font-medium truncate">{cliente.identificacao_unidade}</span>
+                </div>
+              </div>
               {cliente.nome && (
-                <div className="flex items-center text-sm">
-                  <User className="w-3 h-3 mr-2" />
-                  {cliente.nome}
+                <div className="flex items-center space-x-2">
+                  <User className="w-3 h-3 text-gray-500" />
+                  <span className="text-xs text-gray-600 truncate">{cliente.nome}</span>
                 </div>
               )}
-              <div className="flex items-center text-sm">
-                <MapPin className="w-3 h-3 mr-2" />
-                {empreendimento.nome}
+              <div className="flex items-center space-x-2">
+                <MapPin className="w-3 h-3 text-gray-500" />
+                <span className="text-xs text-gray-600 truncate">{empreendimento.nome}</span>
               </div>
-            </CardDescription>
-          </CardHeader>
+            </div>
+          </CardContent>
         </Card>
 
-        {/* Formulário de Leitura */}
+        {/* Formulário de Leitura - Layout Grid Compacto */}
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Dados da Leitura</CardTitle>
+              <CardTitle className="text-sm">Dados da Leitura</CardTitle>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={abrirCamera}
-                className={`flex items-center space-x-1 ${
+                className={`flex items-center space-x-1 text-xs px-2 py-1 h-7 ${
                   fotoPreview 
                     ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' 
                     : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
                 }`}
               >
-                <Camera className="w-4 h-4" />
-                <span className="text-xs">Foto</span>
+                <Camera className="w-3 h-3" />
+                <span>Foto</span>
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Última Leitura */}
-            <div>
-              <Label>Última Leitura (m³)</Label>
-              <Input
-                value={loadingUltimaLeitura ? "Carregando..." : ultimaLeitura ? ultimaLeitura.toFixed(3) : "Primeira leitura"}
-                disabled
-                className="bg-gray-50 text-gray-600"
-              />
-            </div>
+          <CardContent className="p-3 pt-0">
+            <div className="grid grid-cols-2 gap-3">
+              {/* Última Leitura */}
+              <div className="col-span-2">
+                <Label className="text-xs">Última Leitura (m³)</Label>
+                <Input
+                  value={loadingUltimaLeitura ? "Carregando..." : ultimaLeitura ? ultimaLeitura.toFixed(3) : "Primeira leitura"}
+                  disabled
+                  className="bg-gray-50 text-gray-600 h-8 text-xs"
+                />
+              </div>
 
-            {/* Leitura Atual */}
-            <div>
-              <Label htmlFor="leitura_atual">Leitura Atual (m³) *</Label>
-              <Input
-                id="leitura_atual"
-                type="number"
-                step="0.001"
-                value={formData.leitura_atual}
-                onChange={(e) => setFormData(prev => ({ ...prev, leitura_atual: e.target.value }))}
-                placeholder="Ex: 1234.567"
-                className="text-lg"
-              />
-            </div>
+              {/* Leitura Atual */}
+              <div className="col-span-2">
+                <Label htmlFor="leitura_atual" className="text-xs">Leitura Atual (m³) *</Label>
+                <Input
+                  id="leitura_atual"
+                  type="number"
+                  step="0.001"
+                  value={formData.leitura_atual}
+                  onChange={(e) => setFormData(prev => ({ ...prev, leitura_atual: e.target.value }))}
+                  placeholder="Ex: 1234.567"
+                  className="h-8 text-sm"
+                />
+              </div>
 
-            {/* Consumo */}
-            <div>
-              <Label>Consumo (m³)</Label>
-              <Input
-                value={(() => {
-                  const consumo = calcularConsumo()
-                  if (consumo === null) return "N/A"
-                  return consumo.toFixed(3)
-                })()}
-                disabled
-                className="bg-gray-50 text-gray-600 font-semibold"
-              />
-            </div>
+              {/* Consumo */}
+              <div className="col-span-2">
+                <Label className="text-xs">Consumo (m³)</Label>
+                <Input
+                  value={(() => {
+                    const consumo = calcularConsumo()
+                    if (consumo === null) return "N/A"
+                    return consumo.toFixed(3)
+                  })()}
+                  disabled
+                  className="bg-gray-50 text-gray-600 font-semibold h-8 text-xs"
+                />
+              </div>
 
-            <div>
-              <Label htmlFor="tipo_observacao">Tipo de Observação</Label>
-              <Select 
-                value={formData.tipo_observacao} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_observacao: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione se houver" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="leitura_normal">Leitura Normal</SelectItem>
-                  <SelectItem value="medidor_danificado">Medidor Danificado</SelectItem>
-                  <SelectItem value="local_inacessivel">Local Inacessível</SelectItem>
-                  <SelectItem value="cliente_ausente">Cliente Ausente</SelectItem>
-                  <SelectItem value="leitura_estimada">Leitura Estimada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Tipo de Observação */}
+              <div className="col-span-2">
+                <Label htmlFor="tipo_observacao" className="text-xs">Tipo de Observação</Label>
+                <Select 
+                  value={formData.tipo_observacao} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_observacao: value }))}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Selecione se houver" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="leitura_normal">Leitura Normal</SelectItem>
+                    <SelectItem value="medidor_danificado">Medidor Danificado</SelectItem>
+                    <SelectItem value="local_inacessivel">Local Inacessível</SelectItem>
+                    <SelectItem value="cliente_ausente">Cliente Ausente</SelectItem>
+                    <SelectItem value="leitura_estimada">Leitura Estimada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <Label htmlFor="observacao">Observações</Label>
-              <Textarea
-                id="observacao"
-                value={formData.observacao}
-                onChange={(e) => setFormData(prev => ({ ...prev, observacao: e.target.value }))}
-                placeholder="Observações adicionais (opcional)"
-                rows={2}
-              />
+              {/* Observações */}
+              <div className="col-span-2">
+                <Label htmlFor="observacao" className="text-xs">Observações</Label>
+                <Textarea
+                  id="observacao"
+                  value={formData.observacao}
+                  onChange={(e) => setFormData(prev => ({ ...prev, observacao: e.target.value }))}
+                  placeholder="Observações adicionais (opcional)"
+                  rows={2}
+                  className="text-xs resize-none"
+                />
+              </div>
             </div>
-
           </CardContent>
         </Card>
 
@@ -351,25 +357,27 @@ export default function ColetorLeitura() {
           className="hidden"
         />
 
-        {/* Botão Salvar */}
-        <Button
-          onClick={salvarLeitura}
-          disabled={saving || !formData.leitura_atual}
-          className="w-full h-12 text-lg"
-          size="lg"
-        >
-          {saving ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="w-5 h-5 mr-2" />
-              Salvar Leitura
-            </>
-          )}
-        </Button>
+        {/* Botão Salvar - Fixo no final */}
+        <div className="sticky bottom-0 bg-gradient-to-br from-blue-50 to-indigo-100 pt-2">
+          <Button
+            onClick={salvarLeitura}
+            disabled={saving || !formData.leitura_atual}
+            className="w-full h-10 text-sm"
+            size="sm"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Salvar Leitura
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   )
