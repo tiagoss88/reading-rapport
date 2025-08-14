@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FileText, Search, Download, Eye, Plus } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog'
+import { FileText, Search, Download, Eye, Plus, X } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
@@ -41,6 +42,8 @@ export default function Leituras() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [novaLeituraOpen, setNovaLeituraOpen] = useState(false)
+  const [fotoLightboxOpen, setFotoLightboxOpen] = useState(false)
+  const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -133,6 +136,16 @@ export default function Leituras() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const abrirFotoLightbox = (fotoUrl: string) => {
+    setFotoSelecionada(fotoUrl)
+    setFotoLightboxOpen(true)
+  }
+
+  const fecharFotoLightbox = () => {
+    setFotoLightboxOpen(false)
+    setFotoSelecionada(null)
   }
 
   return (
@@ -258,19 +271,20 @@ export default function Leituras() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {leitura.foto_url ? (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => window.open(leitura.foto_url!, '_blank')}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </TableCell>
+                         <TableCell>
+                           {leitura.foto_url ? (
+                             <Button 
+                               variant="ghost" 
+                               size="icon"
+                               onClick={() => abrirFotoLightbox(leitura.foto_url!)}
+                               className="hover:bg-blue-100 hover:text-blue-600"
+                             >
+                               <Eye className="h-4 w-4" />
+                             </Button>
+                           ) : (
+                             <span className="text-muted-foreground text-sm">-</span>
+                           )}
+                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -279,6 +293,37 @@ export default function Leituras() {
           )}
         </CardContent>
       </Card>
+
+      {/* Lightbox para visualizar foto */}
+      <Dialog open={fotoLightboxOpen} onOpenChange={setFotoLightboxOpen}>
+        <DialogContent className="max-w-4xl w-full p-0 bg-transparent border-none shadow-none">
+          <div className="relative">
+            {/* Botão de fechar no canto superior esquerdo */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={fecharFotoLightbox}
+              className="absolute top-4 left-4 z-10 bg-black/50 hover:bg-black/70 text-white rounded-full"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            
+            {/* Imagem da foto */}
+            {fotoSelecionada && (
+              <div className="flex items-center justify-center min-h-[70vh]">
+                <img
+                  src={fotoSelecionada}
+                  alt="Foto do medidor"
+                  className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-scale-in"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg'
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <NovaLeituraDialog
         open={novaLeituraOpen}
