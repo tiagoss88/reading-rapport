@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Building2, Users, FileText, LogOut, Download, Eye } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Building2, Users, FileText, LogOut, Download, Eye, X } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
@@ -33,6 +34,9 @@ interface Leitura {
   tipo_observacao?: string
   foto_url?: string
   status_sincronizacao: string
+  cliente_id: string
+  consumo?: number
+  valor_fatura?: number
   clientes?: {
     identificacao_unidade: string
     nome?: string
@@ -49,6 +53,8 @@ export default function AreaCliente() {
   const [selectedMes, setSelectedMes] = useState<string>('')
   const [selectedAno, setSelectedAno] = useState<string>('')
   const [loadingLeituras, setLoadingLeituras] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string>('')
   const { user, signOut } = useAuth()
   const { toast } = useToast()
 
@@ -152,7 +158,41 @@ export default function AreaCliente() {
 
       if (error) throw error
 
-      setLeituras(data || [])
+      // Calcular consumo e valor da fatura para cada leitura
+      const leiturasComConsumo = await Promise.all((data || []).map(async (leitura) => {
+        // Buscar leitura anterior do mesmo cliente
+        const { data: leituraAnterior } = await supabase
+          .from('leituras')
+          .select('leitura_atual')
+          .eq('cliente_id', leitura.cliente_id)
+          .lt('data_leitura', leitura.data_leitura)
+          .order('data_leitura', { ascending: false })
+          .limit(1)
+
+        let consumo = 0
+        let valorFatura = 0
+
+        if (leituraAnterior && leituraAnterior.length > 0) {
+          consumo = leitura.leitura_atual - leituraAnterior[0].leitura_atual
+          
+          // Calcular valor da fatura baseado no tipo de gás
+          if (consumo > 0) {
+            if (empreendimento?.tipo_gas === 'GLP' && empreendimento.preco_kg_gas) {
+              valorFatura = consumo * empreendimento.preco_kg_gas
+            } else if (empreendimento?.tipo_gas === 'GN' && empreendimento.preco_m3_gas) {
+              valorFatura = consumo * empreendimento.preco_m3_gas
+            }
+          }
+        }
+
+        return {
+          ...leitura,
+          consumo,
+          valor_fatura: valorFatura
+        }
+      }))
+
+      setLeituras(leiturasComConsumo)
     } catch (error: any) {
       toast({
         title: "Erro ao carregar leituras",
@@ -182,6 +222,8 @@ export default function AreaCliente() {
       leitura.clientes?.identificacao_unidade || '',
       leitura.clientes?.nome || '',
       leitura.leitura_atual.toString(),
+      leitura.consumo?.toString() || '0',
+      `R$ ${(leitura.valor_fatura || 0).toFixed(2)}`,
       format(new Date(leitura.data_leitura), 'dd/MM/yyyy', { locale: ptBR }),
       leitura.observacao || '',
       leitura.operadores?.nome || '',
@@ -190,7 +232,7 @@ export default function AreaCliente() {
 
     // Generate table
     ;(doc as any).autoTable({
-      head: [['Unidade', 'Nome', 'Leitura', 'Data', 'Observação', 'Operador', 'Status']],
+      head: [['Unidade', 'Nome', 'Leitura', 'Consumo', 'Valor Fatura', 'Data', 'Observação', 'Operador', 'Status']],
       body: tableData,
       startY: 50,
       styles: {
@@ -224,6 +266,18 @@ export default function AreaCliente() {
     
     const variant = tipo === 'problema' ? 'destructive' : 'secondary'
     return <Badge variant={variant}>{observacao}</Badge>
+  }
+
+  const openLightbox = (imageUrl: string) => {
+    setSelectedImageUrl(imageUrl)
+    setLightboxOpen(true)
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
   }
 
   const handleSignOut = async () => {
@@ -426,6 +480,8 @@ export default function AreaCliente() {
                       <TableHead>Unidade</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Leitura</TableHead>
+                      <TableHead>Consumo</TableHead>
+                      <TableHead>Valor Fatura</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Observação</TableHead>
                       <TableHead>Operador</TableHead>
@@ -442,6 +498,16 @@ export default function AreaCliente() {
                         <TableCell>{leitura.clientes?.nome}</TableCell>
                         <TableCell>{leitura.leitura_atual}</TableCell>
                         <TableCell>
+                          <span className={leitura.consumo && leitura.consumo > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                            {leitura.consumo ? leitura.consumo.toFixed(2) : '0.00'} {empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={leitura.valor_fatura && leitura.valor_fatura > 0 ? 'text-blue-600 font-medium' : 'text-muted-foreground'}>
+                            {formatCurrency(leitura.valor_fatura || 0)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
                           {format(new Date(leitura.data_leitura), 'dd/MM/yyyy', { locale: ptBR })}
                         </TableCell>
                         <TableCell>
@@ -456,7 +522,7 @@ export default function AreaCliente() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(leitura.foto_url, '_blank')}
+                              onClick={() => openLightbox(leitura.foto_url!)}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -486,6 +552,32 @@ export default function AreaCliente() {
             )}
           </CardContent>
         </Card>
+
+        {/* Lightbox para fotos */}
+        <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-2">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Foto do Medidor</DialogTitle>
+            </DialogHeader>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-2 right-2 z-10 bg-black/50 text-white hover:bg-black/70"
+                onClick={() => setLightboxOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              {selectedImageUrl && (
+                <img
+                  src={selectedImageUrl}
+                  alt="Foto do medidor"
+                  className="w-full h-auto max-h-[80vh] object-contain rounded-lg"
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   )
