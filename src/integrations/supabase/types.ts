@@ -225,7 +225,7 @@ export type Database = {
           created_at: string
           data_agendamento: string
           empreendimento_id: string
-          hora_agendamento: string
+          hora_agendamento: string | null
           id: string
           observacoes: string | null
           operador_responsavel_id: string | null
@@ -238,7 +238,7 @@ export type Database = {
           created_at?: string
           data_agendamento: string
           empreendimento_id: string
-          hora_agendamento: string
+          hora_agendamento?: string | null
           id?: string
           observacoes?: string | null
           operador_responsavel_id?: string | null
@@ -251,7 +251,7 @@ export type Database = {
           created_at?: string
           data_agendamento?: string
           empreendimento_id?: string
-          hora_agendamento?: string
+          hora_agendamento?: string | null
           id?: string
           observacoes?: string | null
           operador_responsavel_id?: string | null

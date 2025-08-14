@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Textarea } from '@/components/ui/textarea'
-import { CalendarDays, Clock, Plus, Building2, Home, Check, ChevronsUpDown } from 'lucide-react'
+import { CalendarDays, Plus, Building2, Home, Check, ChevronsUpDown } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
@@ -154,7 +154,6 @@ export default function CriarServico() {
         empreendimento_id: '',
         cliente_id: '',
         data_agendamento: '',
-        hora_agendamento: '',
         observacoes: ''
       })
     } catch (error) {
@@ -302,32 +301,17 @@ export default function CriarServico() {
                 </Popover>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="data_agendamento" className="flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4" />
-                    Data do Agendamento
-                  </Label>
-                  <Input
-                    id="data_agendamento"
-                    type="date"
-                    value={formData.data_agendamento}
-                    onChange={(e) => setFormData({...formData, data_agendamento: e.target.value})}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="hora_agendamento" className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Horário
-                  </Label>
-                  <Input
-                    id="hora_agendamento"
-                    type="time"
-                    value={formData.hora_agendamento}
-                    onChange={(e) => setFormData({...formData, hora_agendamento: e.target.value})}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="data_agendamento" className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" />
+                  Data do Agendamento
+                </Label>
+                <Input
+                  id="data_agendamento"
+                  type="date"
+                  value={formData.data_agendamento}
+                  onChange={(e) => setFormData({...formData, data_agendamento: e.target.value})}
+                />
               </div>
 
               <div className="space-y-2">
