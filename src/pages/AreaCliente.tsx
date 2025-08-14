@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 interface EmpreendimentoData {
   id: string
@@ -314,7 +314,7 @@ export default function AreaCliente() {
     }))
 
     // Gerar tabela
-    ;(doc as any).autoTable({
+    autoTable(doc, {
       head: [['Data da Leitura', 'Unidade', 'Leitura Anterior', 'Leitura Atual', `Consumo (${empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'})`, 'Valor da Fatura']],
       body: tableData,
       startY: 95,
@@ -345,7 +345,7 @@ export default function AreaCliente() {
     const totalConsumo = leituras.reduce((sum, leitura) => sum + (leitura.consumo || 0), 0)
     const totalFatura = leituras.reduce((sum, leitura) => sum + (leitura.valor_fatura || 0), 0)
     
-    const finalY = (doc as any).lastAutoTable.finalY + 10
+    const finalY = (doc as any).autoTable.previous.finalY + 10
     doc.setFont('helvetica', 'bold')
     doc.text(`Total de Unidades: ${leituras.length}`, 15, finalY)
     doc.text(`Consumo Total: ${totalConsumo.toFixed(2)} ${empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'}`, 15, finalY + 8)
