@@ -64,6 +64,13 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex justify-center mb-6">
+            <img 
+              src="/lovable-uploads/892c54e7-3475-4c04-9684-1d8a666056d9.png" 
+              alt="Agasen Logo" 
+              className="h-20 w-auto object-contain"
+            />
+          </div>
           <CardTitle className="text-2xl font-bold">Sistema de Leituras de Gás</CardTitle>
           <CardDescription>
             Área administrativa do sistema ou acesso do empreendimento
