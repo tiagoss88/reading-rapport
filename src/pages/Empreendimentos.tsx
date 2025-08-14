@@ -237,7 +237,7 @@ export default function Empreendimentos() {
               Novo Empreendimento
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-4xl max-h-[95vh] overflow-hidden w-[95vw]">
             <DialogHeader>
               <DialogTitle>
                 {editingEmpreendimento ? 'Editar Empreendimento' : 'Novo Empreendimento'}
@@ -249,8 +249,8 @@ export default function Empreendimentos() {
                 }
               </DialogDescription>
             </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto pr-2">
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="max-h-[70vh] overflow-y-auto pr-2">
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
                   <Label htmlFor="nome">Nome *</Label>
                   <Input
@@ -291,16 +291,16 @@ export default function Empreendimentos() {
                      maxLength={18}
                    />
                 </div>
-               <div>
-                 <Label htmlFor="observacoes">Observações</Label>
-                 <Textarea
-                   id="observacoes"
-                   value={formData.observacoes}
-                   onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value.toUpperCase() }))}
-                   placeholder="INFORMAÇÕES ADICIONAIS SOBRE O EMPREENDIMENTO"
-                   rows={3}
-                 />
-               </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="observacoes">Observações</Label>
+                  <Textarea
+                    id="observacoes"
+                    value={formData.observacoes}
+                    onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value.toUpperCase() }))}
+                    placeholder="INFORMAÇÕES ADICIONAIS SOBRE O EMPREENDIMENTO"
+                    rows={3}
+                  />
+                </div>
                
                <div>
                  <Label htmlFor="tipo_gas">Tipo de Gás</Label>
@@ -362,7 +362,7 @@ export default function Empreendimentos() {
                  </div>
                )}
                
-               <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-background">
+               <div className="md:col-span-2 flex justify-end space-x-2 pt-4 sticky bottom-0 bg-background">
                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                    Cancelar
                  </Button>
