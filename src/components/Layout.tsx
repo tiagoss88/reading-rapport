@@ -9,7 +9,9 @@ import {
   FileText, 
   UserCheck,
   LogOut,
-  Menu
+  Menu,
+  Wrench,
+  ChevronDown
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -21,6 +23,7 @@ interface LayoutProps {
 export default function Layout({ children, title }: LayoutProps) {
   const { signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [servicosOpen, setServicosOpen] = useState(false)
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
@@ -28,6 +31,11 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Clientes', href: '/clientes', icon: Users },
     { name: 'Leituras', href: '/leituras', icon: FileText },
     { name: 'Operadores', href: '/operadores', icon: UserCheck },
+  ]
+
+  const servicosItems = [
+    { name: 'Criar Serviço', href: '/servicos/criar' },
+    { name: 'Agendamentos', href: '/servicos/agendamentos' }
   ]
 
   return (
@@ -71,6 +79,41 @@ export default function Layout({ children, title }: LayoutProps) {
                 {item.name}
               </NavLink>
             ))}
+            
+            {/* Serviços Dropdown */}
+            <div className="space-y-1">
+              <button
+                onClick={() => setServicosOpen(!servicosOpen)}
+                className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <div className="flex items-center">
+                  <Wrench className="mr-3 h-5 w-5 flex-shrink-0" />
+                  Serviços
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${servicosOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {servicosOpen && (
+                <div className="ml-8 space-y-1">
+                  {servicosItems.map((item) => (
+                    <NavLink
+                      key={item.name}
+                      to={item.href}
+                      className={({ isActive }) =>
+                        `block px-3 py-2 text-sm rounded-md transition-colors ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        }`
+                      }
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      {item.name}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </nav>
         <div className="p-4 border-t">

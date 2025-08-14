@@ -9,6 +9,8 @@ import Empreendimentos from '@/pages/Empreendimentos'
 import Clientes from '@/pages/Clientes'
 import Leituras from '@/pages/Leituras'
 import Operadores from '@/pages/Operadores'
+import CriarServico from '@/pages/CriarServico'
+import Agendamentos from '@/pages/Agendamentos'
 import OperadorApp from '@/pages/OperadorApp'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
@@ -78,6 +80,16 @@ const App = () => (
               <Route path="/operadores" element={
                 <ProtectedRoute>
                   <Operadores />
+                </ProtectedRoute>
+              } />
+              <Route path="/servicos/criar" element={
+                <ProtectedRoute>
+                  <CriarServico />
+                </ProtectedRoute>
+              } />
+              <Route path="/servicos/agendamentos" element={
+                <ProtectedRoute>
+                  <Agendamentos />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
