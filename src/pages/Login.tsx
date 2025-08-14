@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Building2, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 
@@ -65,14 +66,20 @@ export default function Login() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Sistema de Leituras de Gás</CardTitle>
           <CardDescription>
-            Faça login ou crie uma conta para acessar o sistema
+            Área administrativa do sistema ou acesso do empreendimento
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Cadastro</TabsTrigger>
+              <TabsTrigger value="login">
+                <Users className="mr-2 h-4 w-4" />
+                Administração
+              </TabsTrigger>
+              <TabsTrigger value="empreendimento">
+                <Building2 className="mr-2 h-4 w-4" />
+                Empreendimento
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -103,43 +110,21 @@ export default function Login() {
               </form>
             </TabsContent>
             
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-nome">Nome</Label>
-                  <Input
-                    id="signup-nome"
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    required
-                  />
+            <TabsContent value="empreendimento">
+              <div className="space-y-4 text-center">
+                <div className="py-8">
+                  <Building2 className="h-16 w-16 text-primary mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Área do Cliente</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Acesso exclusivo para administradores e síndicos de empreendimentos
+                  </p>
+                  <Link to="/empreendimento/login">
+                    <Button className="w-full">
+                      Acessar Área do Cliente
+                    </Button>
+                  </Link>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Cadastrando..." : "Criar Conta"}
-                </Button>
-              </form>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
