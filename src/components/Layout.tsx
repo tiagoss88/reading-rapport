@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
+import ProfileDialog from '@/components/ProfileDialog'
 import { 
   Home, 
   Building2, 
@@ -34,7 +35,14 @@ export default function Layout({ children, title }: LayoutProps) {
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-16 items-center justify-between px-6 border-b">
-          <h1 className="text-lg font-semibold">Sistema de Leituras</h1>
+          <div className="flex items-center gap-3">
+            <img 
+              src="/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png" 
+              alt="Agasen Logo" 
+              className="h-8 w-auto object-contain"
+            />
+            <h1 className="text-lg font-semibold">Sistema de Leituras</h1>
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -99,6 +107,9 @@ export default function Layout({ children, title }: LayoutProps) {
               <Menu className="h-5 w-5" />
             </Button>
             <h2 className="text-xl font-semibold">{title}</h2>
+          </div>
+          <div className="flex items-center">
+            <ProfileDialog />
           </div>
         </header>
         
