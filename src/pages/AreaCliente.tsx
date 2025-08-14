@@ -217,48 +217,141 @@ export default function AreaCliente() {
     }
   }
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     if (!leituras.length) return
 
     const competenciaLabel = `${meses.find(m => m.value === selectedMes)?.label}/${selectedAno}`
     const doc = new jsPDF()
     
-    // Header
-    doc.setFontSize(16)
-    doc.text(`Relatório de Leituras - ${empreendimento?.nome}`, 20, 20)
+    // Adicionar logotipo
+    try {
+      const logoPath = '/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png'
+      const logoImg = new Image()
+      logoImg.crossOrigin = 'anonymous'
+      
+      await new Promise((resolve, reject) => {
+        logoImg.onload = () => {
+          // Adicionar logo no canto superior esquerdo
+          doc.addImage(logoImg, 'PNG', 15, 10, 30, 15)
+          resolve(true)
+        }
+        logoImg.onerror = () => resolve(false) // Continua mesmo se não conseguir carregar o logo
+        logoImg.src = logoPath
+      })
+    } catch (error) {
+      console.warn('Não foi possível carregar o logotipo:', error)
+    }
+
+    // Cabeçalho com dados do empreendimento
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RELATÓRIO DE LEITURAS', 105, 20, { align: 'center' })
+    
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text(empreendimento?.nome || '', 105, 32, { align: 'center' })
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(empreendimento?.endereco || '', 105, 40, { align: 'center' })
+    
+    if (empreendimento?.cnpj) {
+      doc.text(`CNPJ: ${empreendimento.cnpj}`, 105, 46, { align: 'center' })
+    }
+    
+    if (empreendimento?.email) {
+      doc.text(`Email: ${empreendimento.email}`, 105, 52, { align: 'center' })
+    }
+
+    // Linha separadora
+    doc.setLineWidth(0.5)
+    doc.line(15, 58, 195, 58)
+
+    // Informações do relatório
     doc.setFontSize(12)
-    doc.text(`Competência: ${competenciaLabel}`, 20, 30)
-    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, 20, 40)
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Competência: ${competenciaLabel}`, 15, 68)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, 15, 76)
+    
+    if (empreendimento?.tipo_gas) {
+      doc.text(`Tipo de Gás: ${empreendimento.tipo_gas}`, 15, 84)
+    }
 
-    // Table data
-    const tableData = leituras.map(leitura => [
-      leitura.clientes?.identificacao_unidade || '',
-      leitura.clientes?.nome || '',
-      leitura.leitura_atual.toString(),
-      leitura.consumo?.toString() || '0',
-      `R$ ${(leitura.valor_fatura || 0).toFixed(2)}`,
-      format(new Date(leitura.data_leitura), 'dd/MM/yyyy', { locale: ptBR }),
-      leitura.observacao || '',
-      leitura.operadores?.nome || '',
-      leitura.status_sincronizacao
-    ])
+    // Preparar dados da tabela com leitura anterior
+    const tableData = await Promise.all(leituras.map(async (leitura) => {
+      // Buscar leitura anterior
+      const { data: leituraAnterior } = await supabase
+        .from('leituras')
+        .select('leitura_atual')
+        .eq('cliente_id', leitura.cliente_id)
+        .lt('data_leitura', leitura.data_leitura)
+        .order('data_leitura', { ascending: false })
+        .limit(1)
 
-    // Generate table
+      // Buscar leitura inicial do cliente
+      const { data: clienteData } = await supabase
+        .from('clientes')
+        .select('leitura_inicial')
+        .eq('id', leitura.cliente_id)
+        .single()
+
+      let leituraAnteriorValor = '0'
+      if (leituraAnterior && leituraAnterior.length > 0) {
+        leituraAnteriorValor = leituraAnterior[0].leitura_atual.toString()
+      } else if (clienteData?.leitura_inicial !== undefined) {
+        leituraAnteriorValor = clienteData.leitura_inicial.toString()
+      }
+
+      return [
+        format(new Date(leitura.data_leitura), 'dd/MM/yyyy', { locale: ptBR }),
+        leitura.clientes?.identificacao_unidade || '',
+        leituraAnteriorValor,
+        leitura.leitura_atual.toString(),
+        (leitura.consumo || 0).toFixed(2),
+        `R$ ${(leitura.valor_fatura || 0).toFixed(2)}`
+      ]
+    }))
+
+    // Gerar tabela
     ;(doc as any).autoTable({
-      head: [['Unidade', 'Nome', 'Leitura', 'Consumo', 'Valor Fatura', 'Data', 'Observação', 'Operador', 'Status']],
+      head: [['Data da Leitura', 'Unidade', 'Leitura Anterior', 'Leitura Atual', `Consumo (${empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'})`, 'Valor da Fatura']],
       body: tableData,
-      startY: 50,
+      startY: 95,
       styles: {
-        fontSize: 8,
-        cellPadding: 2
+        fontSize: 9,
+        cellPadding: 3,
+        halign: 'center'
       },
       headStyles: {
-        fillColor: [64, 64, 64],
-        textColor: 255
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      columnStyles: {
+        0: { halign: 'center' }, // Data
+        1: { halign: 'center' }, // Unidade
+        2: { halign: 'right' },  // Leitura Anterior
+        3: { halign: 'right' },  // Leitura Atual
+        4: { halign: 'right' },  // Consumo
+        5: { halign: 'right' }   // Valor
       }
     })
 
-    doc.save(`leituras-${empreendimento?.nome}-${selectedMes}-${selectedAno}.pdf`)
+    // Rodapé com totais
+    const totalConsumo = leituras.reduce((sum, leitura) => sum + (leitura.consumo || 0), 0)
+    const totalFatura = leituras.reduce((sum, leitura) => sum + (leitura.valor_fatura || 0), 0)
+    
+    const finalY = (doc as any).lastAutoTable.finalY + 10
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Total de Unidades: ${leituras.length}`, 15, finalY)
+    doc.text(`Consumo Total: ${totalConsumo.toFixed(2)} ${empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'}`, 15, finalY + 8)
+    doc.text(`Valor Total das Faturas: R$ ${totalFatura.toFixed(2)}`, 15, finalY + 16)
+
+    doc.save(`relatorio-leituras-${empreendimento?.nome}-${selectedMes}-${selectedAno}.pdf`)
   }
 
   const getStatusBadge = (status: string) => {
