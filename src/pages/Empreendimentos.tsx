@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Building2, Edit, Trash2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { formatCNPJ, removeMask } from '@/lib/formatters'
 
 interface Empreendimento {
   id: string
@@ -74,7 +75,7 @@ export default function Empreendimentos() {
     const dataToSubmit = {
       nome: formData.nome,
       endereco: formData.endereco,
-      cnpj: formData.cnpj || null,
+      cnpj: formData.cnpj ? removeMask(formData.cnpj) : null,
       observacoes: formData.observacoes || null,
       tipo_gas: formData.tipo_gas || null,
       fator_conversao: formData.fator_conversao ? parseFloat(formData.fator_conversao) : null,
@@ -151,7 +152,7 @@ export default function Empreendimentos() {
     setFormData({
       nome: empreendimento.nome,
       endereco: empreendimento.endereco,
-      cnpj: empreendimento.cnpj || '',
+      cnpj: empreendimento.cnpj ? formatCNPJ(empreendimento.cnpj) : '',
       observacoes: empreendimento.observacoes || '',
       tipo_gas: empreendimento.tipo_gas || '',
       fator_conversao: empreendimento.fator_conversao?.toString() || '',
@@ -227,12 +228,13 @@ export default function Empreendimentos() {
               </div>
               <div>
                 <Label htmlFor="cnpj">CNPJ</Label>
-                <Input
-                  id="cnpj"
-                  value={formData.cnpj}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cnpj: e.target.value }))}
-                  placeholder="Ex: 12.345.678/0001-90"
-                />
+                 <Input
+                   id="cnpj"
+                   value={formData.cnpj}
+                   onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCNPJ(e.target.value) }))}
+                   placeholder="Ex: 12.345.678/0001-90"
+                   maxLength={18}
+                 />
               </div>
               <div>
                 <Label htmlFor="observacoes">Observações</Label>
@@ -372,7 +374,7 @@ export default function Empreendimentos() {
                         '-'
                       }
                     </TableCell>
-                    <TableCell>{empreendimento.cnpj || '-'}</TableCell>
+                    <TableCell>{empreendimento.cnpj ? formatCNPJ(empreendimento.cnpj) : '-'}</TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
                         <Button

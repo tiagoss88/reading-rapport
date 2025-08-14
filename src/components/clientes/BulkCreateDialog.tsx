@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Upload, FileText, X } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { formatCPF, removeMask } from '@/lib/formatters'
 
 interface Empreendimento {
   id: string
@@ -132,6 +133,7 @@ export default function BulkCreateDialog({ open, onOpenChange, empreendimentos, 
 
       const clientsToInsert = clientsData.map(client => ({
         ...client,
+        cpf: client.cpf ? removeMask(client.cpf) : null,
         empreendimento_id: selectedEmpreendimento
       }))
 

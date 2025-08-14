@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { formatCPF } from '@/lib/formatters'
 
 interface Cliente {
   id: string
@@ -113,7 +114,10 @@ export default function ClienteHistorico({ open, onOpenChange, cliente }: Client
           <DialogDescription>
             {cliente.identificacao_unidade} - {cliente.empreendimentos?.nome}
             {cliente.nome && (
-              <span className="block text-sm">Cliente: {cliente.nome}</span>
+              <span className="block text-sm">
+                Cliente: {cliente.nome}
+                {cliente.cpf && <span> • CPF: {formatCPF(cliente.cpf)}</span>}
+              </span>
             )}
           </DialogDescription>
         </DialogHeader>

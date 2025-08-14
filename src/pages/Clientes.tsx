@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Plus, Users, Edit, Trash2, Upload, History } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { formatCPF, removeMask } from '@/lib/formatters'
 import BulkCreateDialog from '@/components/clientes/BulkCreateDialog'
 import ClienteHistorico from '@/components/clientes/ClienteHistorico'
 
@@ -93,9 +94,13 @@ export default function Clientes() {
     
     try {
       if (editingCliente) {
+        const dataToUpdate = {
+          ...formData,
+          cpf: formData.cpf ? removeMask(formData.cpf) : null
+        }
         const { error } = await supabase
           .from('clientes')
-          .update(formData)
+          .update(dataToUpdate)
           .eq('id', editingCliente.id)
 
         if (error) throw error
@@ -105,9 +110,13 @@ export default function Clientes() {
           description: "As alterações foram salvas com sucesso.",
         })
       } else {
+        const dataToInsert = {
+          ...formData,
+          cpf: formData.cpf ? removeMask(formData.cpf) : null
+        }
         const { error } = await supabase
           .from('clientes')
-          .insert([formData])
+          .insert([dataToInsert])
 
         if (error) throw error
         
@@ -160,7 +169,7 @@ export default function Clientes() {
     setFormData({
       identificacao_unidade: cliente.identificacao_unidade,
       nome: cliente.nome || '',
-      cpf: cliente.cpf || '',
+      cpf: cliente.cpf ? formatCPF(cliente.cpf) : '',
       status: cliente.status,
       empreendimento_id: cliente.empreendimento_id
     })
@@ -273,9 +282,10 @@ export default function Clientes() {
                 <Label htmlFor="cpf">CPF</Label>
                 <Input
                   id="cpf"
-                  value={formData.cpf}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cpf: e.target.value }))}
-                  placeholder="Ex: 123.456.789-00"
+                   value={formData.cpf}
+                   onChange={(e) => setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
+                   placeholder="Ex: 123.456.789-00"
+                   maxLength={14}
                 />
               </div>
               <div>
@@ -352,8 +362,8 @@ export default function Clientes() {
                     <TableCell>
                       {cliente.nome || '-'}
                     </TableCell>
-                    <TableCell>
-                      {cliente.cpf || '-'}
+                     <TableCell>
+                       {cliente.cpf ? formatCPF(cliente.cpf) : '-'}
                     </TableCell>
                     <TableCell>
                       {cliente.empreendimentos?.nome || 'N/A'}
