@@ -247,23 +247,23 @@ export default function Empreendimentos() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="nome">Nome *</Label>
-                <Input
-                  id="nome"
-                  value={formData.nome}
-                  onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                  placeholder="Ex: Condomínio Jardim das Flores"
-                  required
-                />
-              </div>
+               <div>
+                 <Label htmlFor="nome">Nome *</Label>
+                 <Input
+                   id="nome"
+                   value={formData.nome}
+                   onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value.toUpperCase() }))}
+                   placeholder="Ex: CONDOMÍNIO JARDIM DAS FLORES"
+                   required
+                 />
+               </div>
                <div>
                  <Label htmlFor="endereco">Endereço *</Label>
                  <Input
                    id="endereco"
                    value={formData.endereco}
-                   onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value }))}
-                   placeholder="Ex: Rua das Flores, 123 - Centro"
+                   onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value.toUpperCase() }))}
+                   placeholder="Ex: RUA DAS FLORES, 123 - CENTRO"
                    required
                  />
                </div>
@@ -292,8 +292,8 @@ export default function Empreendimentos() {
                 <Textarea
                   id="observacoes"
                   value={formData.observacoes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
-                  placeholder="Informações adicionais sobre o empreendimento"
+                  onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value.toUpperCase() }))}
+                  placeholder="INFORMAÇÕES ADICIONAIS SOBRE O EMPREENDIMENTO"
                   rows={3}
                 />
               </div>
