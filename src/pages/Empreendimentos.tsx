@@ -237,7 +237,7 @@ export default function Empreendimentos() {
               Novo Empreendimento
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingEmpreendimento ? 'Editar Empreendimento' : 'Novo Empreendimento'}
@@ -249,127 +249,129 @@ export default function Empreendimentos() {
                 }
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-               <div>
-                 <Label htmlFor="nome">Nome *</Label>
-                 <Input
-                   id="nome"
-                   value={formData.nome}
-                   onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value.toUpperCase() }))}
-                   placeholder="Ex: CONDOMÍNIO JARDIM DAS FLORES"
-                   required
-                 />
-               </div>
-               <div>
-                 <Label htmlFor="endereco">Endereço *</Label>
-                 <Input
-                   id="endereco"
-                   value={formData.endereco}
-                   onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value.toUpperCase() }))}
-                   placeholder="Ex: RUA DAS FLORES, 123 - CENTRO"
-                   required
-                 />
-               </div>
-               <div>
-                 <Label htmlFor="email">Email (para acesso do cliente)</Label>
-                 <Input
-                   id="email"
-                   type="email"
-                   value={formData.email}
-                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                   placeholder="Ex: admin@empreendimento.com.br"
-                 />
-               </div>
-               <div>
-                 <Label htmlFor="cnpj">CNPJ (será usado como senha)</Label>
-                  <Input
-                    id="cnpj"
-                    value={formData.cnpj}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCNPJ(e.target.value) }))}
-                    placeholder="Ex: 12.345.678/0001-90"
-                    maxLength={18}
-                  />
-               </div>
-              <div>
-                <Label htmlFor="observacoes">Observações</Label>
-                <Textarea
-                  id="observacoes"
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value.toUpperCase() }))}
-                  placeholder="INFORMAÇÕES ADICIONAIS SOBRE O EMPREENDIMENTO"
-                  rows={3}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="tipo_gas">Tipo de Gás</Label>
-                <Select 
-                  value={formData.tipo_gas} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_gas: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo de gás" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="GN">GN - Gás Natural</SelectItem>
-                    <SelectItem value="GLP">GLP - Gás Liquefeito de Petróleo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formData.tipo_gas === 'GLP' && (
-                <>
-                  <div>
-                    <Label htmlFor="fator_conversao">Fator de Conversão *</Label>
-                    <Input
-                      id="fator_conversao"
-                      type="number"
-                      step="0.0001"
-                      value={formData.fator_conversao}
-                      onChange={(e) => setFormData(prev => ({ ...prev, fator_conversao: e.target.value }))}
-                      placeholder="Ex: 0.5000"
-                      required={formData.tipo_gas === 'GLP'}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="preco_kg_gas">Preço por Kg do Gás (R$) *</Label>
-                    <Input
-                      id="preco_kg_gas"
-                      type="number"
-                      step="0.01"
-                      value={formData.preco_kg_gas}
-                      onChange={(e) => setFormData(prev => ({ ...prev, preco_kg_gas: e.target.value }))}
-                      placeholder="Ex: 6.50"
-                      required={formData.tipo_gas === 'GLP'}
-                    />
-                  </div>
-                </>
-              )}
-
-              {formData.tipo_gas === 'GN' && (
+            <div className="max-h-[60vh] overflow-y-auto pr-2">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="preco_m3_gas">Preço por m³ do Gás (R$) *</Label>
+                  <Label htmlFor="nome">Nome *</Label>
                   <Input
-                    id="preco_m3_gas"
-                    type="number"
-                    step="0.01"
-                    value={formData.preco_m3_gas}
-                    onChange={(e) => setFormData(prev => ({ ...prev, preco_m3_gas: e.target.value }))}
-                    placeholder="Ex: 2.30"
-                    required={formData.tipo_gas === 'GN'}
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value.toUpperCase() }))}
+                    placeholder="Ex: CONDOMÍNIO JARDIM DAS FLORES"
+                    required
                   />
                 </div>
-              )}
-              
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingEmpreendimento ? 'Atualizar' : 'Criar'}
-                </Button>
-              </div>
-            </form>
+                <div>
+                  <Label htmlFor="endereco">Endereço *</Label>
+                  <Input
+                    id="endereco"
+                    value={formData.endereco}
+                    onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value.toUpperCase() }))}
+                    placeholder="Ex: RUA DAS FLORES, 123 - CENTRO"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email (para acesso do cliente)</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="Ex: admin@empreendimento.com.br"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cnpj">CNPJ (será usado como senha)</Label>
+                   <Input
+                     id="cnpj"
+                     value={formData.cnpj}
+                     onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCNPJ(e.target.value) }))}
+                     placeholder="Ex: 12.345.678/0001-90"
+                     maxLength={18}
+                   />
+                </div>
+               <div>
+                 <Label htmlFor="observacoes">Observações</Label>
+                 <Textarea
+                   id="observacoes"
+                   value={formData.observacoes}
+                   onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value.toUpperCase() }))}
+                   placeholder="INFORMAÇÕES ADICIONAIS SOBRE O EMPREENDIMENTO"
+                   rows={3}
+                 />
+               </div>
+               
+               <div>
+                 <Label htmlFor="tipo_gas">Tipo de Gás</Label>
+                 <Select 
+                   value={formData.tipo_gas} 
+                   onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_gas: value }))}
+                 >
+                   <SelectTrigger>
+                     <SelectValue placeholder="Selecione o tipo de gás" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="GN">GN - Gás Natural</SelectItem>
+                     <SelectItem value="GLP">GLP - Gás Liquefeito de Petróleo</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
+
+               {formData.tipo_gas === 'GLP' && (
+                 <>
+                   <div>
+                     <Label htmlFor="fator_conversao">Fator de Conversão *</Label>
+                     <Input
+                       id="fator_conversao"
+                       type="number"
+                       step="0.0001"
+                       value={formData.fator_conversao}
+                       onChange={(e) => setFormData(prev => ({ ...prev, fator_conversao: e.target.value }))}
+                       placeholder="Ex: 0.5000"
+                       required={formData.tipo_gas === 'GLP'}
+                     />
+                   </div>
+                   <div>
+                     <Label htmlFor="preco_kg_gas">Preço por Kg do Gás (R$) *</Label>
+                     <Input
+                       id="preco_kg_gas"
+                       type="number"
+                       step="0.01"
+                       value={formData.preco_kg_gas}
+                       onChange={(e) => setFormData(prev => ({ ...prev, preco_kg_gas: e.target.value }))}
+                       placeholder="Ex: 6.50"
+                       required={formData.tipo_gas === 'GLP'}
+                     />
+                   </div>
+                 </>
+               )}
+
+               {formData.tipo_gas === 'GN' && (
+                 <div>
+                   <Label htmlFor="preco_m3_gas">Preço por m³ do Gás (R$) *</Label>
+                   <Input
+                     id="preco_m3_gas"
+                     type="number"
+                     step="0.01"
+                     value={formData.preco_m3_gas}
+                     onChange={(e) => setFormData(prev => ({ ...prev, preco_m3_gas: e.target.value }))}
+                     placeholder="Ex: 2.30"
+                     required={formData.tipo_gas === 'GN'}
+                   />
+                 </div>
+               )}
+               
+               <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-background">
+                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                   Cancelar
+                 </Button>
+                 <Button type="submit">
+                   {editingEmpreendimento ? 'Atualizar' : 'Criar'}
+                 </Button>
+               </div>
+             </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
