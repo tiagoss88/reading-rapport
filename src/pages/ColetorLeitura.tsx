@@ -35,6 +35,26 @@ export default function ColetorLeitura() {
   const cliente = location.state?.cliente as Cliente
   const empreendimento = location.state?.empreendimento as Empreendimento
 
+  // Redirect if no data is available
+  if (!cliente || !empreendimento) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-md mx-auto">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <p className="text-gray-600 mb-4">Dados não encontrados</p>
+                <Button onClick={() => navigate('/coletor')}>
+                  Voltar ao Início
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   const [formData, setFormData] = useState({
     leitura_atual: '',
     observacao: '',
