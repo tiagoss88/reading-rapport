@@ -17,6 +17,7 @@ interface Empreendimento {
   id: string
   nome: string
   endereco: string
+  email?: string
   cnpj?: string
   observacoes?: string
   tipo_gas?: string
@@ -35,6 +36,7 @@ export default function Empreendimentos() {
   const [formData, setFormData] = useState({
     nome: '',
     endereco: '',
+    email: '',
     cnpj: '',
     observacoes: '',
     tipo_gas: '',
@@ -75,6 +77,7 @@ export default function Empreendimentos() {
     const dataToSubmit = {
       nome: formData.nome,
       endereco: formData.endereco,
+      email: formData.email || null,
       cnpj: formData.cnpj ? removeMask(formData.cnpj) : null,
       observacoes: formData.observacoes || null,
       tipo_gas: formData.tipo_gas || null,
@@ -97,16 +100,52 @@ export default function Empreendimentos() {
           description: "As alterações foram salvas com sucesso.",
         })
       } else {
-        const { error } = await supabase
+        const { data: insertedData, error } = await supabase
           .from('empreendimentos')
           .insert([dataToSubmit])
+          .select()
+          .single()
 
         if (error) throw error
         
-        toast({
-          title: "Empreendimento criado!",
-          description: "O novo empreendimento foi adicionado com sucesso.",
-        })
+        // Criar usuário para o empreendimento se email e CNPJ foram fornecidos
+        if (formData.email && formData.cnpj) {
+          try {
+            const response = await supabase.functions.invoke('create-empreendimento-user', {
+              body: {
+                email: formData.email,
+                cnpj: removeMask(formData.cnpj),
+                empreendimento_id: insertedData.id
+              }
+            })
+
+            if (response.error) {
+              console.error('Erro ao criar usuário:', response.error)
+              toast({
+                title: "Empreendimento criado com aviso",
+                description: "Empreendimento criado, mas houve erro ao criar credenciais de acesso.",
+                variant: "default",
+              })
+            } else {
+              toast({
+                title: "Empreendimento criado!",
+                description: "Empreendimento criado com sucesso. Credenciais de acesso: Email como login e CNPJ como senha.",
+              })
+            }
+          } catch (userError) {
+            console.error('Erro ao criar usuário:', userError)
+            toast({
+              title: "Empreendimento criado com aviso",
+              description: "Empreendimento criado, mas houve erro ao criar credenciais de acesso.",
+              variant: "default",
+            })
+          }
+        } else {
+          toast({
+            title: "Empreendimento criado!",
+            description: "O novo empreendimento foi adicionado com sucesso.",
+          })
+        }
       }
 
       fetchEmpreendimentos()
@@ -152,6 +191,7 @@ export default function Empreendimentos() {
     setFormData({
       nome: empreendimento.nome,
       endereco: empreendimento.endereco,
+      email: empreendimento.email || '',
       cnpj: empreendimento.cnpj ? formatCNPJ(empreendimento.cnpj) : '',
       observacoes: empreendimento.observacoes || '',
       tipo_gas: empreendimento.tipo_gas || '',
@@ -167,6 +207,7 @@ export default function Empreendimentos() {
     setFormData({
       nome: '',
       endereco: '',
+      email: '',
       cnpj: '',
       observacoes: '',
       tipo_gas: '',
@@ -216,26 +257,36 @@ export default function Empreendimentos() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="endereco">Endereço *</Label>
-                <Input
-                  id="endereco"
-                  value={formData.endereco}
-                  onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value }))}
-                  placeholder="Ex: Rua das Flores, 123 - Centro"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="cnpj">CNPJ</Label>
+               <div>
+                 <Label htmlFor="endereco">Endereço *</Label>
                  <Input
-                   id="cnpj"
-                   value={formData.cnpj}
-                   onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCNPJ(e.target.value) }))}
-                   placeholder="Ex: 12.345.678/0001-90"
-                   maxLength={18}
+                   id="endereco"
+                   value={formData.endereco}
+                   onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value }))}
+                   placeholder="Ex: Rua das Flores, 123 - Centro"
+                   required
                  />
-              </div>
+               </div>
+               <div>
+                 <Label htmlFor="email">Email (para acesso do cliente)</Label>
+                 <Input
+                   id="email"
+                   type="email"
+                   value={formData.email}
+                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                   placeholder="Ex: admin@empreendimento.com.br"
+                 />
+               </div>
+               <div>
+                 <Label htmlFor="cnpj">CNPJ (será usado como senha)</Label>
+                  <Input
+                    id="cnpj"
+                    value={formData.cnpj}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cnpj: formatCNPJ(e.target.value) }))}
+                    placeholder="Ex: 12.345.678/0001-90"
+                    maxLength={18}
+                  />
+               </div>
               <div>
                 <Label htmlFor="observacoes">Observações</Label>
                 <Textarea

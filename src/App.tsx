@@ -15,6 +15,8 @@ import ColetorMenu from '@/pages/ColetorMenu'
 import ColetorSync from '@/pages/ColetorSync'
 import ColetorUnidades from '@/pages/ColetorUnidades'
 import ColetorLeitura from '@/pages/ColetorLeitura'
+import EmpreendimentoLogin from '@/pages/EmpreendimentoLogin'
+import AreaCliente from '@/pages/AreaCliente'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ColetorProtectedRoute from '@/components/ColetorProtectedRoute'
 import NotFound from "./pages/NotFound";
@@ -29,6 +31,8 @@ const App = () => (
           <div className="min-h-screen bg-background">
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/empreendimento/login" element={<EmpreendimentoLogin />} />
+              <Route path="/area-cliente" element={<AreaCliente />} />
               <Route path="/operador" element={<OperadorApp />} />
               <Route path="/coletor/login" element={<ColetorLogin />} />
               <Route path="/coletor" element={

@@ -55,10 +55,43 @@ export type Database = {
           },
         ]
       }
+      empreendimento_users: {
+        Row: {
+          created_at: string
+          empreendimento_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empreendimento_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empreendimento_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empreendimento_users_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: true
+            referencedRelation: "empreendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empreendimentos: {
         Row: {
           cnpj: string | null
           created_at: string
+          email: string | null
           endereco: string
           fator_conversao: number | null
           id: string
@@ -72,6 +105,7 @@ export type Database = {
         Insert: {
           cnpj?: string | null
           created_at?: string
+          email?: string | null
           endereco: string
           fator_conversao?: number | null
           id?: string
@@ -85,6 +119,7 @@ export type Database = {
         Update: {
           cnpj?: string | null
           created_at?: string
+          email?: string | null
           endereco?: string
           fator_conversao?: number | null
           id?: string
