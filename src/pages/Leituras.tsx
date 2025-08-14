@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog'
 import { FileText, Search, Download, Eye, Plus, X } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
@@ -44,6 +48,7 @@ export default function Leituras() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [clienteFilter, setClienteFilter] = useState('')
+  const [clienteOpen, setClienteOpen] = useState(false)
   const [novaLeituraOpen, setNovaLeituraOpen] = useState(false)
   const [fotoLightboxOpen, setFotoLightboxOpen] = useState(false)
   const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
@@ -223,20 +228,67 @@ export default function Leituras() {
                 <Label htmlFor="cliente-filter" className="text-sm font-medium mb-2 block">
                   Cliente
                 </Label>
-                <Select value={clienteFilter} onValueChange={setClienteFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os clientes</SelectItem>
-                    {clientes.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'} 
-                        {cliente.empreendimentos && ` (${cliente.empreendimentos.nome})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={clienteOpen} onOpenChange={setClienteOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clienteOpen}
+                      className="w-full justify-between"
+                    >
+                      {clienteFilter
+                        ? clientes.find((cliente) => cliente.id === clienteFilter)
+                            ? `${clientes.find((cliente) => cliente.id === clienteFilter)?.identificacao_unidade} - ${clientes.find((cliente) => cliente.id === clienteFilter)?.nome || 'Sem nome'}`
+                            : "Selecione um cliente"
+                        : "Selecione um cliente"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Digite para buscar clientes..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="todos"
+                            onSelect={() => {
+                              setClienteFilter("")
+                              setClienteOpen(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                clienteFilter === "" ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            Todos os clientes
+                          </CommandItem>
+                          {clientes.map((cliente) => (
+                            <CommandItem
+                              key={cliente.id}
+                              value={`${cliente.identificacao_unidade} ${cliente.nome || ''} ${cliente.empreendimentos?.nome || ''}`}
+                              onSelect={() => {
+                                setClienteFilter(cliente.id)
+                                setClienteOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  clienteFilter === cliente.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'}
+                              {cliente.empreendimentos && ` (${cliente.empreendimentos.nome})`}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Filtro de Status */}
