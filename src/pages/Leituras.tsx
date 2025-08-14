@@ -246,7 +246,7 @@ export default function Leituras() {
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
-                      <CommandInput placeholder="Digite para buscar clientes..." />
+                      <CommandInput placeholder="Digite para buscar por cliente ou empreendimento..." />
                       <CommandList>
                         <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
                         <CommandGroup>
