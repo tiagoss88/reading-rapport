@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, MapPin, User, Wrench, Filter } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Calendar, Clock, MapPin, User, Wrench, Filter, MoreHorizontal } from 'lucide-react'
 import Layout from '@/components/Layout'
 
 // Mock data for demonstration
@@ -140,75 +142,104 @@ export default function Agendamentos() {
           </CardContent>
         </Card>
 
-        {/* Lista de Agendamentos */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {agendamentosFiltrados.map((agendamento) => (
-            <Card key={agendamento.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Wrench className="h-4 w-4" />
+        {/* Tabela de Agendamentos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Lista de Agendamentos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo de Serviço</TableHead>
+                  <TableHead>Cliente/Unidade</TableHead>
+                  <TableHead>Data e Hora</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Observações</TableHead>
+                  <TableHead className="w-12">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {agendamentosFiltrados.map((agendamento) => (
+                  <TableRow key={agendamento.id}>
+                    <TableCell className="font-medium">
                       {agendamento.tipo_servico}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {agendamento.cliente}
-                    </CardDescription>
-                  </div>
-                  <Badge className={getStatusColor(agendamento.status)}>
-                    {getStatusLabel(agendamento.status)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>{new Date(agendamento.data).toLocaleDateString('pt-BR')}</span>
-                    <Clock className="h-4 w-4 ml-2" />
-                    <span>{agendamento.hora}</span>
-                  </div>
-                  
-                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span>{agendamento.endereco}</span>
-                  </div>
-                </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">{agendamento.cliente}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {agendamento.endereco}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-sm">
+                          <Calendar className="h-3 w-3" />
+                          {new Date(agendamento.data).toLocaleDateString('pt-BR')}
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {agendamento.hora}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(agendamento.status)}>
+                        {getStatusLabel(agendamento.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-xs">
+                      {agendamento.observacoes && (
+                        <div className="text-sm text-muted-foreground truncate">
+                          {agendamento.observacoes}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            Editar
+                          </DropdownMenuItem>
+                          {agendamento.status === 'agendado' && (
+                            <DropdownMenuItem>
+                              Iniciar Serviço
+                            </DropdownMenuItem>
+                          )}
+                          {agendamento.status === 'em_andamento' && (
+                            <DropdownMenuItem>
+                              Finalizar Serviço
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem className="text-red-600">
+                            Cancelar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
 
-                {agendamento.observacoes && (
-                  <div className="bg-muted/50 rounded-md p-3">
-                    <p className="text-sm">{agendamento.observacoes}</p>
-                  </div>
-                )}
-
-                <div className="flex gap-2 pt-2">
-                  <Button size="sm" variant="outline" className="flex-1">
-                    Editar
-                  </Button>
-                  {agendamento.status === 'agendado' && (
-                    <Button size="sm" className="flex-1">
-                      Iniciar
-                    </Button>
-                  )}
-                  {agendamento.status === 'em_andamento' && (
-                    <Button size="sm" className="flex-1">
-                      Finalizar
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {agendamentosFiltrados.length === 0 && (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-muted-foreground">Nenhum agendamento encontrado com os filtros aplicados.</p>
-            </CardContent>
-          </Card>
-        )}
+            {agendamentosFiltrados.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Nenhum agendamento encontrado com os filtros aplicados.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   )
