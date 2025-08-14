@@ -276,9 +276,10 @@ export default function ColetorUnidades() {
             return (
               <Card 
                 key={cliente.id}
-                className="hover:shadow-md transition-shadow"
+                className="hover:shadow-md transition-shadow animate-fade-in"
               >
                 <CardHeader className="pb-2 p-4">
+                  {/* Header Superior */}
                   <div className="flex items-start justify-between">
                     <div 
                       className="flex-1 cursor-pointer"
@@ -299,82 +300,81 @@ export default function ColetorUnidades() {
                       )}
                     </div>
                     
-                    <div className="flex items-center space-x-2">
-                      {/* Status Badge */}
+                    {/* Status Badge - Apenas o status da unidade */}
+                    <Badge 
+                      variant="outline" 
+                      className={`text-xs font-medium ${
+                        cliente.status === 'ativo' 
+                          ? 'bg-green-100 text-green-800 border-green-300' 
+                          : cliente.status === 'bloqueado'
+                          ? 'bg-orange-100 text-orange-800 border-orange-300'
+                          : 'bg-red-100 text-red-800 border-red-300'
+                      }`}
+                    >
+                      {cliente.status.toUpperCase()}
+                    </Badge>
+                  </div>
+
+                  {/* Footer Inferior - Ações de leitura */}
+                  {leituraColetada && leitura && (
+                    <div className="flex items-center justify-end space-x-2 mt-3 pt-2 border-t border-gray-100">
+                      {/* Badge Coletado */}
                       <Badge 
                         variant="outline" 
-                        className={`text-xs font-medium ${
-                          cliente.status === 'ativo' 
-                            ? 'bg-green-100 text-green-800 border-green-300' 
-                            : cliente.status === 'bloqueado'
-                            ? 'bg-orange-100 text-orange-800 border-orange-300'
-                            : 'bg-red-100 text-red-800 border-red-300'
-                        }`}
+                        className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-300 animate-scale-in"
                       >
-                        {cliente.status.toUpperCase()}
+                        COLETADO
                       </Badge>
 
-                      {/* Badge Coletado */}
-                      {leituraColetada && (
-                        <Badge 
-                          variant="outline" 
-                          className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-300"
-                        >
-                          COLETADO
-                        </Badge>
-                      )}
-
                       {/* Ações para leituras coletadas */}
-                      {leituraColetada && leitura && (
-                        <div className="flex items-center space-x-1 ml-2">
-                          {/* Botão Editar */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              selecionarUnidade(cliente)
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                      <div className="flex items-center space-x-1">
+                        {/* Botão Editar */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-blue-600 hover:text-blue-800 hover:bg-blue-100 hover-scale"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            selecionarUnidade(cliente)
+                          }}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
 
-                          {/* Botão Deletar */}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-red-600 hover:text-red-800 hover:bg-red-100"
-                                onClick={(e) => e.stopPropagation()}
+                        {/* Botão Deletar */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-red-600 hover:text-red-800 hover:bg-red-100 hover-scale"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="animate-scale-in">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja deletar a leitura da unidade {cliente.identificacao_unidade}? 
+                                Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deletarLeitura(leitura.id)}
+                                className="bg-red-600 hover:bg-red-700"
                               >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tem certeza que deseja deletar a leitura da unidade {cliente.identificacao_unidade}? 
-                                  Esta ação não pode ser desfeita.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deletarLeitura(leitura.id)}
-                                  className="bg-red-600 hover:bg-red-700"
-                                >
-                                  Deletar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      )}
+                                Deletar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </CardHeader>
               </Card>
             )
