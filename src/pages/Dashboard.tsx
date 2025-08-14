@@ -3,11 +3,13 @@ import Layout from '@/components/Layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Building2, Users, FileText, Activity } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Building2, Users, FileText, Activity, Smartphone } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { format, isToday } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { useNavigate } from 'react-router-dom'
 
 interface DashboardStats {
   empreendimentos: number
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const [leiturasRecentes, setLeiturasRecentes] = useState<LeituraRecente[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   useEffect(() => {
     fetchDashboardData()
@@ -175,6 +178,38 @@ export default function Dashboard() {
             </div>
             <p className="text-xs text-muted-foreground">
               Total de leituras no sistema
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Card do Coletor Mobile */}
+      <div className="mt-6">
+        <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center">
+                  <Smartphone className="h-5 w-5 mr-2 text-primary" />
+                  Coletor Mobile
+                </CardTitle>
+                <CardDescription>
+                  Acesse o app móvel para realizar leituras em campo
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={() => navigate('/coletor-sync')}
+                className="flex items-center"
+              >
+                <Smartphone className="h-4 w-4 mr-2" />
+                Abrir Coletor
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              O coletor permite sincronizar dados, selecionar empreendimentos e registrar leituras diretamente no campo, 
+              incluindo captura de fotos dos medidores.
             </p>
           </CardContent>
         </Card>

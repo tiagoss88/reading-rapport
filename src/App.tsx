@@ -10,6 +10,9 @@ import Clientes from '@/pages/Clientes'
 import Leituras from '@/pages/Leituras'
 import Operadores from '@/pages/Operadores'
 import OperadorApp from '@/pages/OperadorApp'
+import ColetorSync from '@/pages/ColetorSync'
+import ColetorUnidades from '@/pages/ColetorUnidades'
+import ColetorLeitura from '@/pages/ColetorLeitura'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +27,9 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/operador" element={<OperadorApp />} />
+              <Route path="/coletor-sync" element={<ColetorSync />} />
+              <Route path="/coletor/unidades/:empreendimentoId" element={<ColetorUnidades />} />
+              <Route path="/coletor/leitura/:clienteId" element={<ColetorLeitura />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Dashboard />
