@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { ArrowLeft, Search, Home, User, FileText } from 'lucide-react'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { ArrowLeft, Search, Home, User, FileText, Edit, Trash2, CheckCircle } from 'lucide-react'
 
 interface Cliente {
   id: string
@@ -23,12 +24,23 @@ interface Empreendimento {
   tipo_gas?: string
 }
 
+interface Leitura {
+  id: string
+  cliente_id: string
+  leitura_atual: number
+  observacao?: string
+  tipo_observacao?: string
+  data_leitura: string
+  foto_url?: string
+}
+
 export default function ColetorUnidades() {
   const { empreendimentoId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
+  const [leituras, setLeituras] = useState<Leitura[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const { toast } = useToast()
@@ -37,7 +49,32 @@ export default function ColetorUnidades() {
 
   useEffect(() => {
     if (empreendimentoId) {
-      fetchClientes()
+      fetchClientesELeituras()
+    }
+  }, [empreendimentoId])
+
+  // Configurar realtime para atualizar quando houver mudanças nas leituras
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leituras'
+        },
+        () => {
+          // Recarregar leituras quando houver mudanças
+          if (empreendimentoId) {
+            fetchLeituras()
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [empreendimentoId])
 
@@ -50,8 +87,16 @@ export default function ColetorUnidades() {
     setFilteredClientes(filtered)
   }, [clientes, searchTerm])
 
-  const fetchClientes = async () => {
+  const fetchClientesELeituras = async () => {
     setLoading(true)
+    try {
+      await Promise.all([fetchClientes(), fetchLeituras()])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchClientes = async () => {
     try {
       const { data, error } = await supabase
         .from('clientes')
@@ -69,18 +114,90 @@ export default function ColetorUnidades() {
         description: "Falha ao carregar unidades",
         variant: "destructive"
       })
-    } finally {
-      setLoading(false)
     }
   }
 
+  const fetchLeituras = async () => {
+    try {
+      // Buscar o operador atual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: operador } = await supabase
+        .from('operadores')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!operador) return
+
+      // Buscar leituras do operador atual para este empreendimento
+      const { data: clientesIds } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('empreendimento_id', empreendimentoId)
+
+      if (!clientesIds) return
+
+      const clienteIds = clientesIds.map(c => c.id)
+
+      const { data, error } = await supabase
+        .from('leituras')
+        .select('*')
+        .eq('operador_id', operador.id)
+        .in('cliente_id', clienteIds)
+        .order('data_leitura', { ascending: false })
+
+      if (error) throw error
+      setLeituras(data || [])
+    } catch (error: any) {
+      console.error('Erro ao carregar leituras:', error)
+    }
+  }
+
+  const temLeitura = (clienteId: string) => {
+    return leituras.some(leitura => leitura.cliente_id === clienteId)
+  }
+
+  const getLeitura = (clienteId: string) => {
+    return leituras.find(leitura => leitura.cliente_id === clienteId)
+  }
+
   const selecionarUnidade = (cliente: Cliente) => {
+    const leitura = getLeitura(cliente.id)
+    
     navigate(`/coletor/leitura/${cliente.id}`, {
       state: { 
         cliente, 
-        empreendimento 
+        empreendimento,
+        leituraExistente: leitura || null
       }
     })
+  }
+
+  const deletarLeitura = async (leituraId: string) => {
+    try {
+      const { error } = await supabase
+        .from('leituras')
+        .delete()
+        .eq('id', leituraId)
+
+      if (error) throw error
+
+      toast({
+        title: "Sucesso",
+        description: "Leitura deletada com sucesso!"
+      })
+
+      // As leituras serão atualizadas automaticamente via realtime
+    } catch (error: any) {
+      console.error('Erro ao deletar leitura:', error)
+      toast({
+        title: "Erro",
+        description: "Falha ao deletar leitura",
+        variant: "destructive"
+      })
+    }
   }
 
   const voltarParaEmpreendimentos = () => {
@@ -152,42 +269,116 @@ export default function ColetorUnidades() {
 
         {/* Lista de Unidades */}
         <div className="space-y-2">
-          {filteredClientes.map((cliente) => (
-            <Card 
-              key={cliente.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => selecionarUnidade(cliente)}
-            >
-              <CardHeader className="pb-2 p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-base font-medium text-gray-900 flex items-center">
-                      <Home className="w-4 h-4 mr-2 text-primary" />
-                      {cliente.identificacao_unidade}
-                    </CardTitle>
-                    {cliente.nome && (
-                      <CardDescription className="text-sm text-gray-600 mt-1 flex items-center">
-                        <User className="w-3 h-3 mr-2" />
-                        {cliente.nome}
-                      </CardDescription>
-                    )}
+          {filteredClientes.map((cliente) => {
+            const leituraColetada = temLeitura(cliente.id)
+            const leitura = getLeitura(cliente.id)
+            
+            return (
+              <Card 
+                key={cliente.id}
+                className="hover:shadow-md transition-shadow"
+              >
+                <CardHeader className="pb-2 p-4">
+                  <div className="flex items-start justify-between">
+                    <div 
+                      className="flex-1 cursor-pointer"
+                      onClick={() => selecionarUnidade(cliente)}
+                    >
+                      <CardTitle className="text-base font-medium text-gray-900 flex items-center">
+                        <Home className="w-4 h-4 mr-2 text-primary" />
+                        {cliente.identificacao_unidade}
+                        {leituraColetada && (
+                          <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
+                        )}
+                      </CardTitle>
+                      {cliente.nome && (
+                        <CardDescription className="text-sm text-gray-600 mt-1 flex items-center">
+                          <User className="w-3 h-3 mr-2" />
+                          {cliente.nome}
+                        </CardDescription>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      {/* Status Badge */}
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs font-medium ${
+                          cliente.status === 'ativo' 
+                            ? 'bg-green-100 text-green-800 border-green-300' 
+                            : cliente.status === 'bloqueado'
+                            ? 'bg-orange-100 text-orange-800 border-orange-300'
+                            : 'bg-red-100 text-red-800 border-red-300'
+                        }`}
+                      >
+                        {cliente.status.toUpperCase()}
+                      </Badge>
+
+                      {/* Badge Coletado */}
+                      {leituraColetada && (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs font-medium bg-blue-100 text-blue-800 border-blue-300"
+                        >
+                          COLETADO
+                        </Badge>
+                      )}
+
+                      {/* Ações para leituras coletadas */}
+                      {leituraColetada && leitura && (
+                        <div className="flex items-center space-x-1 ml-2">
+                          {/* Botão Editar */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              selecionarUnidade(cliente)
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+
+                          {/* Botão Deletar */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-600 hover:text-red-800 hover:bg-red-100"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja deletar a leitura da unidade {cliente.identificacao_unidade}? 
+                                  Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deletarLeitura(leitura.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Deletar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs font-medium ${
-                      cliente.status === 'ativo' 
-                        ? 'bg-green-100 text-green-800 border-green-300' 
-                        : cliente.status === 'bloqueado'
-                        ? 'bg-orange-100 text-orange-800 border-orange-300'
-                        : 'bg-red-100 text-red-800 border-red-300'
-                    }`}
-                  >
-                    {cliente.status.toUpperCase()}
-                  </Badge>
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
+                </CardHeader>
+              </Card>
+            )
+          })}
         </div>
 
         {/* Estado vazio */}

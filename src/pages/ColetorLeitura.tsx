@@ -34,6 +34,7 @@ export default function ColetorLeitura() {
 
   const cliente = location.state?.cliente as Cliente
   const empreendimento = location.state?.empreendimento as Empreendimento
+  const leituraExistente = location.state?.leituraExistente
 
   // Redirect if no data is available
   if (!cliente || !empreendimento) {
@@ -55,28 +56,35 @@ export default function ColetorLeitura() {
     )
   }
 
+  // Inicializar form com dados da leitura existente se estiver editando
+
   const [formData, setFormData] = useState({
-    leitura_atual: '',
-    observacao: '',
-    tipo_observacao: ''
+    leitura_atual: leituraExistente?.leitura_atual?.toString() || '',
+    observacao: leituraExistente?.observacao || '',
+    tipo_observacao: leituraExistente?.tipo_observacao || ''
   })
   const [foto, setFoto] = useState<File | null>(null)
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(leituraExistente?.foto_url || null)
   const [saving, setSaving] = useState(false)
   const [ultimaLeitura, setUltimaLeitura] = useState<number | null>(null)
   const [loadingUltimaLeitura, setLoadingUltimaLeitura] = useState(true)
 
-  // Carregar a última leitura do cliente
+  // Carregar a última leitura do cliente (excluindo a atual se estiver editando)
   useEffect(() => {
     const carregarUltimaLeitura = async () => {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('leituras')
           .select('leitura_atual')
           .eq('cliente_id', cliente.id)
           .order('data_leitura', { ascending: false })
-          .limit(1)
-          .maybeSingle()
+
+        // Se estiver editando, excluir a leitura atual da busca
+        if (leituraExistente) {
+          query = query.neq('id', leituraExistente.id)
+        }
+
+        const { data, error } = await query.limit(1).maybeSingle()
 
         if (error) throw error
         
@@ -93,7 +101,7 @@ export default function ColetorLeitura() {
     if (cliente?.id) {
       carregarUltimaLeitura()
     }
-  }, [cliente?.id])
+  }, [cliente?.id, leituraExistente])
 
   // Calcular consumo
   const calcularConsumo = () => {
@@ -163,24 +171,40 @@ export default function ColetorLeitura() {
 
       if (!operador) throw new Error('Operador não encontrado')
 
-      // Salvar a leitura
-      const { error } = await supabase
-        .from('leituras')
-        .insert({
-          cliente_id: cliente.id,
-          operador_id: operador.id,
-          leitura_atual: parseFloat(formData.leitura_atual),
-          observacao: formData.observacao || null,
-          tipo_observacao: formData.tipo_observacao || null,
-          foto_url: fotoUrl,
-          data_leitura: new Date().toISOString()
-        })
+      if (leituraExistente) {
+        // Atualizar leitura existente
+        const { error } = await supabase
+          .from('leituras')
+          .update({
+            leitura_atual: parseFloat(formData.leitura_atual),
+            observacao: formData.observacao || null,
+            tipo_observacao: formData.tipo_observacao || null,
+            foto_url: fotoUrl || leituraExistente.foto_url,
+            data_leitura: new Date().toISOString()
+          })
+          .eq('id', leituraExistente.id)
 
-      if (error) throw error
+        if (error) throw error
+      } else {
+        // Criar nova leitura
+        const { error } = await supabase
+          .from('leituras')
+          .insert({
+            cliente_id: cliente.id,
+            operador_id: operador.id,
+            leitura_atual: parseFloat(formData.leitura_atual),
+            observacao: formData.observacao || null,
+            tipo_observacao: formData.tipo_observacao || null,
+            foto_url: fotoUrl,
+            data_leitura: new Date().toISOString()
+          })
+
+        if (error) throw error
+      }
 
       toast({
         title: "Sucesso",
-        description: "Leitura registrada com sucesso!"
+        description: leituraExistente ? "Leitura atualizada com sucesso!" : "Leitura registrada com sucesso!"
       })
 
       // Voltar para a lista de unidades
@@ -220,7 +244,9 @@ export default function ColetorLeitura() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-gray-900 truncate">Nova Leitura</h1>
+            <h1 className="text-lg font-bold text-gray-900 truncate">
+              {leituraExistente ? 'Editar Leitura' : 'Nova Leitura'}
+            </h1>
             <p className="text-xs text-gray-600 truncate">
               {cliente.identificacao_unidade}
             </p>
@@ -255,7 +281,9 @@ export default function ColetorLeitura() {
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Dados da Leitura</CardTitle>
+              <CardTitle className="text-sm">
+                {leituraExistente ? 'Editar Dados da Leitura' : 'Dados da Leitura'}
+              </CardTitle>
               <Button
                 variant="outline"
                 size="sm"
@@ -373,7 +401,7 @@ export default function ColetorLeitura() {
             ) : (
               <>
                 <Save className="w-4 h-4 mr-2" />
-                Salvar Leitura
+                {leituraExistente ? 'Atualizar Leitura' : 'Salvar Leitura'}
               </>
             )}
           </Button>
