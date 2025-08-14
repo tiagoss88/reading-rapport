@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Textarea } from '@/components/ui/textarea'
-import { CalendarDays, Clock, MapPin, Plus, Building2, Home } from 'lucide-react'
+import { CalendarDays, Clock, Plus, Building2, Home, Check, ChevronsUpDown } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
@@ -23,6 +25,8 @@ export default function CriarServico() {
   const [empreendimentos, setEmpreendimentos] = useState<any[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [loadingClientes, setLoadingClientes] = useState(false)
+  const [openEmpreendimento, setOpenEmpreendimento] = useState(false)
+  const [openCliente, setOpenCliente] = useState(false)
   
   const [formData, setFormData] = useState({
     tipo_servico: '',
@@ -92,6 +96,7 @@ export default function CriarServico() {
       empreendimento_id: value,
       cliente_id: '' // Limpar seleção de cliente ao mudar empreendimento
     })
+    setOpenEmpreendimento(false)
   }
 
   const handleClienteChange = (value: string) => {
@@ -99,6 +104,7 @@ export default function CriarServico() {
       ...formData,
       cliente_id: value
     })
+    setOpenCliente(false)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -160,21 +166,45 @@ export default function CriarServico() {
                     <Building2 className="h-4 w-4" />
                     Empreendimento
                   </Label>
-                  <Select 
-                    value={formData.empreendimento_id} 
-                    onValueChange={handleEmpreendimentoChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o empreendimento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {empreendimentos.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openEmpreendimento} onOpenChange={setOpenEmpreendimento}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openEmpreendimento}
+                        className="w-full justify-between"
+                      >
+                        {formData.empreendimento_id
+                          ? empreendimentos.find((emp) => emp.id === formData.empreendimento_id)?.nome
+                          : "Selecione o empreendimento..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Buscar empreendimento..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum empreendimento encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {empreendimentos.map((emp) => (
+                              <CommandItem
+                                key={emp.id}
+                                value={emp.nome}
+                                onSelect={() => handleEmpreendimentoChange(emp.id)}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    formData.empreendimento_id === emp.id ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                {emp.nome}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
 
@@ -183,30 +213,53 @@ export default function CriarServico() {
                   <Home className="h-4 w-4" />
                   Unidade/Cliente
                 </Label>
-                <Select 
-                  value={formData.cliente_id} 
-                  onValueChange={handleClienteChange}
-                  disabled={!formData.empreendimento_id || loadingClientes}
-                >
-                  <SelectTrigger>
-                    <SelectValue 
-                      placeholder={
-                        !formData.empreendimento_id 
-                          ? "Primeiro selecione um empreendimento" 
-                          : loadingClientes 
-                          ? "Carregando unidades..." 
-                          : "Selecione a unidade"
-                      } 
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((cliente) => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={openCliente} onOpenChange={setOpenCliente}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCliente}
+                      className="w-full justify-between"
+                      disabled={!formData.empreendimento_id || loadingClientes}
+                    >
+                      {formData.cliente_id && clientes.length > 0
+                        ? (() => {
+                            const cliente = clientes.find((c) => c.id === formData.cliente_id)
+                            return cliente ? `${cliente.identificacao_unidade} - ${cliente.nome || 'Sem nome'}` : "Selecione a unidade..."
+                          })()
+                        : !formData.empreendimento_id 
+                        ? "Primeiro selecione um empreendimento" 
+                        : loadingClientes 
+                        ? "Carregando unidades..." 
+                        : "Selecione a unidade..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Buscar unidade..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma unidade encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          {clientes.map((cliente) => (
+                            <CommandItem
+                              key={cliente.id}
+                              value={`${cliente.identificacao_unidade} ${cliente.nome || ''}`}
+                              onSelect={() => handleClienteChange(cliente.id)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  formData.cliente_id === cliente.id ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
