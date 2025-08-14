@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -43,6 +43,44 @@ export default function ColetorLeitura() {
   const [foto, setFoto] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [ultimaLeitura, setUltimaLeitura] = useState<number | null>(null)
+  const [loadingUltimaLeitura, setLoadingUltimaLeitura] = useState(true)
+
+  // Carregar a última leitura do cliente
+  useEffect(() => {
+    const carregarUltimaLeitura = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('leituras')
+          .select('leitura_atual')
+          .eq('cliente_id', cliente.id)
+          .order('data_leitura', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (error) throw error
+        
+        if (data) {
+          setUltimaLeitura(data.leitura_atual)
+        }
+      } catch (error) {
+        console.error('Erro ao carregar última leitura:', error)
+      } finally {
+        setLoadingUltimaLeitura(false)
+      }
+    }
+
+    if (cliente?.id) {
+      carregarUltimaLeitura()
+    }
+  }, [cliente?.id])
+
+  // Calcular consumo
+  const calcularConsumo = () => {
+    if (!ultimaLeitura || !formData.leitura_atual) return null
+    const consumo = parseFloat(formData.leitura_atual) - ultimaLeitura
+    return consumo >= 0 ? consumo : null
+  }
 
   const handleFotoCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -193,10 +231,32 @@ export default function ColetorLeitura() {
 
         {/* Formulário de Leitura */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Dados da Leitura</CardTitle>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Dados da Leitura</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={abrirCamera}
+                className="flex items-center space-x-1"
+              >
+                <Camera className="w-4 h-4" />
+                <span className="text-xs">Foto</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Última Leitura */}
+            <div>
+              <Label>Última Leitura (m³)</Label>
+              <Input
+                value={loadingUltimaLeitura ? "Carregando..." : ultimaLeitura ? ultimaLeitura.toFixed(3) : "Primeira leitura"}
+                disabled
+                className="bg-gray-50 text-gray-600"
+              />
+            </div>
+
+            {/* Leitura Atual */}
             <div>
               <Label htmlFor="leitura_atual">Leitura Atual (m³) *</Label>
               <Input
@@ -207,6 +267,20 @@ export default function ColetorLeitura() {
                 onChange={(e) => setFormData(prev => ({ ...prev, leitura_atual: e.target.value }))}
                 placeholder="Ex: 1234.567"
                 className="text-lg"
+              />
+            </div>
+
+            {/* Consumo */}
+            <div>
+              <Label>Consumo (m³)</Label>
+              <Input
+                value={(() => {
+                  const consumo = calcularConsumo()
+                  if (consumo === null) return "N/A"
+                  return consumo.toFixed(3)
+                })()}
+                disabled
+                className="bg-gray-50 text-gray-600 font-semibold"
               />
             </div>
 
@@ -236,60 +310,33 @@ export default function ColetorLeitura() {
                 value={formData.observacao}
                 onChange={(e) => setFormData(prev => ({ ...prev, observacao: e.target.value }))}
                 placeholder="Observações adicionais (opcional)"
-                rows={3}
+                rows={2}
               />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Foto do Medidor */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Foto do Medidor</CardTitle>
-            <CardDescription>
-              Tire uma foto do medidor para comprovar a leitura
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFotoCapture}
-              className="hidden"
-            />
-            
-            {fotoPreview ? (
-              <div className="space-y-3">
+            {/* Preview da Foto */}
+            {fotoPreview && (
+              <div className="space-y-2">
+                <Label>Foto Capturada</Label>
                 <img 
                   src={fotoPreview} 
                   alt="Preview" 
-                  className="w-full h-48 object-cover rounded-lg border"
+                  className="w-full h-32 object-cover rounded-lg border"
                 />
-                <Button
-                  variant="outline"
-                  onClick={abrirCamera}
-                  className="w-full"
-                >
-                  <Camera className="w-4 h-4 mr-2" />
-                  Tirar Nova Foto
-                </Button>
               </div>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={abrirCamera}
-                className="w-full h-32 border-dashed"
-              >
-                <div className="text-center">
-                  <Camera className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-600">Toque para tirar foto</p>
-                </div>
-              </Button>
             )}
           </CardContent>
         </Card>
+
+        {/* Input oculto para foto */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFotoCapture}
+          className="hidden"
+        />
 
         {/* Botão Salvar */}
         <Button
