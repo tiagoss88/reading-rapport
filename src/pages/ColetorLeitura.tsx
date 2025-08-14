@@ -338,17 +338,6 @@ export default function ColetorLeitura() {
               />
             </div>
 
-            {/* Preview da Foto */}
-            {fotoPreview && (
-              <div className="space-y-2">
-                <Label>Foto Capturada</Label>
-                <img 
-                  src={fotoPreview} 
-                  alt="Preview" 
-                  className="w-full h-32 object-cover rounded-lg border"
-                />
-              </div>
-            )}
           </CardContent>
         </Card>
 
