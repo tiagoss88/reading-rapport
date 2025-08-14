@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Building2, AlertCircle } from 'lucide-react'
+import { Building2, AlertCircle, ArrowLeft } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { removeMask } from '@/lib/formatters'
@@ -74,6 +74,14 @@ export default function EmpreendimentoLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="absolute top-4 left-4">
+        <Button variant="ghost" asChild>
+          <Link to="/login" className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar ao Login Principal
+          </Link>
+        </Button>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
