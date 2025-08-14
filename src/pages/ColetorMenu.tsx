@@ -32,11 +32,7 @@ export default function ColetorMenu() {
   }
 
   const goToServicos = () => {
-    toast({
-      title: "Em desenvolvimento",
-      description: "O módulo de serviços será implementado em breve",
-      variant: "default"
-    })
+    navigate('/coletor/servicos')
   }
 
   return (
@@ -94,7 +90,7 @@ export default function ColetorMenu() {
           </Card>
 
           {/* Serviços */}
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow opacity-60">
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
             <CardHeader 
               className="pb-3"
               onClick={goToServicos}
@@ -112,10 +108,8 @@ export default function ColetorMenu() {
               </div>
             </CardHeader>
             <CardContent className="pt-0">
-              <div className="flex items-center text-sm text-gray-500">
-                <span className="px-2 py-1 bg-gray-200 rounded text-xs">
-                  Em desenvolvimento
-                </span>
+              <div className="flex items-center text-sm text-gray-600">
+                <span>Visualizar e gerenciar serviços agendados</span>
               </div>
             </CardContent>
           </Card>

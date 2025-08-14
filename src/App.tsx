@@ -17,6 +17,7 @@ import ColetorMenu from '@/pages/ColetorMenu'
 import ColetorSync from '@/pages/ColetorSync'
 import ColetorUnidades from '@/pages/ColetorUnidades'
 import ColetorLeitura from '@/pages/ColetorLeitura'
+import ColetorServicos from '@/pages/ColetorServicos'
 import EmpreendimentoLogin from '@/pages/EmpreendimentoLogin'
 import AreaCliente from '@/pages/AreaCliente'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -56,7 +57,12 @@ const App = () => (
                 <ColetorProtectedRoute>
                   <ColetorLeitura />
                 </ColetorProtectedRoute>
-              } />
+               } />
+               <Route path="/coletor/servicos" element={
+                 <ColetorProtectedRoute>
+                   <ColetorServicos />
+                 </ColetorProtectedRoute>
+               } />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Dashboard />
