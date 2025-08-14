@@ -58,7 +58,7 @@ export default function ColetorUnidades() {
         .select('*')
         .eq('empreendimento_id', empreendimentoId)
         .eq('status', 'ativo')
-        .order('identificacao_unidade')
+        .order('identificacao_unidade', { ascending: false })
 
       if (error) throw error
       setClientes(data || [])
@@ -151,14 +151,14 @@ export default function ColetorUnidades() {
         </Card>
 
         {/* Lista de Unidades */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredClientes.map((cliente) => (
             <Card 
               key={cliente.id}
               className="cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => selecionarUnidade(cliente)}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2 p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="text-base font-medium text-gray-900 flex items-center">
@@ -173,11 +173,11 @@ export default function ColetorUnidades() {
                     )}
                   </div>
                   <Badge variant="outline" className="text-xs">
-                    {cliente.status}
+                    {cliente.status.toUpperCase()}
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent className="pt-0 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-500 flex items-center">
                     <FileText className="w-3 h-3 mr-1" />
