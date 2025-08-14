@@ -60,27 +60,39 @@ export type Database = {
           cnpj: string | null
           created_at: string
           endereco: string
+          fator_conversao: number | null
           id: string
           nome: string
           observacoes: string | null
+          preco_kg_gas: number | null
+          preco_m3_gas: number | null
+          tipo_gas: string | null
           updated_at: string
         }
         Insert: {
           cnpj?: string | null
           created_at?: string
           endereco: string
+          fator_conversao?: number | null
           id?: string
           nome: string
           observacoes?: string | null
+          preco_kg_gas?: number | null
+          preco_m3_gas?: number | null
+          tipo_gas?: string | null
           updated_at?: string
         }
         Update: {
           cnpj?: string | null
           created_at?: string
           endereco?: string
+          fator_conversao?: number | null
           id?: string
           nome?: string
           observacoes?: string | null
+          preco_kg_gas?: number | null
+          preco_m3_gas?: number | null
+          tipo_gas?: string | null
           updated_at?: string
         }
         Relationships: []
