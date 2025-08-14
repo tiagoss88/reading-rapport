@@ -14,10 +14,13 @@ import Layout from '@/components/Layout'
 
 const tiposServico = [
   { value: 'religacao', label: 'Religação' },
+  { value: 'religacao_emergencial', label: 'Religação Emergencial' },
   { value: 'bloqueio', label: 'Bloqueio (Pedido do Cliente)' },
   { value: 'corte', label: 'Corte (Falta de Pagamento)' },
   { value: 'visita_tecnica', label: 'Visita Técnica' },
-  { value: 'instalacao', label: 'Instalação' }
+  { value: 'instalacao', label: 'Instalação' },
+  { value: 'cheiro_gas', label: 'Cheiro de Gás' },
+  { value: 'falta_gas', label: 'Falta de Gás' }
 ]
 
 export default function CriarServico() {
