@@ -218,114 +218,75 @@ export default function AreaCliente() {
   }
 
   const exportToPDF = () => {
-    if (!leituras.length) return
+    console.log('Iniciando exportação do PDF...')
+    
+    if (!leituras.length) {
+      console.log('Nenhuma leitura encontrada')
+      toast({
+        title: "Erro",
+        description: "Nenhuma leitura encontrada para exportar.",
+        variant: "destructive",
+      })
+      return
+    }
 
     try {
+      console.log('Criando documento PDF...')
       const competenciaLabel = `${meses.find(m => m.value === selectedMes)?.label}/${selectedAno}`
       const doc = new jsPDF()
       
-      // Cabeçalho com dados do empreendimento
-      doc.setFontSize(18)
-      doc.setFont('helvetica', 'bold')
-      doc.text('RELATÓRIO DE LEITURAS', 105, 20, { align: 'center' })
-      
-      doc.setFontSize(14)
-      doc.setFont('helvetica', 'bold')
-      doc.text(empreendimento?.nome || '', 105, 32, { align: 'center' })
-      
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'normal')
-      doc.text(empreendimento?.endereco || '', 105, 40, { align: 'center' })
-      
-      if (empreendimento?.cnpj) {
-        doc.text(`CNPJ: ${empreendimento.cnpj}`, 105, 46, { align: 'center' })
-      }
-      
-      if (empreendimento?.email) {
-        doc.text(`Email: ${empreendimento.email}`, 105, 52, { align: 'center' })
-      }
-
-      // Linha separadora
-      doc.setLineWidth(0.5)
-      doc.line(15, 58, 195, 58)
-
-      // Informações do relatório
+      console.log('Adicionando cabeçalho...')
+      // Cabeçalho simples
+      doc.setFontSize(16)
+      doc.text('RELATÓRIO DE LEITURAS', 20, 20)
       doc.setFontSize(12)
-      doc.setFont('helvetica', 'bold')
-      doc.text(`Competência: ${competenciaLabel}`, 15, 68)
-      doc.setFont('helvetica', 'normal')
-      doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, 15, 76)
-      
-      if (empreendimento?.tipo_gas) {
-        doc.text(`Tipo de Gás: ${empreendimento.tipo_gas}`, 15, 84)
-      }
+      doc.text(`${empreendimento?.nome || 'N/A'}`, 20, 30)
+      doc.text(`Competência: ${competenciaLabel}`, 20, 40)
+      doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`, 20, 50)
 
-      // Preparar dados da tabela
-      const tableData = leituras.map((leitura) => {
-        // Calcular leitura anterior usando os dados já calculados
+      console.log('Preparando dados da tabela...')
+      // Dados simples da tabela
+      const tableData = leituras.map((leitura, index) => {
+        console.log(`Processando leitura ${index + 1}/${leituras.length}`)
         const leituraAnteriorValor = leitura.leitura_atual - (leitura.consumo || 0)
-
+        
         return [
           format(new Date(leitura.data_leitura), 'dd/MM/yyyy', { locale: ptBR }),
-          leitura.clientes?.identificacao_unidade || '',
-          leituraAnteriorValor.toString(),
-          leitura.leitura_atual.toString(),
+          leitura.clientes?.identificacao_unidade || 'N/A',
+          leituraAnteriorValor.toFixed(2),
+          leitura.leitura_atual.toFixed(2),
           (leitura.consumo || 0).toFixed(2),
           `R$ ${(leitura.valor_fatura || 0).toFixed(2)}`
         ]
       })
 
-      // Gerar tabela
+      console.log('Gerando tabela...')
+      // Versão simples da tabela
       autoTable(doc, {
-        head: [['Data da Leitura', 'Unidade', 'Leitura Anterior', 'Leitura Atual', `Consumo (${empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'})`, 'Valor da Fatura']],
+        head: [['Data', 'Unidade', 'Anterior', 'Atual', 'Consumo', 'Valor']],
         body: tableData,
-        startY: 95,
+        startY: 60,
         styles: {
-          fontSize: 9,
-          cellPadding: 3,
-          halign: 'center'
-        },
-        headStyles: {
-          fillColor: [41, 128, 185],
-          textColor: 255,
-          fontStyle: 'bold'
-        },
-        alternateRowStyles: {
-          fillColor: [245, 245, 245]
-        },
-        columnStyles: {
-          0: { halign: 'center' }, // Data
-          1: { halign: 'center' }, // Unidade
-          2: { halign: 'right' },  // Leitura Anterior
-          3: { halign: 'right' },  // Leitura Atual
-          4: { halign: 'right' },  // Consumo
-          5: { halign: 'right' }   // Valor
+          fontSize: 8
         }
       })
 
-      // Rodapé com totais
-      const totalConsumo = leituras.reduce((sum, leitura) => sum + (leitura.consumo || 0), 0)
-      const totalFatura = leituras.reduce((sum, leitura) => sum + (leitura.valor_fatura || 0), 0)
+      console.log('Salvando arquivo...')
+      const fileName = `relatorio-${selectedMes}-${selectedAno}.pdf`
+      doc.save(fileName)
       
-      const finalY = (doc as any).autoTable.previous.finalY + 10
-      doc.setFont('helvetica', 'bold')
-      doc.text(`Total de Unidades: ${leituras.length}`, 15, finalY)
-      doc.text(`Consumo Total: ${totalConsumo.toFixed(2)} ${empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'}`, 15, finalY + 8)
-      doc.text(`Valor Total das Faturas: R$ ${totalFatura.toFixed(2)}`, 15, finalY + 16)
-
-      // Fazer o download do arquivo
-      doc.save(`relatorio-leituras-${empreendimento?.nome?.replace(/\s+/g, '-')}-${selectedMes}-${selectedAno}.pdf`)
-      
-      // Mostrar toast de sucesso
+      console.log('PDF gerado com sucesso!')
       toast({
-        title: "PDF gerado com sucesso!",
-        description: "O relatório foi baixado para o seu dispositivo.",
+        title: "PDF gerado!",
+        description: "O relatório foi baixado com sucesso.",
       })
+      
     } catch (error: any) {
-      console.error('Erro ao gerar PDF:', error)
+      console.error('ERRO ao gerar PDF:', error)
+      console.error('Stack trace:', error.stack)
       toast({
         title: "Erro ao gerar PDF",
-        description: error.message || "Ocorreu um erro ao gerar o relatório.",
+        description: `Erro: ${error.message}`,
         variant: "destructive",
       })
     }
