@@ -30,7 +30,6 @@ export default function CriarServico() {
     cliente_id: '',
     data_agendamento: '',
     hora_agendamento: '',
-    endereco: '',
     observacoes: ''
   })
 
@@ -91,17 +90,14 @@ export default function CriarServico() {
     setFormData({
       ...formData,
       empreendimento_id: value,
-      cliente_id: '', // Limpar seleção de cliente ao mudar empreendimento
-      endereco: ''
+      cliente_id: '' // Limpar seleção de cliente ao mudar empreendimento
     })
   }
 
   const handleClienteChange = (value: string) => {
-    const cliente = clientes.find(c => c.id === value)
     setFormData({
       ...formData,
-      cliente_id: value,
-      endereco: cliente ? `${cliente.identificacao_unidade}` : ''
+      cliente_id: value
     })
   }
 
@@ -120,7 +116,6 @@ export default function CriarServico() {
       cliente_id: '',
       data_agendamento: '',
       hora_agendamento: '',
-      endereco: '',
       observacoes: ''
     })
   }
@@ -240,19 +235,6 @@ export default function CriarServico() {
                     onChange={(e) => setFormData({...formData, hora_agendamento: e.target.value})}
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endereco" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Endereço
-                </Label>
-                <Input
-                  id="endereco"
-                  placeholder="Endereço da unidade"
-                  value={formData.endereco}
-                  onChange={(e) => setFormData({...formData, endereco: e.target.value})}
-                />
               </div>
 
               <div className="space-y-2">
