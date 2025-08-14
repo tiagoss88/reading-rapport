@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Smartphone, Wifi, WifiOff, RefreshCw, Building2, Users } from 'lucide-react'
+import { Smartphone, Wifi, WifiOff, RefreshCw, Building2, Users, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface Empreendimento {
@@ -98,6 +98,18 @@ export default function ColetorSync() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-md mx-auto space-y-6">
+        {/* Botão de Retorno */}
+        <div className="flex items-center justify-start">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate('/coletor/menu')}
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+        </div>
+
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-full mb-4">
