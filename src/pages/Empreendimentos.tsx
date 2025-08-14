@@ -111,6 +111,7 @@ export default function Empreendimentos() {
         // Criar usuário para o empreendimento se email e CNPJ foram fornecidos
         if (formData.email && formData.cnpj) {
           try {
+            console.log('Tentando criar usuário para empreendimento:', insertedData.id)
             const response = await supabase.functions.invoke('create-empreendimento-user', {
               body: {
                 email: formData.email,
@@ -119,11 +120,13 @@ export default function Empreendimentos() {
               }
             })
 
+            console.log('Resposta da função:', response)
+
             if (response.error) {
               console.error('Erro ao criar usuário:', response.error)
               toast({
                 title: "Empreendimento criado com aviso",
-                description: "Empreendimento criado, mas houve erro ao criar credenciais de acesso.",
+                description: `Empreendimento criado, mas houve erro ao criar credenciais de acesso: ${response.error.message}`,
                 variant: "default",
               })
             } else {
