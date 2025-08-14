@@ -169,19 +169,32 @@ export default function AreaCliente() {
           .order('data_leitura', { ascending: false })
           .limit(1)
 
+        // Buscar dados do cliente para obter leitura inicial
+        const { data: clienteData } = await supabase
+          .from('clientes')
+          .select('leitura_inicial')
+          .eq('id', leitura.cliente_id)
+          .single()
+
         let consumo = 0
         let valorFatura = 0
+        let leituraAnteriorValor = 0
 
         if (leituraAnterior && leituraAnterior.length > 0) {
-          consumo = leitura.leitura_atual - leituraAnterior[0].leitura_atual
-          
-          // Calcular valor da fatura baseado no tipo de gás
-          if (consumo > 0) {
-            if (empreendimento?.tipo_gas === 'GLP' && empreendimento.preco_kg_gas) {
-              valorFatura = consumo * empreendimento.preco_kg_gas
-            } else if (empreendimento?.tipo_gas === 'GN' && empreendimento.preco_m3_gas) {
-              valorFatura = consumo * empreendimento.preco_m3_gas
-            }
+          leituraAnteriorValor = leituraAnterior[0].leitura_atual
+        } else if (clienteData?.leitura_inicial !== undefined) {
+          // Primeira leitura: usar leitura inicial do cliente
+          leituraAnteriorValor = clienteData.leitura_inicial
+        }
+
+        consumo = leitura.leitura_atual - leituraAnteriorValor
+        
+        // Calcular valor da fatura baseado no tipo de gás
+        if (consumo > 0) {
+          if (empreendimento?.tipo_gas === 'GLP' && empreendimento.preco_kg_gas) {
+            valorFatura = consumo * empreendimento.preco_kg_gas
+          } else if (empreendimento?.tipo_gas === 'GN' && empreendimento.preco_m3_gas) {
+            valorFatura = consumo * empreendimento.preco_m3_gas
           }
         }
 

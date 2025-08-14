@@ -22,6 +22,7 @@ interface Cliente {
   cpf?: string
   status: string
   empreendimento_id: string
+  leitura_inicial?: number
   created_at: string
   updated_at: string
   empreendimentos?: {
@@ -48,7 +49,8 @@ export default function Clientes() {
     nome: '',
     cpf: '',
     status: 'ativo',
-    empreendimento_id: ''
+    empreendimento_id: '',
+    leitura_inicial: ''
   })
   const { toast } = useToast()
 
@@ -96,7 +98,8 @@ export default function Clientes() {
       if (editingCliente) {
         const dataToUpdate = {
           ...formData,
-          cpf: formData.cpf ? removeMask(formData.cpf) : null
+          cpf: formData.cpf ? removeMask(formData.cpf) : null,
+          leitura_inicial: parseFloat(formData.leitura_inicial) || 0
         }
         const { error } = await supabase
           .from('clientes')
@@ -112,7 +115,8 @@ export default function Clientes() {
       } else {
         const dataToInsert = {
           ...formData,
-          cpf: formData.cpf ? removeMask(formData.cpf) : null
+          cpf: formData.cpf ? removeMask(formData.cpf) : null,
+          leitura_inicial: parseFloat(formData.leitura_inicial) || 0
         }
         const { error } = await supabase
           .from('clientes')
@@ -171,7 +175,8 @@ export default function Clientes() {
       nome: cliente.nome || '',
       cpf: cliente.cpf ? formatCPF(cliente.cpf) : '',
       status: cliente.status,
-      empreendimento_id: cliente.empreendimento_id
+      empreendimento_id: cliente.empreendimento_id,
+      leitura_inicial: cliente.leitura_inicial?.toString() || '0'
     })
     setDialogOpen(true)
   }
@@ -183,7 +188,8 @@ export default function Clientes() {
       nome: '',
       cpf: '',
       status: 'ativo',
-      empreendimento_id: ''
+      empreendimento_id: '',
+      leitura_inicial: ''
     })
   }
 
@@ -288,23 +294,36 @@ export default function Clientes() {
                    maxLength={14}
                 />
               </div>
-              <div>
-                <Label htmlFor="status">Status *</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ativo">Ativo</SelectItem>
-                    <SelectItem value="inativo">Inativo</SelectItem>
-                    <SelectItem value="bloqueado">Bloqueado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+               <div>
+                 <Label htmlFor="leitura_inicial">Leitura Inicial *</Label>
+                 <Input
+                   id="leitura_inicial"
+                   type="number"
+                   step="0.01"
+                   min="0"
+                   value={formData.leitura_inicial}
+                   onChange={(e) => setFormData(prev => ({ ...prev, leitura_inicial: e.target.value }))}
+                   placeholder="Ex: 1000.50"
+                   required
+                 />
+               </div>
+               <div>
+                 <Label htmlFor="status">Status *</Label>
+                 <Select
+                   value={formData.status}
+                   onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                   required
+                 >
+                   <SelectTrigger>
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="ativo">Ativo</SelectItem>
+                     <SelectItem value="inativo">Inativo</SelectItem>
+                     <SelectItem value="bloqueado">Bloqueado</SelectItem>
+                   </SelectContent>
+                 </Select>
+               </div>
               <div className="flex justify-end space-x-2">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar

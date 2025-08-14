@@ -21,6 +21,7 @@ export type Database = {
           empreendimento_id: string
           id: string
           identificacao_unidade: string
+          leitura_inicial: number
           nome: string | null
           status: string
           updated_at: string
@@ -31,6 +32,7 @@ export type Database = {
           empreendimento_id: string
           id?: string
           identificacao_unidade: string
+          leitura_inicial?: number
           nome?: string | null
           status?: string
           updated_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           empreendimento_id?: string
           id?: string
           identificacao_unidade?: string
+          leitura_inicial?: number
           nome?: string | null
           status?: string
           updated_at?: string

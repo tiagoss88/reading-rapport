@@ -27,6 +27,7 @@ interface BulkClienteData {
   nome?: string
   cpf?: string
   status: string
+  leitura_inicial?: number
 }
 
 export default function BulkCreateDialog({ open, onOpenChange, empreendimentos, onSuccess }: BulkCreateDialogProps) {
@@ -88,6 +89,10 @@ export default function BulkCreateDialog({ open, onOpenChange, empreendimentos, 
               break
             case 'status':
               client.status = value || 'ativo'
+              break
+            case 'leitura_inicial':
+            case 'leitura inicial':
+              client.leitura_inicial = parseFloat(value) || 0
               break
           }
         })
@@ -168,10 +173,10 @@ export default function BulkCreateDialog({ open, onOpenChange, empreendimentos, 
     setCsvFile(null)
   }
 
-  const exampleCsv = `unidade,nome,cpf,status
-Apto 101,João Silva,123.456.789-00,ativo
-Apto 102,Maria Santos,987.654.321-00,ativo
-Apto 103,,111.222.333-44,inativo`
+  const exampleCsv = `unidade,nome,cpf,status,leitura_inicial
+Apto 101,João Silva,123.456.789-00,ativo,1000.5
+Apto 102,Maria Santos,987.654.321-00,ativo,850.0
+Apto 103,,111.222.333-44,inativo,0`
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
