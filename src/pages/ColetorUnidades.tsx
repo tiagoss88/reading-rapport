@@ -177,15 +177,6 @@ export default function ColetorUnidades() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="pt-0 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-500 flex items-center">
-                    <FileText className="w-3 h-3 mr-1" />
-                    Toque para registrar leitura
-                  </span>
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                </div>
-              </CardContent>
             </Card>
           ))}
         </div>
