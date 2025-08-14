@@ -31,14 +31,17 @@ export default function EmpreendimentoLogin() {
       // Use CNPJ without mask as password
       const password = removeMask(cnpj)
       
+      console.log('Tentando login com:', { email, password })
+      
       const { error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
       })
 
       if (error) {
+        console.error('Erro de login:', error)
         if (error.message.includes('Invalid login credentials')) {
-          setError('Email ou CNPJ incorretos. Verifique suas credenciais.')
+          setError('Email ou CNPJ incorretos. Verifique suas credenciais. NOTA: O usuário precisa ser criado primeiro no sistema.')
         } else {
           setError(error.message)
         }
@@ -47,6 +50,7 @@ export default function EmpreendimentoLogin() {
 
       // Successful login - will be handled by auth context
     } catch (error: any) {
+      console.error('Erro inesperado:', error)
       setError('Erro inesperado. Tente novamente.')
     } finally {
       setLoading(false)
