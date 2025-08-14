@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader } from '@/components/ui/dialog'
 import { FileText, Search, Download, Eye, Plus, X } from 'lucide-react'
@@ -38,19 +39,48 @@ interface Leitura {
 
 export default function Leituras() {
   const [leituras, setLeituras] = useState<Leitura[]>([])
-  const [loading, setLoading] = useState(true)
+  const [clientes, setClientes] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [clienteFilter, setClienteFilter] = useState('')
   const [novaLeituraOpen, setNovaLeituraOpen] = useState(false)
   const [fotoLightboxOpen, setFotoLightboxOpen] = useState(false)
   const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchLeituras()
+    fetchClientes()
   }, [])
 
+  const fetchClientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .select(`
+          id,
+          identificacao_unidade,
+          nome,
+          empreendimentos:empreendimento_id (nome)
+        `)
+        .eq('status', 'ativo')
+        .order('identificacao_unidade')
+
+      if (error) throw error
+      setClientes(data || [])
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar clientes",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
   const fetchLeituras = async () => {
+    if (!clienteFilter) return
+
+    setLoading(true)
     try {
       const { data, error } = await supabase
         .from('leituras')
@@ -62,6 +92,7 @@ export default function Leituras() {
           ),
           operadores:operador_id (nome)
         `)
+        .eq('cliente_id', clienteFilter)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -76,6 +107,15 @@ export default function Leituras() {
       setLoading(false)
     }
   }
+
+  // Buscar leituras quando cliente for selecionado
+  useEffect(() => {
+    if (clienteFilter) {
+      fetchLeituras()
+    } else {
+      setLeituras([])
+    }
+  }, [clienteFilter])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -172,21 +212,38 @@ export default function Leituras() {
         <Card>
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
+            <CardDescription>
+              Selecione um cliente para visualizar suas leituras
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
+              {/* Seleção de Cliente */}
               <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Pesquisar por unidade, empreendimento ou operador..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <Label htmlFor="cliente-filter" className="text-sm font-medium mb-2 block">
+                  Cliente
+                </Label>
+                <Select value={clienteFilter} onValueChange={setClienteFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos os clientes</SelectItem>
+                    {clientes.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'} 
+                        {cliente.empreendimentos && ` (${cliente.empreendimentos.nome})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Filtro de Status */}
               <div className="w-full sm:w-48">
+                <Label htmlFor="status-filter" className="text-sm font-medium mb-2 block">
+                  Status
+                </Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Status" />
@@ -199,33 +256,71 @@ export default function Leituras() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Busca (apenas se cliente estiver selecionado) */}
+              {clienteFilter && (
+                <div className="flex-1">
+                  <Label htmlFor="search" className="text-sm font-medium mb-2 block">
+                    Busca
+                  </Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="search"
+                      placeholder="Pesquisar por operador ou observação..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         {/* Lista de Leituras */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="mr-2 h-5 w-5" />
-              Lista de Leituras
-            </CardTitle>
-            <CardDescription>
-              {filteredLeituras.length} de {leituras.length} leitura(s) encontrada(s)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Carregando leituras...</p>
-              </div>
-            ) : filteredLeituras.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">
-                  {leituras.length === 0 ? 'Nenhuma leitura encontrada' : 'Nenhuma leitura corresponde aos filtros'}
+        {!clienteFilter ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-12">
+                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Selecione um Cliente
+                </h3>
+                <p className="text-gray-500 max-w-sm mx-auto">
+                  Escolha um cliente nos filtros acima para visualizar suas leituras registradas.
                 </p>
               </div>
-            ) : (
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileText className="mr-2 h-5 w-5" />
+                Lista de Leituras
+              </CardTitle>
+              <CardDescription>
+                {filteredLeituras.length} de {leituras.length} leitura(s) encontrada(s)
+                {clientes.find(c => c.id === clienteFilter) && 
+                  ` para ${clientes.find(c => c.id === clienteFilter)?.identificacao_unidade}`
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Carregando leituras...</p>
+                </div>
+              ) : filteredLeituras.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">
+                    Nenhuma leitura encontrada para este cliente
+                  </p>
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -290,9 +385,10 @@ export default function Leituras() {
                   </TableBody>
                 </Table>
               </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
       {/* Lightbox para visualizar foto */}
       <Dialog open={fotoLightboxOpen} onOpenChange={setFotoLightboxOpen}>
