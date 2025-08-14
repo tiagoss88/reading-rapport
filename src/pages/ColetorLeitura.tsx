@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Camera, Save, MapPin, User, Home } from 'lucide-react'
+import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
 
 interface Cliente {
   id: string
@@ -110,15 +111,60 @@ export default function ColetorLeitura() {
     return consumo >= 0 ? consumo : null
   }
 
-  const handleFotoCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      setFoto(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setFotoPreview(reader.result as string)
+      if (!isValidImageFile(file)) {
+        toast({
+          title: "Arquivo inválido",
+          description: "Por favor, selecione apenas arquivos de imagem.",
+          variant: "destructive"
+        })
+        return
       }
-      reader.readAsDataURL(file)
+
+      try {
+        // Show loading state
+        toast({
+          title: "Processando imagem...",
+          description: "Otimizando a foto para sincronização."
+        })
+
+        // Get optimal compression settings based on file size
+        const fileSizeKB = file.size / 1024
+        const compressionOptions = getOptimalCompressionOptions(fileSizeKB)
+        
+        // Compress the image
+        const compressedFile = await compressImage(file, compressionOptions)
+        
+        setFoto(compressedFile)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setFotoPreview(reader.result as string)
+        }
+        reader.readAsDataURL(compressedFile)
+
+        toast({
+          title: "Foto otimizada",
+          description: `Tamanho reduzido de ${fileSizeKB.toFixed(0)}KB para ${(compressedFile.size / 1024).toFixed(0)}KB`
+        })
+
+      } catch (error) {
+        console.error('Erro ao comprimir imagem:', error)
+        toast({
+          title: "Erro ao processar imagem",
+          description: "Usando imagem original. Verifique o formato do arquivo.",
+          variant: "destructive"
+        })
+        
+        // Fallback to original file
+        setFoto(file)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setFotoPreview(reader.result as string)
+        }
+        reader.readAsDataURL(file)
+      }
     }
   }
 

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Plus, Upload, X, Camera } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
+import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
 
 interface Cliente {
   id: string
@@ -86,19 +87,53 @@ export default function NovaLeituraDialog({ open, onOpenChange, onSuccess }: Nov
     }
   }
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      if (file.type.startsWith('image/')) {
-        setSelectedFile(file)
-        const url = URL.createObjectURL(file)
-        setPreviewUrl(url)
-      } else {
+      if (!isValidImageFile(file)) {
         toast({
           title: "Arquivo inválido",
           description: "Por favor, selecione apenas arquivos de imagem.",
           variant: "destructive",
         })
+        return
+      }
+
+      try {
+        // Show loading state
+        toast({
+          title: "Processando imagem...",
+          description: "Otimizando a foto para sincronização."
+        })
+
+        // Get optimal compression settings based on file size
+        const fileSizeKB = file.size / 1024
+        const compressionOptions = getOptimalCompressionOptions(fileSizeKB)
+        
+        // Compress the image
+        const compressedFile = await compressImage(file, compressionOptions)
+        
+        setSelectedFile(compressedFile)
+        const url = URL.createObjectURL(compressedFile)
+        setPreviewUrl(url)
+
+        toast({
+          title: "Foto otimizada",
+          description: `Tamanho reduzido de ${fileSizeKB.toFixed(0)}KB para ${(compressedFile.size / 1024).toFixed(0)}KB`
+        })
+
+      } catch (error) {
+        console.error('Erro ao comprimir imagem:', error)
+        toast({
+          title: "Erro ao processar imagem",
+          description: "Usando imagem original. Verifique o formato do arquivo.",
+          variant: "destructive"
+        })
+        
+        // Fallback to original file
+        setSelectedFile(file)
+        const url = URL.createObjectURL(file)
+        setPreviewUrl(url)
       }
     }
   }
