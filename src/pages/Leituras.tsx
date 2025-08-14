@@ -228,7 +228,7 @@ export default function Leituras() {
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os clientes</SelectItem>
+                    <SelectItem value="todos">Todos os clientes</SelectItem>
                     {clientes.map((cliente) => (
                       <SelectItem key={cliente.id} value={cliente.id}>
                         {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'} 
