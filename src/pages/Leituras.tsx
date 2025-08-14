@@ -30,10 +30,16 @@ interface Leitura {
   created_at: string
   cliente_id: string
   operador_id: string
+  consumo?: number
+  valor_fatura?: number
   clientes?: {
     identificacao_unidade: string
+    leitura_inicial?: number
     empreendimentos?: {
       nome: string
+      tipo_gas?: string
+      preco_m3_gas?: number
+      preco_kg_gas?: number
     }
   }
   operadores?: {
@@ -127,15 +133,57 @@ export default function Leituras() {
           *,
           clientes:cliente_id (
             identificacao_unidade,
-            empreendimentos:empreendimento_id (nome)
+            leitura_inicial,
+            empreendimentos:empreendimento_id (nome, tipo_gas, preco_m3_gas, preco_kg_gas)
           ),
           operadores:operador_id (nome)
         `)
         .eq('cliente_id', clienteFilter)
-        .order('created_at', { ascending: false })
+        .order('data_leitura', { ascending: false })
 
       if (error) throw error
-      setLeituras(data || [])
+
+      // Calcular consumo e valor da fatura para cada leitura
+      const leiturasComConsumo = await Promise.all((data || []).map(async (leitura, index) => {
+        // Buscar leitura anterior do mesmo cliente
+        const { data: leituraAnterior } = await supabase
+          .from('leituras')
+          .select('leitura_atual')
+          .eq('cliente_id', leitura.cliente_id)
+          .lt('data_leitura', leitura.data_leitura)
+          .order('data_leitura', { ascending: false })
+          .limit(1)
+
+        let consumo = 0
+        let valorFatura = 0
+        let leituraAnteriorValor = 0
+
+        if (leituraAnterior && leituraAnterior.length > 0) {
+          leituraAnteriorValor = leituraAnterior[0].leitura_atual
+        } else if (leitura.clientes?.leitura_inicial !== undefined) {
+          // Primeira leitura: usar leitura inicial do cliente
+          leituraAnteriorValor = leitura.clientes.leitura_inicial
+        }
+
+        consumo = leitura.leitura_atual - leituraAnteriorValor
+        
+        // Calcular valor da fatura baseado no tipo de gás
+        if (consumo > 0) {
+          if (leitura.clientes?.empreendimentos?.tipo_gas === 'GLP' && leitura.clientes.empreendimentos.preco_kg_gas) {
+            valorFatura = consumo * leitura.clientes.empreendimentos.preco_kg_gas
+          } else if (leitura.clientes?.empreendimentos?.tipo_gas === 'GN' && leitura.clientes.empreendimentos.preco_m3_gas) {
+            valorFatura = consumo * leitura.clientes.empreendimentos.preco_m3_gas
+          }
+        }
+
+        return {
+          ...leitura,
+          consumo,
+          valor_fatura: valorFatura
+        }
+      }))
+
+      setLeituras(leiturasComConsumo)
     } catch (error: any) {
       toast({
         title: "Erro ao carregar leituras",
@@ -194,12 +242,14 @@ export default function Leituras() {
   })
 
   const exportToCSV = () => {
-    const headers = ['Data', 'Empreendimento', 'Unidade', 'Leitura', 'Operador', 'Status', 'Observação']
+    const headers = ['Data', 'Empreendimento', 'Unidade', 'Leitura', 'Consumo', 'Valor Fatura', 'Operador', 'Status', 'Observação']
     const rows = filteredLeituras.map(leitura => [
       format(new Date(leitura.data_leitura), 'dd/MM/yyyy HH:mm'),
       leitura.clientes?.empreendimentos?.nome || '',
       leitura.clientes?.identificacao_unidade || '',
       leitura.leitura_atual.toString(),
+      leitura.consumo?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '',
+      leitura.valor_fatura?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '',
       leitura.operadores?.nome || '',
       leitura.status_sincronizacao,
       leitura.observacao || ''
@@ -447,14 +497,16 @@ export default function Leituras() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Data/Hora</TableHead>
-                      <TableHead>Empreendimento</TableHead>
-                      <TableHead>Unidade</TableHead>
-                      <TableHead>Leitura</TableHead>
-                      <TableHead>Operador</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Observação</TableHead>
-                      <TableHead>Foto</TableHead>
+                       <TableHead>Data/Hora</TableHead>
+                       <TableHead>Empreendimento</TableHead>
+                       <TableHead>Unidade</TableHead>
+                       <TableHead>Leitura</TableHead>
+                       <TableHead>Consumo</TableHead>
+                       <TableHead>Valor Fatura</TableHead>
+                       <TableHead>Operador</TableHead>
+                       <TableHead>Status</TableHead>
+                       <TableHead>Observação</TableHead>
+                       <TableHead>Foto</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -469,12 +521,28 @@ export default function Leituras() {
                         <TableCell>
                           {leitura.clientes?.identificacao_unidade || 'N/A'}
                         </TableCell>
-                        <TableCell className="font-mono">
-                          {leitura.leitura_atual.toLocaleString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          {leitura.operadores?.nome || 'N/A'}
-                        </TableCell>
+                         <TableCell className="font-mono">
+                           {leitura.leitura_atual.toLocaleString('pt-BR')}
+                         </TableCell>
+                         <TableCell className="font-mono">
+                           {leitura.consumo !== undefined ? 
+                             leitura.consumo.toLocaleString('pt-BR', { 
+                               minimumFractionDigits: 2, 
+                               maximumFractionDigits: 2 
+                             }) : '-'
+                           }
+                         </TableCell>
+                         <TableCell className="font-mono">
+                           {leitura.valor_fatura !== undefined ? 
+                             `R$ ${leitura.valor_fatura.toLocaleString('pt-BR', { 
+                               minimumFractionDigits: 2, 
+                               maximumFractionDigits: 2 
+                             })}` : '-'
+                           }
+                         </TableCell>
+                         <TableCell>
+                           {leitura.operadores?.nome || 'N/A'}
+                         </TableCell>
                         <TableCell>
                           {getStatusBadge(leitura.status_sincronizacao)}
                         </TableCell>
