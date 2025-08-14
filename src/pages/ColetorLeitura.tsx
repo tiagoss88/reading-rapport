@@ -238,7 +238,11 @@ export default function ColetorLeitura() {
                 variant="outline"
                 size="sm"
                 onClick={abrirCamera}
-                className="flex items-center space-x-1"
+                className={`flex items-center space-x-1 ${
+                  fotoPreview 
+                    ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' 
+                    : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
+                }`}
               >
                 <Camera className="w-4 h-4" />
                 <span className="text-xs">Foto</span>
