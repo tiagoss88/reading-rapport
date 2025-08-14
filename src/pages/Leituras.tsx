@@ -43,11 +43,14 @@ interface Leitura {
 
 export default function Leituras() {
   const [leituras, setLeituras] = useState<Leitura[]>([])
+  const [empreendimentos, setEmpreendimentos] = useState<any[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [empreendimentoFilter, setEmpreendimentoFilter] = useState('')
   const [clienteFilter, setClienteFilter] = useState('')
+  const [empreendimentoOpen, setEmpreendimentoOpen] = useState(false)
   const [clienteOpen, setClienteOpen] = useState(false)
   const [novaLeituraOpen, setNovaLeituraOpen] = useState(false)
   const [fotoLightboxOpen, setFotoLightboxOpen] = useState(false)
@@ -55,10 +58,40 @@ export default function Leituras() {
   const { toast } = useToast()
 
   useEffect(() => {
-    fetchClientes()
+    fetchEmpreendimentos()
   }, [])
 
+  // Buscar clientes quando empreendimento for selecionado
+  useEffect(() => {
+    if (empreendimentoFilter) {
+      fetchClientes()
+    } else {
+      setClientes([])
+      setClienteFilter('')
+    }
+  }, [empreendimentoFilter])
+
+  const fetchEmpreendimentos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('empreendimentos')
+        .select('id, nome')
+        .order('nome')
+
+      if (error) throw error
+      setEmpreendimentos(data || [])
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar empreendimentos",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
   const fetchClientes = async () => {
+    if (!empreendimentoFilter) return
+
     try {
       const { data, error } = await supabase
         .from('clientes')
@@ -69,6 +102,7 @@ export default function Leituras() {
           empreendimentos:empreendimento_id (nome)
         `)
         .eq('status', 'ativo')
+        .eq('empreendimento_id', empreendimentoFilter)
         .order('identificacao_unidade')
 
       if (error) throw error
@@ -218,70 +252,52 @@ export default function Leituras() {
           <CardHeader>
             <CardTitle>Filtros</CardTitle>
             <CardDescription>
-              Selecione um cliente para visualizar suas leituras
+              Primeiro selecione um empreendimento, depois uma unidade para visualizar as leituras
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
-              {/* Seleção de Cliente */}
+              {/* Seleção de Empreendimento */}
               <div className="flex-1">
-                <Label htmlFor="cliente-filter" className="text-sm font-medium mb-2 block">
-                  Cliente
+                <Label htmlFor="empreendimento-filter" className="text-sm font-medium mb-2 block">
+                  Empreendimento
                 </Label>
-                <Popover open={clienteOpen} onOpenChange={setClienteOpen}>
+                <Popover open={empreendimentoOpen} onOpenChange={setEmpreendimentoOpen}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
-                      aria-expanded={clienteOpen}
+                      aria-expanded={empreendimentoOpen}
                       className="w-full justify-between"
                     >
-                      {clienteFilter
-                        ? clientes.find((cliente) => cliente.id === clienteFilter)
-                            ? `${clientes.find((cliente) => cliente.id === clienteFilter)?.identificacao_unidade} - ${clientes.find((cliente) => cliente.id === clienteFilter)?.nome || 'Sem nome'}`
-                            : "Selecione um cliente"
-                        : "Selecione um cliente"}
+                      {empreendimentoFilter
+                        ? empreendimentos.find((emp) => emp.id === empreendimentoFilter)?.nome || "Selecione um empreendimento"
+                        : "Selecione um empreendimento"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
-                      <CommandInput placeholder="Digite para buscar por cliente ou empreendimento..." />
+                      <CommandInput placeholder="Digite para buscar empreendimentos..." />
                       <CommandList>
-                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandEmpty>Nenhum empreendimento encontrado.</CommandEmpty>
                         <CommandGroup>
-                          <CommandItem
-                            value="todos"
-                            onSelect={() => {
-                              setClienteFilter("")
-                              setClienteOpen(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                clienteFilter === "" ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            Todos os clientes
-                          </CommandItem>
-                          {clientes.map((cliente) => (
+                          {empreendimentos.map((empreendimento) => (
                             <CommandItem
-                              key={cliente.id}
-                              value={`${cliente.identificacao_unidade} ${cliente.nome || ''} ${cliente.empreendimentos?.nome || ''}`}
+                              key={empreendimento.id}
+                              value={empreendimento.nome}
                               onSelect={() => {
-                                setClienteFilter(cliente.id)
-                                setClienteOpen(false)
+                                setEmpreendimentoFilter(empreendimento.id)
+                                setEmpreendimentoOpen(false)
                               }}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  clienteFilter === cliente.id ? "opacity-100" : "opacity-0"
+                                  empreendimentoFilter === empreendimento.id ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'}
-                              {cliente.empreendimentos && ` (${cliente.empreendimentos.nome})`}
+                              {empreendimento.nome}
                             </CommandItem>
                           ))}
                         </CommandGroup>
@@ -290,6 +306,60 @@ export default function Leituras() {
                   </PopoverContent>
                 </Popover>
               </div>
+
+              {/* Seleção de Cliente (apenas se empreendimento estiver selecionado) */}
+              {empreendimentoFilter && (
+                <div className="flex-1">
+                  <Label htmlFor="cliente-filter" className="text-sm font-medium mb-2 block">
+                    Unidade
+                  </Label>
+                  <Popover open={clienteOpen} onOpenChange={setClienteOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={clienteOpen}
+                        className="w-full justify-between"
+                      >
+                        {clienteFilter
+                          ? clientes.find((cliente) => cliente.id === clienteFilter)
+                              ? `${clientes.find((cliente) => cliente.id === clienteFilter)?.identificacao_unidade} - ${clientes.find((cliente) => cliente.id === clienteFilter)?.nome || 'Sem nome'}`
+                              : "Selecione uma unidade"
+                          : "Selecione uma unidade"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Digite para buscar unidades..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma unidade encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {clientes.map((cliente) => (
+                              <CommandItem
+                                key={cliente.id}
+                                value={`${cliente.identificacao_unidade} ${cliente.nome || ''}`}
+                                onSelect={() => {
+                                  setClienteFilter(cliente.id)
+                                  setClienteOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    clienteFilter === cliente.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {cliente.identificacao_unidade} - {cliente.nome || 'Sem nome'}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
 
               {/* Filtro de Status */}
               <div className="w-full sm:w-48">
@@ -338,10 +408,10 @@ export default function Leituras() {
               <div className="text-center py-12">
                 <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Selecione um Cliente
+                  Selecione um Empreendimento
                 </h3>
                 <p className="text-gray-500 max-w-sm mx-auto">
-                  Escolha um cliente nos filtros acima para visualizar suas leituras registradas.
+                  Primeiro escolha um empreendimento e depois uma unidade nos filtros acima para visualizar as leituras.
                 </p>
               </div>
             </CardContent>
