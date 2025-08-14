@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -6,51 +6,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar, Clock, MapPin, User, Wrench, Filter, MoreHorizontal } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
 
-// Mock data for demonstration
-const agendamentos = [
-  {
-    id: '1',
-    tipo_servico: 'Religação',
-    cliente: 'João Silva - Apto 101',
-    endereco: 'Rua das Flores, 123 - Apto 101',
-    data: '2024-01-16',
-    hora: '09:00',
-    status: 'agendado',
-    observacoes: 'Cliente solicitou religação após quitação'
-  },
-  {
-    id: '2',
-    tipo_servico: 'Visita Técnica',
-    cliente: 'Maria Santos - Casa 15',
-    endereco: 'Rua das Palmeiras, 456 - Casa 15',
-    data: '2024-01-16',
-    hora: '14:30',
-    status: 'em_andamento',
-    observacoes: 'Verificar vazamento reportado'
-  },
-  {
-    id: '3',
-    tipo_servico: 'Corte',
-    cliente: 'Pedro Oliveira - Apto 205',
-    endereco: 'Av. Central, 789 - Apto 205',
-    data: '2024-01-17',
-    hora: '10:15',
-    status: 'agendado',
-    observacoes: 'Corte por inadimplência - 3 meses em atraso'
-  },
-  {
-    id: '4',
-    tipo_servico: 'Instalação',
-    cliente: 'Ana Costa - Casa 8',
-    endereco: 'Rua Nova, 321 - Casa 8',
-    data: '2024-01-17',
-    hora: '16:00',
-    status: 'agendado',
-    observacoes: 'Nova instalação - cliente novo'
-  }
-]
+const tiposServicoLabels: { [key: string]: string } = {
+  'religacao': 'Religação',
+  'religacao_emergencial': 'Religação Emergencial',
+  'bloqueio': 'Bloqueio (Pedido do Cliente)',
+  'corte': 'Corte (Falta de Pagamento)',
+  'visita_tecnica': 'Visita Técnica',
+  'instalacao': 'Instalação',
+  'cheiro_gas': 'Cheiro de Gás',
+  'falta_gas': 'Falta de Gás'
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -79,14 +48,77 @@ const getStatusLabel = (status: string) => {
 }
 
 export default function Agendamentos() {
+  const { toast } = useToast()
+  const [agendamentos, setAgendamentos] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('todos')
   const [filtroData, setFiltroData] = useState('')
 
+  // Carregar agendamentos do banco de dados
+  useEffect(() => {
+    const fetchAgendamentos = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('servicos')
+          .select(`
+            id,
+            tipo_servico,
+            data_agendamento,
+            hora_agendamento,
+            observacoes,
+            status,
+            clientes (
+              id,
+              nome,
+              identificacao_unidade
+            ),
+            empreendimentos (
+              id,
+              nome,
+              endereco
+            )
+          `)
+          .order('data_agendamento', { ascending: true })
+          .order('hora_agendamento', { ascending: true })
+
+        if (error) {
+          toast({
+            title: "Erro ao carregar agendamentos",
+            description: error.message,
+            variant: "destructive"
+          })
+        } else {
+          setAgendamentos(data || [])
+        }
+      } catch (error) {
+        toast({
+          title: "Erro ao carregar agendamentos",
+          description: "Tente novamente",
+          variant: "destructive"
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchAgendamentos()
+  }, [])
+
   const agendamentosFiltrados = agendamentos.filter(agendamento => {
     const matchStatus = filtroStatus === 'todos' || agendamento.status === filtroStatus
-    const matchData = !filtroData || agendamento.data === filtroData
+    const matchData = !filtroData || agendamento.data_agendamento === filtroData
     return matchStatus && matchData
   })
+
+  if (loading) {
+    return (
+      <Layout title="Agendamentos">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Carregando agendamentos...</p>
+        </div>
+      </Layout>
+    )
+  }
 
   return (
     <Layout title="Agendamentos">
@@ -166,14 +198,16 @@ export default function Agendamentos() {
                 {agendamentosFiltrados.map((agendamento) => (
                   <TableRow key={agendamento.id}>
                     <TableCell className="font-medium">
-                      {agendamento.tipo_servico}
+                      {tiposServicoLabels[agendamento.tipo_servico] || agendamento.tipo_servico}
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <div className="font-medium">{agendamento.cliente}</div>
+                        <div className="font-medium">
+                          {agendamento.clientes?.identificacao_unidade} - {agendamento.clientes?.nome || 'Sem nome'}
+                        </div>
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {agendamento.endereco}
+                          {agendamento.empreendimentos?.nome} - {agendamento.empreendimentos?.endereco}
                         </div>
                       </div>
                     </TableCell>
@@ -181,11 +215,11 @@ export default function Agendamentos() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-1 text-sm">
                           <Calendar className="h-3 w-3" />
-                          {new Date(agendamento.data).toLocaleDateString('pt-BR')}
+                          {new Date(agendamento.data_agendamento).toLocaleDateString('pt-BR')}
                         </div>
                         <div className="flex items-center gap-1 text-sm text-muted-foreground">
                           <Clock className="h-3 w-3" />
-                          {agendamento.hora}
+                          {agendamento.hora_agendamento}
                         </div>
                       </div>
                     </TableCell>

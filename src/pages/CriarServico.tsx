@@ -110,23 +110,61 @@ export default function CriarServico() {
     setOpenCliente(false)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    toast({
-      title: "Serviço criado com sucesso",
-      description: "O serviço foi agendado e aparecerá na agenda."
-    })
-    
-    // Reset form
-    setFormData({
-      tipo_servico: '',
-      empreendimento_id: '',
-      cliente_id: '',
-      data_agendamento: '',
-      hora_agendamento: '',
-      observacoes: ''
-    })
+    if (!formData.tipo_servico || !formData.empreendimento_id || !formData.cliente_id || 
+        !formData.data_agendamento || !formData.hora_agendamento) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos obrigatórios",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      const { error } = await supabase
+        .from('servicos')
+        .insert({
+          tipo_servico: formData.tipo_servico,
+          empreendimento_id: formData.empreendimento_id,
+          cliente_id: formData.cliente_id,
+          data_agendamento: formData.data_agendamento,
+          hora_agendamento: formData.hora_agendamento,
+          observacoes: formData.observacoes || null
+        })
+
+      if (error) {
+        toast({
+          title: "Erro ao criar serviço",
+          description: error.message,
+          variant: "destructive"
+        })
+        return
+      }
+
+      toast({
+        title: "Serviço criado com sucesso",
+        description: "O serviço foi agendado e aparecerá na agenda."
+      })
+      
+      // Reset form
+      setFormData({
+        tipo_servico: '',
+        empreendimento_id: '',
+        cliente_id: '',
+        data_agendamento: '',
+        hora_agendamento: '',
+        observacoes: ''
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao criar serviço",
+        description: "Tente novamente",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
