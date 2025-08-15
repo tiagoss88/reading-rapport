@@ -7,13 +7,17 @@ export interface CompressionOptions {
   maxHeight?: number
   quality?: number // 0.1 to 1.0
   maxSizeKB?: number
+  format?: 'jpeg' | 'webp' | 'png'
+  progressive?: boolean
 }
 
 const DEFAULT_OPTIONS: Required<CompressionOptions> = {
   maxWidth: 1920,
   maxHeight: 1920,
-  quality: 0.8,
-  maxSizeKB: 500
+  quality: 0.92, // Aumentada para melhor qualidade
+  maxSizeKB: 800, // Aumentado para permitir melhor qualidade
+  format: 'webp', // WebP oferece melhor compressão
+  progressive: true
 }
 
 /**
@@ -51,13 +55,27 @@ export async function compressImage(
         canvas.width = width
         canvas.height = height
         
+        // Use better image rendering for quality
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        
         // Draw image with new dimensions
         ctx.drawImage(img, 0, 0, width, height)
+        
+        // Determine best format based on image content and browser support
+        let format = opts.format
+        let mimeType = `image/${format}`
+        
+        // Fallback to JPEG if WebP not supported
+        if (format === 'webp' && !isWebPSupported()) {
+          format = 'jpeg'
+          mimeType = 'image/jpeg'
+        }
         
         // Start with initial quality
         let quality = opts.quality
         let attempts = 0
-        const maxAttempts = 5
+        const maxAttempts = 6
         
         const tryCompress = () => {
           canvas.toBlob(
@@ -71,22 +89,31 @@ export async function compressImage(
               
               // If size is acceptable or we've tried enough times, use current result
               if (sizeKB <= opts.maxSizeKB || attempts >= maxAttempts) {
-                const compressedFile = new File([blob], file.name, {
-                  type: blob.type,
+                // Preserve original filename but update extension if format changed
+                let fileName = file.name
+                if (format === 'webp' && !fileName.toLowerCase().endsWith('.webp')) {
+                  fileName = fileName.replace(/\.[^/.]+$/, '.webp')
+                } else if (format === 'jpeg' && !fileName.toLowerCase().match(/\.(jpg|jpeg)$/)) {
+                  fileName = fileName.replace(/\.[^/.]+$/, '.jpg')
+                }
+                
+                const compressedFile = new File([blob], fileName, {
+                  type: mimeType,
                   lastModified: Date.now()
                 })
                 
-                console.log(`Image compressed: ${(file.size / 1024).toFixed(2)}KB → ${sizeKB.toFixed(2)}KB`)
+                const compressionRatio = ((file.size - blob.size) / file.size * 100).toFixed(1)
+                console.log(`Image compressed: ${(file.size / 1024).toFixed(2)}KB → ${sizeKB.toFixed(2)}KB (${compressionRatio}% reduction)`)
                 resolve(compressedFile)
                 return
               }
               
-              // Reduce quality and try again
+              // Reduce quality more gradually for better results
               attempts++
-              quality = Math.max(0.1, quality - 0.1)
+              quality = Math.max(0.1, quality - 0.08)
               tryCompress()
             },
-            'image/jpeg',
+            mimeType,
             quality
           )
         }
@@ -140,29 +167,74 @@ export function isValidImageFile(file: File): boolean {
  * Gets optimal compression settings based on image size
  */
 export function getOptimalCompressionOptions(fileSizeKB: number): CompressionOptions {
-  if (fileSizeKB > 2000) {
-    // Large images - more aggressive compression
-    return {
-      maxWidth: 1280,
-      maxHeight: 1280,
-      quality: 0.7,
-      maxSizeKB: 400
-    }
-  } else if (fileSizeKB > 1000) {
-    // Medium images - moderate compression
+  if (fileSizeKB > 3000) {
+    // Imagens muito grandes - compressão mais agressiva mas ainda preservando qualidade
     return {
       maxWidth: 1600,
       maxHeight: 1600,
-      quality: 0.8,
-      maxSizeKB: 500
+      quality: 0.88,
+      maxSizeKB: 600,
+      format: 'webp'
     }
-  } else {
-    // Small images - light compression
+  } else if (fileSizeKB > 2000) {
+    // Imagens grandes - compressão moderada
+    return {
+      maxWidth: 1800,
+      maxHeight: 1800,
+      quality: 0.90,
+      maxSizeKB: 700,
+      format: 'webp'
+    }
+  } else if (fileSizeKB > 1000) {
+    // Imagens médias - compressão leve
     return {
       maxWidth: 1920,
       maxHeight: 1920,
-      quality: 0.85,
-      maxSizeKB: 600
+      quality: 0.92,
+      maxSizeKB: 800,
+      format: 'webp'
+    }
+  } else {
+    // Imagens pequenas - compressão mínima
+    return {
+      maxWidth: 1920,
+      maxHeight: 1920,
+      quality: 0.95,
+      maxSizeKB: 900,
+      format: 'webp'
     }
   }
+}
+
+/**
+ * Checks if WebP format is supported by the browser
+ */
+function isWebPSupported(): boolean {
+  if (typeof window === 'undefined') return false
+  
+  const canvas = document.createElement('canvas')
+  canvas.width = 1
+  canvas.height = 1
+  
+  return canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0
+}
+
+/**
+ * Advanced compression with multiple passes for optimal quality/size ratio
+ */
+export async function smartCompress(file: File): Promise<File> {
+  const fileSizeKB = file.size / 1024
+  const options = getOptimalCompressionOptions(fileSizeKB)
+  
+  // Para imagens muito pequenas, apenas otimizar sem compressão agressiva
+  if (fileSizeKB < 100) {
+    return compressImage(file, {
+      maxWidth: 1920,
+      maxHeight: 1920,
+      quality: 0.98,
+      maxSizeKB: fileSizeKB + 50 // Permitir um pouco de aumento para manter qualidade
+    })
+  }
+  
+  return compressImage(file, options)
 }

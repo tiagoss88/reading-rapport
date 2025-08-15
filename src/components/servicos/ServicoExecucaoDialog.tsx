@@ -7,8 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Camera, X, Plus, Loader2 } from 'lucide-react'
-import { compressImage, isValidImageFile } from '@/lib/imageCompression'
+import { Camera, X, Plus, Loader2, ImageIcon } from 'lucide-react'
+import { compressImage, isValidImageFile, smartCompress } from '@/lib/imageCompression'
 
 interface ServicoExecucaoDialogProps {
   open: boolean
@@ -58,14 +58,14 @@ export default function ServicoExecucaoDialog({
       }
 
       try {
-        const compressedFile = await compressImage(file, {
-          maxWidth: 1920,
-          maxHeight: 1920,
-          quality: 0.8,
-          maxSizeKB: 2048
-        })
-
+        // Usar compressão inteligente baseada no tamanho da imagem
+        const compressedFile = await smartCompress(file)
+        
         const preview = URL.createObjectURL(compressedFile)
+        const compressionRatio = ((file.size - compressedFile.size) / file.size * 100).toFixed(1)
+        
+        console.log(`Imagem processada: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB (${compressionRatio}% de redução)`)
+        
         newImages.push({
           file: compressedFile,
           preview,
@@ -73,6 +73,12 @@ export default function ServicoExecucaoDialog({
         })
       } catch (error) {
         console.error('Erro ao processar imagem:', error)
+        toast({
+          title: "Erro no processamento",
+          description: `Erro ao comprimir ${file.name}. Usando imagem original.`,
+          variant: "destructive"
+        })
+        
         const preview = URL.createObjectURL(file)
         newImages.push({
           file,
@@ -278,8 +284,9 @@ export default function ServicoExecucaoDialog({
                   <Plus className="w-4 h-4" />
                   Adicionar Fotos
                 </Button>
-                <span className="text-sm text-muted-foreground">
-                  {images.length} foto(s) selecionada(s)
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <ImageIcon className="w-4 h-4" />
+                  {images.length} foto(s) • WebP comprimido
                 </span>
               </div>
 
