@@ -38,9 +38,7 @@ export default function ServicoExecucaoDialog({
   const [formData, setFormData] = useState({
     descricaoRealizada: '',
     materiaisUtilizados: '',
-    observacoes: '',
-    horaInicio: new Date().toTimeString().slice(0, 5),
-    horaFim: ''
+    observacoes: ''
   })
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,15 +119,6 @@ export default function ServicoExecucaoDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.horaFim) {
-      toast({
-        title: "Campo obrigatório",
-        description: "Informe a hora de fim do serviço",
-        variant: "destructive"
-      })
-      return
-    }
-
     if (!formData.descricaoRealizada.trim()) {
       toast({
         title: "Campo obrigatório",
@@ -160,14 +149,16 @@ export default function ServicoExecucaoDialog({
       const uploadedUrls = await Promise.all(uploadPromises)
       const validUrls = uploadedUrls.filter(url => url !== null)
 
+      // Captura automaticamente o horário de fim
+      const horaFim = new Date().toTimeString().slice(0, 8) // HH:MM:SS
+
       // Atualizar o serviço com os dados da execução
       const { error } = await supabase
         .from('servicos')
         .update({
           status: 'concluido',
           data_execucao: new Date().toISOString(),
-          hora_inicio: formData.horaInicio,
-          hora_fim: formData.horaFim,
+          hora_fim: horaFim,
           descricao_servico_realizado: formData.descricaoRealizada,
           materiais_utilizados: formData.materiaisUtilizados || null,
           observacoes_execucao: formData.observacoes || null,
@@ -201,9 +192,7 @@ export default function ServicoExecucaoDialog({
     setFormData({
       descricaoRealizada: '',
       materiaisUtilizados: '',
-      observacoes: '',
-      horaInicio: new Date().toTimeString().slice(0, 5),
-      horaFim: ''
+      observacoes: ''
     })
     
     images.forEach(img => URL.revokeObjectURL(img.preview))
@@ -221,28 +210,12 @@ export default function ServicoExecucaoDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Horários */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="horaInicio">Hora de Início</Label>
-              <Input
-                id="horaInicio"
-                type="time"
-                value={formData.horaInicio}
-                onChange={(e) => setFormData(prev => ({ ...prev, horaInicio: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="horaFim">Hora de Fim</Label>
-              <Input
-                id="horaFim"
-                type="time"
-                value={formData.horaFim}
-                onChange={(e) => setFormData(prev => ({ ...prev, horaFim: e.target.value }))}
-                required
-              />
-            </div>
+          {/* Informação sobre horários automáticos */}
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-700">
+              <strong>Horários automáticos:</strong> O horário de início foi capturado quando você iniciou o serviço. 
+              O horário de fim será registrado automaticamente quando concluir.
+            </p>
           </div>
 
           {/* Descrição do serviço realizado */}

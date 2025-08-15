@@ -133,9 +133,16 @@ export default function ColetorServicos() {
 
   const updateServicoStatus = async (servicoId: string, novoStatus: string) => {
     try {
+      const updateData: any = { status: novoStatus }
+      
+      // Se está iniciando o serviço, captura o horário de início automaticamente
+      if (novoStatus === 'em_andamento') {
+        updateData.hora_inicio = new Date().toTimeString().slice(0, 8) // HH:MM:SS
+      }
+
       const { error } = await supabase
         .from('servicos')
-        .update({ status: novoStatus })
+        .update(updateData)
         .eq('id', servicoId)
 
       if (error) throw error
