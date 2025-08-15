@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import ServicoExecucaoDialog from '@/components/servicos/ServicoExecucaoDialog'
 
 interface Servico {
   id: string
@@ -34,6 +35,15 @@ export default function ColetorServicos() {
   const [servicos, setServicos] = useState<Servico[]>([])
   const [loading, setLoading] = useState(true)
   const [operadorId, setOperadorId] = useState<string | null>(null)
+  const [execucaoDialog, setExecucaoDialog] = useState<{
+    open: boolean
+    servicoId: string
+    tipoServico: string
+  }>({
+    open: false,
+    servicoId: '',
+    tipoServico: ''
+  })
 
   useEffect(() => {
     fetchOperadorId()
@@ -282,7 +292,11 @@ export default function ColetorServicos() {
                     {servico.status === 'em_andamento' && (
                       <Button
                         size="sm"
-                        onClick={() => updateServicoStatus(servico.id, 'concluido')}
+                        onClick={() => setExecucaoDialog({
+                          open: true,
+                          servicoId: servico.id,
+                          tipoServico: servico.tipo_servico
+                        })}
                         className="flex-1 bg-green-600 hover:bg-green-700"
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
@@ -295,6 +309,15 @@ export default function ColetorServicos() {
             ))}
           </div>
         )}
+
+        {/* Dialog de Execução do Serviço */}
+        <ServicoExecucaoDialog
+          open={execucaoDialog.open}
+          onOpenChange={(open) => setExecucaoDialog(prev => ({ ...prev, open }))}
+          servicoId={execucaoDialog.servicoId}
+          tipoServico={execucaoDialog.tipoServico}
+          onSuccess={fetchServicos}
+        />
       </div>
     </div>
   )
