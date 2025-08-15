@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -227,10 +227,17 @@ export type Database = {
           cliente_id: string
           created_at: string
           data_agendamento: string
+          data_execucao: string | null
+          descricao_servico_realizado: string | null
           empreendimento_id: string
+          fotos_servico: string[] | null
           hora_agendamento: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
           id: string
+          materiais_utilizados: string | null
           observacoes: string | null
+          observacoes_execucao: string | null
           operador_responsavel_id: string | null
           status: string
           tipo_servico: string
@@ -240,10 +247,17 @@ export type Database = {
           cliente_id: string
           created_at?: string
           data_agendamento: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
           empreendimento_id: string
+          fotos_servico?: string[] | null
           hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
           id?: string
+          materiais_utilizados?: string | null
           observacoes?: string | null
+          observacoes_execucao?: string | null
           operador_responsavel_id?: string | null
           status?: string
           tipo_servico: string
@@ -253,10 +267,17 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           data_agendamento?: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
           empreendimento_id?: string
+          fotos_servico?: string[] | null
           hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
           id?: string
+          materiais_utilizados?: string | null
           observacoes?: string | null
+          observacoes_execucao?: string | null
           operador_responsavel_id?: string | null
           status?: string
           tipo_servico?: string
