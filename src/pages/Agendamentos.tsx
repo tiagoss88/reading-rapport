@@ -5,10 +5,11 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Clock, MapPin, User, Wrench, Filter, MoreHorizontal } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Wrench, Filter, MoreHorizontal, Eye } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
+import ServicoDetalhesDialog from '@/components/servicos/ServicoDetalhesDialog'
 
 const tiposServicoLabels: { [key: string]: string } = {
   'religacao': 'Religação',
@@ -53,6 +54,8 @@ export default function Agendamentos() {
   const [loading, setLoading] = useState(true)
   const [filtroStatus, setFiltroStatus] = useState('todos')
   const [filtroData, setFiltroData] = useState('')
+  const [servicoSelecionado, setServicoSelecionado] = useState<string | null>(null)
+  const [detalhesOpen, setDetalhesOpen] = useState(false)
 
   // Carregar agendamentos do banco de dados
   useEffect(() => {
@@ -243,6 +246,16 @@ export default function Agendamentos() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              setServicoSelecionado(agendamento.id)
+                              setDetalhesOpen(true)
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Ver Detalhes
+                          </DropdownMenuItem>
                           <DropdownMenuItem>
                             Editar
                           </DropdownMenuItem>
@@ -275,6 +288,12 @@ export default function Agendamentos() {
           </CardContent>
         </Card>
       </div>
+
+      <ServicoDetalhesDialog
+        servicoId={servicoSelecionado}
+        open={detalhesOpen}
+        onOpenChange={setDetalhesOpen}
+      />
     </Layout>
   )
 }
