@@ -88,7 +88,7 @@ export default function Layout({ children, title }: LayoutProps) {
               >
                 <div className="flex items-center">
                   <Wrench className="mr-3 h-5 w-5 flex-shrink-0" />
-                  Serviços
+                  Ordem de Serviço
                 </div>
                 <ChevronDown className={`h-4 w-4 transition-transform ${servicosOpen ? 'rotate-180' : ''}`} />
               </button>
