@@ -100,9 +100,9 @@ export default function ColetorMenu() {
                   <Wrench className="w-6 h-6 text-orange-600" />
                 </div>
                 <div className="flex-1">
-                  <CardTitle className="text-lg">Serviços</CardTitle>
+                  <CardTitle className="text-lg">Ordem de Serviço</CardTitle>
                   <CardDescription>
-                    Registrar serviços realizados
+                    Registrar ordens de serviço realizadas
                   </CardDescription>
                 </div>
               </div>
