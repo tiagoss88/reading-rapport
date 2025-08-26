@@ -222,6 +222,27 @@ export type Database = {
         }
         Relationships: []
       }
+      permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: Database["public"]["Enums"]["app_permission"]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: Database["public"]["Enums"]["app_permission"]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: Database["public"]["Enums"]["app_permission"]
+        }
+        Relationships: []
+      }
       servicos: {
         Row: {
           cliente_id: string
@@ -307,15 +328,100 @@ export type Database = {
           },
         ]
       }
+      user_permissions: {
+        Row: {
+          created_at: string
+          granted_by: string | null
+          id: string
+          permission: Database["public"]["Enums"]["app_permission"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission: Database["public"]["Enums"]["app_permission"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          permission?: Database["public"]["Enums"]["app_permission"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      assign_role_permissions: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      has_permission: {
+        Args: {
+          _permission: Database["public"]["Enums"]["app_permission"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_permission:
+        | "view_dashboard"
+        | "manage_empreendimentos"
+        | "manage_clientes"
+        | "view_leituras"
+        | "create_leituras"
+        | "manage_operadores"
+        | "create_servicos"
+        | "manage_agendamentos"
+        | "coletor_leituras"
+        | "coletor_servicos"
+        | "view_agendamentos"
+      app_role:
+        | "admin"
+        | "gestor_empreendimento"
+        | "operador_completo"
+        | "operador_leitura"
+        | "operador_servicos"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -442,6 +548,27 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_permission: [
+        "view_dashboard",
+        "manage_empreendimentos",
+        "manage_clientes",
+        "view_leituras",
+        "create_leituras",
+        "manage_operadores",
+        "create_servicos",
+        "manage_agendamentos",
+        "coletor_leituras",
+        "coletor_servicos",
+        "view_agendamentos",
+      ],
+      app_role: [
+        "admin",
+        "gestor_empreendimento",
+        "operador_completo",
+        "operador_leitura",
+        "operador_servicos",
+      ],
+    },
   },
 } as const

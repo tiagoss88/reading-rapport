@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BookOpen, Wrench, LogOut, User, Gauge } from 'lucide-react'
@@ -64,55 +65,59 @@ export default function ColetorMenu() {
         {/* Menu Options */}
         <div className="space-y-4">
           {/* Leituras */}
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader 
-              className="pb-3"
-              onClick={goToLeituras}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-green-600" />
+          <ProtectedComponent permission="coletor_leituras">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader 
+                className="pb-3"
+                onClick={goToLeituras}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">Leituras</CardTitle>
+                    <CardDescription>
+                      Registrar leituras dos medidores
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-lg">Leituras</CardTitle>
-                  <CardDescription>
-                    Registrar leituras dos medidores
-                  </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center text-sm text-gray-600">
+                  <Gauge className="w-4 h-4 mr-2" />
+                  <span>Coleta de dados dos medidores</span>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center text-sm text-gray-600">
-                <Gauge className="w-4 h-4 mr-2" />
-                <span>Coleta de dados dos medidores</span>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ProtectedComponent>
 
           {/* Serviços */}
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardHeader 
-              className="pb-3"
-              onClick={goToServicos}
-            >
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Wrench className="w-6 h-6 text-orange-600" />
+          <ProtectedComponent permission="coletor_servicos">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader 
+                className="pb-3"
+                onClick={goToServicos}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Wrench className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">Ordem de Serviço</CardTitle>
+                    <CardDescription>
+                      Registrar ordens de serviço realizadas
+                    </CardDescription>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-lg">Ordem de Serviço</CardTitle>
-                  <CardDescription>
-                    Registrar ordens de serviço realizadas
-                  </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center text-sm text-gray-600">
+                  <span>Visualizar e gerenciar serviços agendados</span>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center text-sm text-gray-600">
-                <span>Visualizar e gerenciar serviços agendados</span>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </ProtectedComponent>
         </div>
 
         {/* Footer Info */}

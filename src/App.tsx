@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PermissionsProvider } from '@/contexts/PermissionsContext'
 import Login from '@/pages/Login'
 import Dashboard from '@/pages/Dashboard'
 import Empreendimentos from '@/pages/Empreendimentos'
@@ -12,6 +13,8 @@ import Operadores from '@/pages/Operadores'
 import CriarServico from '@/pages/CriarServico'
 import Agendamentos from '@/pages/Agendamentos'
 import OperadorApp from '@/pages/OperadorApp'
+import PermissionsManagement from '@/pages/PermissionsManagement'
+import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
 import ColetorSync from '@/pages/ColetorSync'
@@ -28,8 +31,9 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
+      <TooltipProvider>
+        <AuthProvider>
+          <PermissionsProvider>
         <BrowserRouter>
           <div className="min-h-screen bg-background">
             <Routes>
@@ -45,57 +49,86 @@ const App = () => (
               } />
               <Route path="/coletor-sync" element={
                 <ColetorProtectedRoute>
-                  <ColetorSync />
+                  <PermissionRoute permission="coletor_leituras">
+                    <ColetorSync />
+                  </PermissionRoute>
                 </ColetorProtectedRoute>
               } />
-              <Route path="/coletor/unidades/:empreendimentoId" element={
-                <ColetorProtectedRoute>
-                  <ColetorUnidades />
-                </ColetorProtectedRoute>
-              } />
-              <Route path="/coletor/leitura/:clienteId" element={
-                <ColetorProtectedRoute>
-                  <ColetorLeitura />
-                </ColetorProtectedRoute>
-               } />
-               <Route path="/coletor/servicos" element={
+               <Route path="/coletor/unidades/:empreendimentoId" element={
                  <ColetorProtectedRoute>
-                   <ColetorServicos />
+                   <PermissionRoute permission="coletor_leituras">
+                     <ColetorUnidades />
+                   </PermissionRoute>
                  </ColetorProtectedRoute>
                } />
+               <Route path="/coletor/leitura/:clienteId" element={
+                 <ColetorProtectedRoute>
+                   <PermissionRoute permission="coletor_leituras">
+                     <ColetorLeitura />
+                   </PermissionRoute>
+                 </ColetorProtectedRoute>
+                } />
+                <Route path="/coletor/servicos" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_servicos">
+                      <ColetorServicos />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
+                } />
               <Route path="/" element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <PermissionRoute permission="view_dashboard">
+                    <Dashboard />
+                  </PermissionRoute>
                 </ProtectedRoute>
               } />
               <Route path="/empreendimentos" element={
                 <ProtectedRoute>
-                  <Empreendimentos />
+                  <PermissionRoute permission="manage_empreendimentos">
+                    <Empreendimentos />
+                  </PermissionRoute>
                 </ProtectedRoute>
               } />
               <Route path="/clientes" element={
                 <ProtectedRoute>
-                  <Clientes />
+                  <PermissionRoute permission="manage_clientes">
+                    <Clientes />
+                  </PermissionRoute>
                 </ProtectedRoute>
               } />
               <Route path="/leituras" element={
                 <ProtectedRoute>
-                  <Leituras />
+                  <PermissionRoute permission="view_leituras">
+                    <Leituras />
+                  </PermissionRoute>
                 </ProtectedRoute>
               } />
               <Route path="/operadores" element={
                 <ProtectedRoute>
-                  <Operadores />
+                  <PermissionRoute permission="manage_operadores">
+                    <Operadores />
+                  </PermissionRoute>
                 </ProtectedRoute>
               } />
               <Route path="/servicos/criar" element={
                 <ProtectedRoute>
-                  <CriarServico />
+                  <PermissionRoute permission="create_servicos">
+                    <CriarServico />
+                  </PermissionRoute>
                 </ProtectedRoute>
               } />
               <Route path="/servicos/agendamentos" element={
                 <ProtectedRoute>
-                  <Agendamentos />
+                  <PermissionRoute permission="manage_agendamentos">
+                    <Agendamentos />
+                  </PermissionRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/permissions" element={
+                <ProtectedRoute>
+                  <PermissionRoute role="admin">
+                    <PermissionsManagement />
+                  </PermissionRoute>
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
@@ -103,7 +136,8 @@ const App = () => (
             <Toaster />
           </div>
         </BrowserRouter>
-      </AuthProvider>
+          </PermissionsProvider>
+        </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

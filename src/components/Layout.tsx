@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
+import ProtectedComponent from '@/components/ProtectedComponent'
 import ProfileDialog from '@/components/ProfileDialog'
 import { 
   Home, 
@@ -11,7 +12,8 @@ import {
   LogOut,
   Menu,
   Wrench,
-  ChevronDown
+  ChevronDown,
+  Settings
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -26,16 +28,16 @@ export default function Layout({ children, title }: LayoutProps) {
   const [servicosOpen, setServicosOpen] = useState(false)
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2 },
-    { name: 'Clientes', href: '/clientes', icon: Users },
-    { name: 'Leituras', href: '/leituras', icon: FileText },
-    { name: 'Operadores', href: '/operadores', icon: UserCheck },
+    { name: 'Dashboard', href: '/', icon: Home, permission: 'view_dashboard' },
+    { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2, permission: 'manage_empreendimentos' },
+    { name: 'Clientes', href: '/clientes', icon: Users, permission: 'manage_clientes' },
+    { name: 'Leituras', href: '/leituras', icon: FileText, permission: 'view_leituras' },
+    { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
   ]
 
   const servicosItems = [
-    { name: 'Criar Serviço', href: '/servicos/criar' },
-    { name: 'Agendamentos', href: '/servicos/agendamentos' }
+    { name: 'Criar Serviço', href: '/servicos/criar', permission: 'create_servicos' },
+    { name: 'Agendamentos', href: '/servicos/agendamentos', permission: 'manage_agendamentos' }
   ]
 
   return (
@@ -63,9 +65,66 @@ export default function Layout({ children, title }: LayoutProps) {
         <nav className="mt-6 flex-1">
           <div className="space-y-1 px-3">
             {navigation.map((item) => (
+              <ProtectedComponent key={item.name} permission={item.permission as any}>
+                <NavLink
+                  to={item.href}
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                  {item.name}
+                </NavLink>
+              </ProtectedComponent>
+            ))}
+            
+            {/* Serviços Dropdown */}
+            <ProtectedComponent permissions={["create_servicos", "manage_agendamentos"]}>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setServicosOpen(!servicosOpen)}
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <div className="flex items-center">
+                    <Wrench className="mr-3 h-5 w-5 flex-shrink-0" />
+                    Ordem de Serviço
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${servicosOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {servicosOpen && (
+                  <div className="ml-8 space-y-1">
+                    {servicosItems.map((item) => (
+                      <ProtectedComponent key={item.name} permission={item.permission as any}>
+                        <NavLink
+                          to={item.href}
+                          className={({ isActive }) =>
+                            `block px-3 py-2 text-sm rounded-md transition-colors ${
+                              isActive
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`
+                          }
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          {item.name}
+                        </NavLink>
+                      </ProtectedComponent>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ProtectedComponent>
+            
+            {/* Admin only - Permissions Management */}
+            <ProtectedComponent role="admin">
               <NavLink
-                key={item.name}
-                to={item.href}
+                to="/permissions"
                 className={({ isActive }) =>
                   `flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     isActive
@@ -75,45 +134,10 @@ export default function Layout({ children, title }: LayoutProps) {
                 }
                 onClick={() => setSidebarOpen(false)}
               >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                {item.name}
+                <Settings className="mr-3 h-5 w-5 flex-shrink-0" />
+                Permissões
               </NavLink>
-            ))}
-            
-            {/* Serviços Dropdown */}
-            <div className="space-y-1">
-              <button
-                onClick={() => setServicosOpen(!servicosOpen)}
-                className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <div className="flex items-center">
-                  <Wrench className="mr-3 h-5 w-5 flex-shrink-0" />
-                  Ordem de Serviço
-                </div>
-                <ChevronDown className={`h-4 w-4 transition-transform ${servicosOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {servicosOpen && (
-                <div className="ml-8 space-y-1">
-                  {servicosItems.map((item) => (
-                    <NavLink
-                      key={item.name}
-                      to={item.href}
-                      className={({ isActive }) =>
-                        `block px-3 py-2 text-sm rounded-md transition-colors ${
-                          isActive
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                        }`
-                      }
-                      onClick={() => setSidebarOpen(false)}
-                    >
-                      {item.name}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
+            </ProtectedComponent>
           </div>
         </nav>
         <div className="p-4 border-t">
