@@ -51,11 +51,30 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     setLoading(true)
     
     try {
-      // Fetch user roles
-      const { data: userRoles } = await supabase
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      )
+
+      // Fetch user roles with timeout
+      const rolesPromise = supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
+
+      const { data: userRoles, error: rolesError } = await Promise.race([
+        rolesPromise,
+        timeoutPromise
+      ]) as any
+
+      if (rolesError) {
+        console.error('Error fetching roles:', rolesError)
+        // Fallback: assign default role if no roles found
+        setRoles([])
+        setPermissions([])
+        setLoading(false)
+        return
+      }
 
       const userRolesList = userRoles?.map(r => r.role as AppRole) || []
       setRoles(userRolesList)
@@ -80,7 +99,8 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       }
     } catch (error) {
       console.error('Error fetching permissions:', error)
-      setPermissions([])
+      // Fallback permissions for authenticated users
+      setPermissions(['view_dashboard'])
       setRoles([])
     } finally {
       setLoading(false)
