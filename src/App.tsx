@@ -11,6 +11,7 @@ import Clientes from '@/pages/Clientes'
 import Leituras from '@/pages/Leituras'
 import Operadores from '@/pages/Operadores'
 import CriarServico from '@/pages/CriarServico'
+import CriarServicoExterno from '@/pages/CriarServicoExterno'
 import Agendamentos from '@/pages/Agendamentos'
 import OperadorApp from '@/pages/OperadorApp'
 import PermissionsManagement from '@/pages/PermissionsManagement'
@@ -114,6 +115,13 @@ const App = () => (
                 <ProtectedRoute>
                   <PermissionRoute permission="create_servicos">
                     <CriarServico />
+                  </PermissionRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/servicos/criar-externo" element={
+                <ProtectedRoute>
+                  <PermissionRoute permission="create_servicos_externos">
+                    <CriarServicoExterno />
                   </PermissionRoute>
                 </ProtectedRoute>
               } />

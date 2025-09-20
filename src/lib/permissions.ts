@@ -8,6 +8,7 @@ export const ROLE_PERMISSIONS = {
     'create_leituras',
     'manage_operadores',
     'create_servicos',
+    'create_servicos_externos',
     'manage_agendamentos',
     'coletor_leituras',
     'coletor_servicos',
@@ -18,6 +19,7 @@ export const ROLE_PERMISSIONS = {
     'manage_clientes',
     'view_leituras',
     'create_servicos',
+    'create_servicos_externos',
     'manage_agendamentos',
     'view_agendamentos'
   ],
@@ -45,6 +47,7 @@ export const PERMISSION_LABELS = {
   create_leituras: 'Criar Leituras',
   manage_operadores: 'Gerenciar Operadores',
   create_servicos: 'Criar Serviços',
+  create_servicos_externos: 'Criar Serviços Externos',
   manage_agendamentos: 'Gerenciar Agendamentos',
   coletor_leituras: 'Coletor de Leituras',
   coletor_servicos: 'Coletor de Serviços',

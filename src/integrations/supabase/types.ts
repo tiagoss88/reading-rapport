@@ -328,6 +328,72 @@ export type Database = {
           },
         ]
       }
+      servicos_externos: {
+        Row: {
+          created_at: string
+          data_agendamento: string
+          data_execucao: string | null
+          descricao_servico_realizado: string | null
+          endereco_servico: string
+          fotos_servico: string[] | null
+          hora_agendamento: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          materiais_utilizados: string | null
+          nome_cliente: string
+          observacoes: string | null
+          observacoes_execucao: string | null
+          operador_responsavel_id: string | null
+          status: string
+          telefone_cliente: string
+          tipo_servico: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_agendamento: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
+          endereco_servico: string
+          fotos_servico?: string[] | null
+          hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          materiais_utilizados?: string | null
+          nome_cliente: string
+          observacoes?: string | null
+          observacoes_execucao?: string | null
+          operador_responsavel_id?: string | null
+          status?: string
+          telefone_cliente: string
+          tipo_servico: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_agendamento?: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
+          endereco_servico?: string
+          fotos_servico?: string[] | null
+          hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          materiais_utilizados?: string | null
+          nome_cliente?: string
+          observacoes?: string | null
+          observacoes_execucao?: string | null
+          operador_responsavel_id?: string | null
+          status?: string
+          telefone_cliente?: string
+          tipo_servico?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string
