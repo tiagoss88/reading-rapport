@@ -37,6 +37,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const servicosItems = [
     { name: 'Criar Serviço', href: '/servicos/criar', permission: 'create_servicos' },
+    { name: 'Criar Serviço Externo', href: '/servicos/criar-externo', permission: 'create_servicos' },
     { name: 'Agendamentos', href: '/servicos/agendamentos', permission: 'manage_agendamentos' }
   ]
 

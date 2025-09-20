@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Clock, MapPin, User, Wrench, Filter, MoreHorizontal, Eye } from 'lucide-react'
+import { Calendar, Clock, MapPin, User, Wrench, Filter, MoreHorizontal, Eye, Phone } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
@@ -61,7 +61,8 @@ export default function Agendamentos() {
   useEffect(() => {
     const fetchAgendamentos = async () => {
       try {
-        const { data, error } = await supabase
+        // Buscar serviços internos
+        const { data: servicosInternos, error: errorInternos } = await supabase
           .from('servicos')
           .select(`
             id,
@@ -84,14 +85,40 @@ export default function Agendamentos() {
           .order('data_agendamento', { ascending: true })
           .order('hora_agendamento', { ascending: true })
 
-        if (error) {
+        // Buscar serviços externos
+        const { data: servicosExternos, error: errorExternos } = await supabase
+          .from('servicos_externos')
+          .select('*')
+          .order('data_agendamento', { ascending: true })
+          .order('hora_agendamento', { ascending: true })
+
+        if (errorInternos || errorExternos) {
           toast({
             title: "Erro ao carregar agendamentos",
-            description: error.message,
+            description: errorInternos?.message || errorExternos?.message,
             variant: "destructive"
           })
         } else {
-          setAgendamentos(data || [])
+          // Combinar e marcar os serviços externos
+          const servicosInternosFormatados = servicosInternos?.map(servico => ({
+            ...servico,
+            tipo: 'interno'
+          })) || []
+
+          const servicosExternosFormatados = servicosExternos?.map(servico => ({
+            ...servico,
+            tipo: 'externo'
+          })) || []
+
+          const todosServicos = [...servicosInternosFormatados, ...servicosExternosFormatados]
+          // Ordenar por data e hora
+          todosServicos.sort((a, b) => {
+            const dateA = new Date(a.data_agendamento + ' ' + (a.hora_agendamento || '00:00'))
+            const dateB = new Date(b.data_agendamento + ' ' + (b.hora_agendamento || '00:00'))
+            return dateA.getTime() - dateB.getTime()
+          })
+
+          setAgendamentos(todosServicos)
         }
       } catch (error) {
         toast({
@@ -205,13 +232,31 @@ export default function Agendamentos() {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <div className="font-medium">
-                          {agendamento.clientes?.identificacao_unidade} - {agendamento.clientes?.nome || 'Sem nome'}
+                        <div className="font-medium flex items-center gap-2">
+                          {agendamento.tipo === 'externo' ? (
+                            <>
+                              <Badge variant="outline" className="text-xs">Externo</Badge>
+                              {agendamento.nome_cliente}
+                            </>
+                          ) : (
+                            <>
+                              {agendamento.clientes?.identificacao_unidade} - {agendamento.clientes?.nome || 'Sem nome'}
+                            </>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {agendamento.empreendimentos?.nome} - {agendamento.empreendimentos?.endereco}
+                          {agendamento.tipo === 'externo' 
+                            ? agendamento.endereco_servico
+                            : `${agendamento.empreendimentos?.nome} - ${agendamento.empreendimentos?.endereco}`
+                          }
                         </div>
+                        {agendamento.tipo === 'externo' && agendamento.telefone_cliente && (
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {agendamento.telefone_cliente}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

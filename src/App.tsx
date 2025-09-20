@@ -120,7 +120,7 @@ const App = () => (
               } />
               <Route path="/servicos/criar-externo" element={
                 <ProtectedRoute>
-                  <PermissionRoute permission="create_servicos_externos">
+                  <PermissionRoute permission="create_servicos">
                     <CriarServicoExterno />
                   </PermissionRoute>
                 </ProtectedRoute>

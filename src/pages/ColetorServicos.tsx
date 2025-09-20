@@ -18,6 +18,9 @@ interface Servico {
   hora_agendamento: string | null
   status: string
   observacoes: string | null
+  tipo?: string
+  nome_cliente?: string
+  endereco_servico?: string
   cliente: {
     nome: string
     identificacao_unidade: string
@@ -78,7 +81,9 @@ export default function ColetorServicos() {
   const fetchServicos = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+
+      // Buscar serviços internos
+      const { data: servicosInternos, error: errorInternos } = await supabase
         .from('servicos')
         .select(`
           id,
@@ -99,15 +104,25 @@ export default function ColetorServicos() {
         .in('status', ['agendado', 'em_andamento'])
         .order('data_agendamento', { ascending: true })
 
-      if (error) throw error
+      // Buscar serviços externos
+      const { data: servicosExternos, error: errorExternos } = await supabase
+        .from('servicos_externos')
+        .select('*')
+        .in('status', ['agendado', 'em_andamento'])
+        .order('data_agendamento', { ascending: true })
 
-      const servicosFormatados = data?.map(servico => ({
+      if (errorInternos) throw errorInternos
+      if (errorExternos) throw errorExternos
+
+      // Formatar serviços internos
+      const servicosInternosFormatados = servicosInternos?.map(servico => ({
         id: servico.id,
         tipo_servico: servico.tipo_servico,
         data_agendamento: servico.data_agendamento,
         hora_agendamento: servico.hora_agendamento,
         status: servico.status,
         observacoes: servico.observacoes,
+        tipo: 'interno',
         cliente: {
           nome: servico.clientes.nome,
           identificacao_unidade: servico.clientes.identificacao_unidade
@@ -118,7 +133,36 @@ export default function ColetorServicos() {
         }
       })) || []
 
-      setServicos(servicosFormatados)
+      // Formatar serviços externos
+      const servicosExternosFormatados = servicosExternos?.map(servico => ({
+        id: servico.id,
+        tipo_servico: servico.tipo_servico,
+        data_agendamento: servico.data_agendamento,
+        hora_agendamento: servico.hora_agendamento,
+        status: servico.status,
+        observacoes: servico.observacoes,
+        tipo: 'externo',
+        nome_cliente: servico.nome_cliente,
+        endereco_servico: servico.endereco_servico,
+        cliente: {
+          nome: servico.nome_cliente,
+          identificacao_unidade: 'Cliente Externo'
+        },
+        empreendimento: {
+          nome: 'Serviço Externo',
+          endereco: servico.endereco_servico
+        }
+      })) || []
+
+      // Combinar e ordenar todos os serviços
+      const todosServicos = [...servicosInternosFormatados, ...servicosExternosFormatados]
+      todosServicos.sort((a, b) => {
+        const dateA = new Date(`${a.data_agendamento} ${a.hora_agendamento || '00:00'}`)
+        const dateB = new Date(`${b.data_agendamento} ${b.hora_agendamento || '00:00'}`)
+        return dateA.getTime() - dateB.getTime()
+      })
+
+      setServicos(todosServicos)
     } catch (error) {
       console.error('Erro ao buscar serviços:', error)
       toast({
@@ -131,7 +175,7 @@ export default function ColetorServicos() {
     }
   }
 
-  const updateServicoStatus = async (servicoId: string, novoStatus: string) => {
+  const updateServicoStatus = async (servicoId: string, novoStatus: string, isExterno: boolean = false) => {
     try {
       const updateData: any = { status: novoStatus }
       
@@ -140,8 +184,9 @@ export default function ColetorServicos() {
         updateData.hora_inicio = new Date().toTimeString().slice(0, 8) // HH:MM:SS
       }
 
+      const tableName = isExterno ? 'servicos_externos' : 'servicos'
       const { error } = await supabase
-        .from('servicos')
+        .from(tableName)
         .update(updateData)
         .eq('id', servicoId)
 
@@ -246,7 +291,14 @@ export default function ColetorServicos() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg">{servico.tipo_servico}</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {servico.tipo_servico}
+                        {servico.tipo === 'externo' && (
+                          <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
+                            Externo
+                          </Badge>
+                        )}
+                      </CardTitle>
                       <CardDescription className="flex items-center mt-1">
                         <User className="w-4 h-4 mr-1" />
                         {servico.cliente.nome} - {servico.cliente.identificacao_unidade}
@@ -290,7 +342,7 @@ export default function ColetorServicos() {
                     {servico.status === 'agendado' && (
                       <Button
                         size="sm"
-                        onClick={() => updateServicoStatus(servico.id, 'em_andamento')}
+                        onClick={() => updateServicoStatus(servico.id, 'em_andamento', servico.tipo === 'externo')}
                         className="flex-1"
                       >
                         Iniciar Serviço

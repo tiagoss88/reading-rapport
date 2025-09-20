@@ -482,6 +482,7 @@ export type Database = {
         | "coletor_leituras"
         | "coletor_servicos"
         | "view_agendamentos"
+        | "create_servicos_externos"
       app_role:
         | "admin"
         | "gestor_empreendimento"
@@ -627,6 +628,7 @@ export const Constants = {
         "coletor_leituras",
         "coletor_servicos",
         "view_agendamentos",
+        "create_servicos_externos",
       ],
       app_role: [
         "admin",
