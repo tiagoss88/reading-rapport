@@ -54,32 +54,35 @@ export default function PermissionsManagement() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      // Get all users from auth (admin only)
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
-      
-      if (authError) {
-        console.error('Error fetching users:', authError)
+      // Get all operators from the operadores table
+      const { data: operadores, error: operadoresError } = await supabase
+        .from('operadores')
+        .select('id, user_id, nome, email, status')
+
+      if (operadoresError) {
+        console.error('Error fetching operadores:', operadoresError)
+        toast.error('Erro ao carregar operadores')
         return
       }
 
       const usersWithPermissions: UserWithPermissions[] = []
 
-      for (const authUser of authUsers.users) {
+      for (const operador of operadores || []) {
         // Get user roles
         const { data: userRoles } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', authUser.id)
+          .eq('user_id', operador.user_id)
 
         // Get user permissions
         const { data: userPermissions } = await supabase
           .from('user_permissions')
           .select('permission')
-          .eq('user_id', authUser.id)
+          .eq('user_id', operador.user_id)
 
         usersWithPermissions.push({
-          id: authUser.id,
-          email: authUser.email || '',
+          id: operador.user_id,
+          email: operador.email,
           roles: userRoles?.map(r => r.role as AppRole) || [],
           permissions: userPermissions?.map(p => p.permission as AppPermission) || []
         })
