@@ -33,42 +33,42 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <PermissionsProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/empreendimento/login" element={<EmpreendimentoLogin />} />
-              <Route path="/area-cliente" element={<AreaCliente />} />
-              <Route path="/operador" element={<OperadorApp />} />
-              <Route path="/coletor/login" element={<ColetorLogin />} />
-              <Route path="/coletor" element={
-                <ColetorProtectedRoute>
-                  <ColetorMenu />
-                </ColetorProtectedRoute>
-              } />
-              <Route path="/coletor-sync" element={
-                <ColetorProtectedRoute>
-                  <PermissionRoute permission="coletor_leituras">
-                    <ColetorSync />
-                  </PermissionRoute>
-                </ColetorProtectedRoute>
-              } />
-               <Route path="/coletor/unidades/:empreendimentoId" element={
-                 <ColetorProtectedRoute>
-                   <PermissionRoute permission="coletor_leituras">
-                     <ColetorUnidades />
-                   </PermissionRoute>
-                 </ColetorProtectedRoute>
-               } />
-               <Route path="/coletor/leitura/:clienteId" element={
-                 <ColetorProtectedRoute>
-                   <PermissionRoute permission="coletor_leituras">
-                     <ColetorLeitura />
-                   </PermissionRoute>
-                 </ColetorProtectedRoute>
+    <TooltipProvider>
+      <AuthProvider>
+        <PermissionsProvider>
+          <BrowserRouter>
+            <div className="min-h-screen bg-background">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/empreendimento/login" element={<EmpreendimentoLogin />} />
+                <Route path="/area-cliente" element={<AreaCliente />} />
+                <Route path="/operador" element={<OperadorApp />} />
+                <Route path="/coletor/login" element={<ColetorLogin />} />
+                <Route path="/coletor" element={
+                  <ColetorProtectedRoute>
+                    <ColetorMenu />
+                  </ColetorProtectedRoute>
+                } />
+                <Route path="/coletor-sync" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorSync />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
+                } />
+                <Route path="/coletor/unidades/:empreendimentoId" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorUnidades />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
+                } />
+                <Route path="/coletor/leitura/:clienteId" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorLeitura />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
                 } />
                 <Route path="/coletor/servicos" element={
                   <ColetorProtectedRoute>
@@ -77,83 +77,83 @@ const App = () => (
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="view_dashboard">
-                    <Dashboard />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/empreendimentos" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="manage_empreendimentos">
-                    <Empreendimentos />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/clientes" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="manage_clientes">
-                    <Clientes />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/leituras" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="view_leituras">
-                    <Leituras />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/operadores" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="manage_operadores">
-                    <Operadores />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/servicos/criar" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="create_servicos">
-                    <CriarServico />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/servicos/criar-externo" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="create_servicos">
-                    <CriarServicoExterno />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/servicos/agendamentos" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="manage_agendamentos">
-                    <Agendamentos />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/permissions" element={
-                <ProtectedRoute>
-                  <PermissionRoute role="admin">
-                    <PermissionsManagement />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="/rastreamento" element={
-                <ProtectedRoute>
-                  <PermissionRoute permission="view_rastreamento_operadores">
-                    <RastreamentoOperadores />
-                  </PermissionRoute>
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <Toaster />
-          </div>
-        </BrowserRouter>
-          </PermissionsProvider>
-        </AuthProvider>
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="view_dashboard">
+                      <Dashboard />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/empreendimentos" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="manage_empreendimentos">
+                      <Empreendimentos />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/clientes" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="manage_clientes">
+                      <Clientes />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/leituras" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="view_leituras">
+                      <Leituras />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/operadores" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="manage_operadores">
+                      <Operadores />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/servicos/criar" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="create_servicos">
+                      <CriarServico />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/servicos/criar-externo" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="create_servicos">
+                      <CriarServicoExterno />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/servicos/agendamentos" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="manage_agendamentos">
+                      <Agendamentos />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/permissions" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <PermissionsManagement />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/rastreamento" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="view_rastreamento_operadores">
+                      <RastreamentoOperadores />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster />
+            </div>
+          </BrowserRouter>
+        </PermissionsProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
