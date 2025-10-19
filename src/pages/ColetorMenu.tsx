@@ -3,13 +3,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpen, Wrench, LogOut, User, Gauge } from 'lucide-react'
+import { BookOpen, Wrench, LogOut, User, Gauge, MapPin } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useLocationTracking } from '@/hooks/useLocationTracking'
 
 export default function ColetorMenu() {
   const navigate = useNavigate()
   const { signOut, user } = useAuth()
   const { toast } = useToast()
+  const { isTracking, error } = useLocationTracking(true)
 
   const handleLogout = async () => {
     try {
@@ -61,6 +63,27 @@ export default function ColetorMenu() {
             <LogOut className="w-5 h-5" />
           </Button>
         </div>
+
+        {/* Indicador de Rastreamento */}
+        {isTracking && (
+          <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+            <MapPin className="w-5 h-5 text-green-600 animate-pulse" />
+            <div className="flex-1">
+              <span className="text-sm font-medium text-green-700">
+                Rastreamento ativo
+              </span>
+              <p className="text-xs text-green-600">
+                Sua localização está sendo atualizada automaticamente
+              </p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+            <span className="text-sm text-red-700">{error}</span>
+          </div>
+        )}
 
         {/* Menu Options */}
         <div className="space-y-4">

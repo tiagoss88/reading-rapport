@@ -13,7 +13,8 @@ import {
   Menu,
   Wrench,
   ChevronDown,
-  Settings
+  Settings,
+  MapPin
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -32,6 +33,7 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2, permission: 'manage_empreendimentos' },
     { name: 'Clientes', href: '/clientes', icon: Users, permission: 'manage_clientes' },
     { name: 'Leituras', href: '/leituras', icon: FileText, permission: 'view_leituras' },
+    { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
     { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
   ]
 

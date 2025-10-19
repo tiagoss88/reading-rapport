@@ -15,6 +15,7 @@ import CriarServicoExterno from '@/pages/CriarServicoExterno'
 import Agendamentos from '@/pages/Agendamentos'
 import OperadorApp from '@/pages/OperadorApp'
 import PermissionsManagement from '@/pages/PermissionsManagement'
+import RastreamentoOperadores from '@/pages/RastreamentoOperadores'
 import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
@@ -136,6 +137,13 @@ const App = () => (
                 <ProtectedRoute>
                   <PermissionRoute role="admin">
                     <PermissionsManagement />
+                  </PermissionRoute>
+                </ProtectedRoute>
+              } />
+              <Route path="/rastreamento" element={
+                <ProtectedRoute>
+                  <PermissionRoute permission="view_rastreamento_operadores">
+                    <RastreamentoOperadores />
                   </PermissionRoute>
                 </ProtectedRoute>
               } />

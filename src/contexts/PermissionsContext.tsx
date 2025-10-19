@@ -10,10 +10,12 @@ export type AppPermission =
   | 'create_leituras'
   | 'manage_operadores'
   | 'create_servicos'
+  | 'create_servicos_externos'
   | 'manage_agendamentos'
   | 'coletor_leituras'
   | 'coletor_servicos'
   | 'view_agendamentos'
+  | 'view_rastreamento_operadores'
 
 export type AppRole =
   | 'admin'
