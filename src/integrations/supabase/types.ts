@@ -192,6 +192,53 @@ export type Database = {
           },
         ]
       }
+      operador_localizacoes: {
+        Row: {
+          bateria_nivel: number | null
+          created_at: string | null
+          em_movimento: boolean | null
+          id: string
+          latitude: number
+          longitude: number
+          operador_id: string
+          precisao: number | null
+          timestamp: string
+          velocidade: number | null
+        }
+        Insert: {
+          bateria_nivel?: number | null
+          created_at?: string | null
+          em_movimento?: boolean | null
+          id?: string
+          latitude: number
+          longitude: number
+          operador_id: string
+          precisao?: number | null
+          timestamp?: string
+          velocidade?: number | null
+        }
+        Update: {
+          bateria_nivel?: number | null
+          created_at?: string | null
+          em_movimento?: boolean | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          operador_id?: string
+          precisao?: number | null
+          timestamp?: string
+          velocidade?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operador_localizacoes_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operadores: {
         Row: {
           created_at: string
@@ -444,7 +491,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      operadores_ultima_localizacao: {
+        Row: {
+          bateria_nivel: number | null
+          em_movimento: boolean | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          operador_email: string | null
+          operador_id: string | null
+          operador_nome: string | null
+          operador_status: string | null
+          precisao: number | null
+          segundos_desde_atualizacao: number | null
+          timestamp: string | null
+          velocidade: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operador_localizacoes_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       assign_role_permissions: {
@@ -483,6 +555,7 @@ export type Database = {
         | "coletor_servicos"
         | "view_agendamentos"
         | "create_servicos_externos"
+        | "view_rastreamento_operadores"
       app_role:
         | "admin"
         | "gestor_empreendimento"
@@ -629,6 +702,7 @@ export const Constants = {
         "coletor_servicos",
         "view_agendamentos",
         "create_servicos_externos",
+        "view_rastreamento_operadores",
       ],
       app_role: [
         "admin",
