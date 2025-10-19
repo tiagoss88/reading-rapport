@@ -94,7 +94,7 @@ export default function Operadores() {
           description: "Operador atualizado com sucesso"
         })
       } else {
-        // Criar novo usuário no auth primeiro
+        // Criar novo operador usando edge function
         if (!formData.password) {
           toast({
             title: "Erro",
@@ -104,34 +104,25 @@ export default function Operadores() {
           return
         }
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/operador`
+        const { data, error: functionError } = await supabase.functions.invoke('create-operador', {
+          body: {
+            nome: formData.nome,
+            email: formData.email,
+            password: formData.password,
+            status: formData.status
           }
         })
 
-        if (authError) throw authError
+        if (functionError) throw functionError
 
-        if (authData.user) {
-          // Criar perfil do operador
-          const { error: operadorError } = await supabase
-            .from('operadores')
-            .insert({
-              user_id: authData.user.id,
-              nome: formData.nome,
-              email: formData.email,
-              status: formData.status
-            })
-
-          if (operadorError) throw operadorError
-
-          toast({
-            title: "Sucesso",
-            description: "Operador criado com sucesso"
-          })
+        if (data?.error) {
+          throw new Error(data.error)
         }
+
+        toast({
+          title: "Sucesso",
+          description: "Operador criado com sucesso"
+        })
       }
 
       // Limpar formulário e fechar dialog
