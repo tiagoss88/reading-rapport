@@ -168,12 +168,16 @@ export default function Operadores() {
 
   const handleDelete = async (operador: Operador) => {
     try {
-      const { error } = await supabase
-        .from('operadores')
-        .delete()
-        .eq('id', operador.id)
+      // Chamar edge function para deletar operador e usuário do Auth
+      const { data, error } = await supabase.functions.invoke('delete-operador', {
+        body: { operador_id: operador.id }
+      })
 
       if (error) throw error
+
+      if (data?.error) {
+        throw new Error(data.error)
+      }
 
       toast({
         title: "Sucesso",
