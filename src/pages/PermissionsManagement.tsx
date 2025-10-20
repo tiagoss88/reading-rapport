@@ -49,7 +49,7 @@ export default function PermissionsManagement() {
   const [loading, setLoading] = useState(true)
   const [selectedUser, setSelectedUser] = useState<UserWithPermissions | null>(null)
   const [selectedRole, setSelectedRole] = useState<AppRole | ''>('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -110,7 +110,13 @@ export default function PermissionsManagement() {
       }
 
       toast.success('Role atribuído com sucesso')
-      fetchUsers()
+      await fetchUsers()
+      
+      // Update selectedUser with new data
+      if (selectedUser) {
+        const updatedUser = users.find(u => u.id === userId)
+        if (updatedUser) setSelectedUser(updatedUser)
+      }
     } catch (error) {
       console.error('Error assigning role:', error)
       toast.error('Erro ao atribuir role')
@@ -132,7 +138,13 @@ export default function PermissionsManagement() {
       }
 
       toast.success('Role removido com sucesso')
-      fetchUsers()
+      await fetchUsers()
+      
+      // Update selectedUser with new data
+      if (selectedUser) {
+        const updatedUser = users.find(u => u.id === userId)
+        if (updatedUser) setSelectedUser(updatedUser)
+      }
     } catch (error) {
       console.error('Error removing role:', error)
       toast.error('Erro ao remover role')
@@ -248,75 +260,16 @@ export default function PermissionsManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedUser(user)}
-                          >
-                            Gerenciar
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Gerenciar Permissões</DialogTitle>
-                            <DialogDescription>
-                              Usuário: {user.email}
-                            </DialogDescription>
-                          </DialogHeader>
-                          
-                          <div className="space-y-4">
-                            <div>
-                              <Label>Roles Atuais</Label>
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {user.roles.map((role) => (
-                                  <Badge key={role} variant="secondary">
-                                    {roleLabels[role]}
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="ml-2 h-4 w-4 p-0"
-                                      onClick={() => removeRole(user.id, role)}
-                                    >
-                                      ×
-                                    </Button>
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div>
-                              <Label>Adicionar Role</Label>
-                              <div className="flex gap-2 mt-2">
-                                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecione um role" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {Object.entries(roleLabels).map(([role, label]) => (
-                                      <SelectItem key={role} value={role}>
-                                        {label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  onClick={() => {
-                                    if (selectedRole) {
-                                      assignRole(user.id, selectedRole)
-                                      setSelectedRole('')
-                                    }
-                                  }}
-                                  disabled={!selectedRole}
-                                >
-                                  Adicionar
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUser(user)
+                          setDialogOpen(true)
+                        }}
+                      >
+                        Gerenciar
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -324,6 +277,72 @@ export default function PermissionsManagement() {
             </Table>
           </CardContent>
         </Card>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Gerenciar Permissões</DialogTitle>
+              <DialogDescription>
+                Usuário: {selectedUser?.email}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedUser && (
+              <div className="space-y-4">
+                <div>
+                  <Label>Roles Atuais</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {selectedUser.roles.map((role) => (
+                      <Badge key={role} variant="secondary">
+                        {roleLabels[role]}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2 h-4 w-4 p-0"
+                          onClick={() => removeRole(selectedUser.id, role)}
+                        >
+                          ×
+                        </Button>
+                      </Badge>
+                    ))}
+                    {selectedUser.roles.length === 0 && (
+                      <p className="text-sm text-muted-foreground">Nenhum role atribuído</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Adicionar Role</Label>
+                  <div className="flex gap-2 mt-2">
+                    <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as AppRole)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(roleLabels).map(([role, label]) => (
+                          <SelectItem key={role} value={role}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => {
+                        if (selectedRole) {
+                          assignRole(selectedUser.id, selectedRole)
+                          setSelectedRole('')
+                        }
+                      }}
+                      disabled={!selectedRole}
+                    >
+                      Adicionar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   )
