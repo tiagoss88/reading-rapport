@@ -50,10 +50,33 @@ export default function GeoreferenciarClientes() {
   }, []);
 
   const fetchClientes = async () => {
+    // Buscar empreendimento do usuário
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: empUsers, error: empError } = await supabase
+      .from('empreendimento_users')
+      .select('empreendimento_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (empError) {
+      console.error('Erro ao buscar empreendimento:', empError);
+      return;
+    }
+
+    if (!empUsers) {
+      toast.error('Nenhum empreendimento associado ao usuário');
+      return;
+    }
+
+    // Buscar clientes do empreendimento
     const { data, error } = await supabase
       .from('clientes')
       .select('id, identificacao_unidade, nome, endereco, latitude, longitude, empreendimento_id')
       .eq('status', 'ativo')
+      .eq('empreendimento_id', empUsers.empreendimento_id)
       .order('identificacao_unidade');
 
     if (error) {
