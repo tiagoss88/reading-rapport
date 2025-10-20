@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Save, Search } from 'lucide-react';
+import { MapPin, Save, Search, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
@@ -22,8 +22,17 @@ interface Cliente {
   empreendimento_id: string;
 }
 
+interface Empreendimento {
+  id: string;
+  nome: string;
+  endereco: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export default function GeoreferenciarClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [empreendimento, setEmpreendimento] = useState<Empreendimento | null>(null);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [mapboxTokenMissing, setMapboxTokenMissing] = useState(false);
@@ -42,6 +51,7 @@ export default function GeoreferenciarClientes() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const tempMarker = useRef<mapboxgl.Marker | null>(null);
+  const empreendimentoMarker = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
     if (!mapboxgl.accessToken) {
@@ -69,6 +79,19 @@ export default function GeoreferenciarClientes() {
     if (!empUsers) {
       toast.error('Nenhum empreendimento associado ao usuário');
       return;
+    }
+
+    // Buscar dados do empreendimento
+    const { data: empData, error: empDataError } = await supabase
+      .from('empreendimentos')
+      .select('id, nome, endereco, latitude, longitude')
+      .eq('id', empUsers.empreendimento_id)
+      .single();
+
+    if (empDataError) {
+      console.error('Erro ao buscar dados do empreendimento:', empDataError);
+    } else if (empData) {
+      setEmpreendimento(empData);
     }
 
     // Buscar clientes do empreendimento
@@ -147,9 +170,34 @@ export default function GeoreferenciarClientes() {
   useEffect(() => {
     if (!map.current) return;
 
-    // Remover todos os marcadores
+    // Remover todos os marcadores de clientes
     Object.values(markers.current).forEach(marker => marker.remove());
     markers.current = {};
+
+    // Remover marcador do empreendimento
+    if (empreendimentoMarker.current) {
+      empreendimentoMarker.current.remove();
+      empreendimentoMarker.current = null;
+    }
+
+    // Adicionar marcador do empreendimento se tiver coordenadas
+    if (empreendimento?.latitude && empreendimento?.longitude) {
+      const el = document.createElement('div');
+      el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
+      el.style.width = '32px';
+      el.style.height = '32px';
+      el.style.cursor = 'default';
+      el.style.color = '#ef4444';
+      el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+
+      empreendimentoMarker.current = new mapboxgl.Marker(el)
+        .setLngLat([empreendimento.longitude, empreendimento.latitude])
+        .setPopup(
+          new mapboxgl.Popup({ offset: 25 })
+            .setHTML(`<div style="padding: 4px;"><strong>${empreendimento.nome}</strong><br/>${empreendimento.endereco}</div>`)
+        )
+        .addTo(map.current);
+    }
 
     // Adicionar marcadores para clientes georreferenciados
     clientes
@@ -175,16 +223,24 @@ export default function GeoreferenciarClientes() {
         markers.current[cliente.id] = marker;
       });
 
-    // Ajustar bounds se houver clientes georreferenciados
+    // Ajustar bounds para incluir empreendimento e clientes
     const georeferencedClientes = clientes.filter(c => c.latitude && c.longitude);
-    if (georeferencedClientes.length > 0) {
+    const hasEmpreendimento = empreendimento?.latitude && empreendimento?.longitude;
+    
+    if (georeferencedClientes.length > 0 || hasEmpreendimento) {
       const bounds = new mapboxgl.LngLatBounds();
+      
+      if (hasEmpreendimento) {
+        bounds.extend([empreendimento.longitude!, empreendimento.latitude!]);
+      }
+      
       georeferencedClientes.forEach(c => {
         bounds.extend([c.longitude!, c.latitude!]);
       });
+      
       map.current.fitBounds(bounds, { padding: 50 });
     }
-  }, [clientes]);
+  }, [clientes, empreendimento]);
 
   useEffect(() => {
     fetchClientes();

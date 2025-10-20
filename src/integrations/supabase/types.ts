@@ -122,6 +122,8 @@ export type Database = {
           endereco: string
           fator_conversao: number | null
           id: string
+          latitude: number | null
+          longitude: number | null
           nome: string
           observacoes: string | null
           preco_kg_gas: number | null
@@ -136,6 +138,8 @@ export type Database = {
           endereco: string
           fator_conversao?: number | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           observacoes?: string | null
           preco_kg_gas?: number | null
@@ -150,6 +154,8 @@ export type Database = {
           endereco?: string
           fator_conversao?: number | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           observacoes?: string | null
           preco_kg_gas?: number | null
