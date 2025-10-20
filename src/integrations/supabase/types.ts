@@ -227,11 +227,15 @@ export type Database = {
           bateria_nivel: number | null
           created_at: string | null
           em_movimento: boolean | null
+          endereco_estimado: string | null
+          fonte_localizacao: string | null
           id: string
           latitude: number
           longitude: number
           operador_id: string
           precisao: number | null
+          precisao_rating: string | null
+          tentativas_gps: number | null
           timestamp: string
           velocidade: number | null
         }
@@ -239,11 +243,15 @@ export type Database = {
           bateria_nivel?: number | null
           created_at?: string | null
           em_movimento?: boolean | null
+          endereco_estimado?: string | null
+          fonte_localizacao?: string | null
           id?: string
           latitude: number
           longitude: number
           operador_id: string
           precisao?: number | null
+          precisao_rating?: string | null
+          tentativas_gps?: number | null
           timestamp?: string
           velocidade?: number | null
         }
@@ -251,11 +259,15 @@ export type Database = {
           bateria_nivel?: number | null
           created_at?: string | null
           em_movimento?: boolean | null
+          endereco_estimado?: string | null
+          fonte_localizacao?: string | null
           id?: string
           latitude?: number
           longitude?: number
           operador_id?: string
           precisao?: number | null
+          precisao_rating?: string | null
+          tentativas_gps?: number | null
           timestamp?: string
           velocidade?: number | null
         }

@@ -19,6 +19,8 @@ interface OperadorLocalizacao {
   timestamp: string;
   bateria_nivel: number | null;
   segundos_desde_atualizacao: number;
+  endereco_estimado?: string | null;
+  precisao_rating?: string | null;
 }
 
 export default function LocalizacaoOperadores() {
@@ -28,6 +30,7 @@ export default function LocalizacaoOperadores() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const circles = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
   useEffect(() => {
     if (!mapboxgl.accessToken) {
@@ -76,26 +79,71 @@ export default function LocalizacaoOperadores() {
     if (!map.current) return;
 
     Object.values(markers.current).forEach(marker => marker.remove());
+    Object.values(circles.current).forEach(circle => circle.remove());
     markers.current = {};
+    circles.current = {};
 
     operadores.forEach((operador) => {
+      // Criar círculo de precisão
+      const circleEl = document.createElement('div');
+      const precisaoMetros = operador.precisao || 100;
+      
+      // Calcular o tamanho do círculo baseado no zoom e precisão
+      const circleSize = Math.max(precisaoMetros / 2, 30);
+      
+      circleEl.style.width = `${circleSize}px`;
+      circleEl.style.height = `${circleSize}px`;
+      circleEl.style.borderRadius = '50%';
+      circleEl.style.pointerEvents = 'none';
+      
+      // Cor do círculo baseado na precisão
+      if (precisaoMetros < 50) {
+        circleEl.style.backgroundColor = 'rgba(34, 197, 94, 0.15)';
+        circleEl.style.border = '2px solid rgba(34, 197, 94, 0.4)';
+      } else if (precisaoMetros < 100) {
+        circleEl.style.backgroundColor = 'rgba(234, 179, 8, 0.15)';
+        circleEl.style.border = '2px solid rgba(234, 179, 8, 0.4)';
+      } else {
+        circleEl.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+        circleEl.style.border = '2px solid rgba(239, 68, 68, 0.4)';
+      }
+
+      const circle = new mapboxgl.Marker(circleEl)
+        .setLngLat([operador.longitude, operador.latitude])
+        .addTo(map.current!);
+      
+      circles.current[operador.operador_id] = circle;
+
+      // Criar marcador do operador
       const el = document.createElement('div');
       el.className = 'custom-marker';
       el.style.width = '32px';
       el.style.height = '32px';
       el.style.borderRadius = '50%';
       el.style.cursor = 'pointer';
+      el.style.position = 'relative';
+      el.style.zIndex = '10';
       
-      const minutosAtras = operador.segundos_desde_atualizacao / 60;
-      if (minutosAtras < 10) {
-        el.style.backgroundColor = '#22c55e';
-      } else if (minutosAtras < 30) {
-        el.style.backgroundColor = '#eab308';
+      // Cor baseada na precisão GPS
+      if (precisaoMetros < 50) {
+        el.style.backgroundColor = '#22c55e'; // Verde - Excelente
+      } else if (precisaoMetros < 100) {
+        el.style.backgroundColor = '#eab308'; // Amarelo - Aceitável
       } else {
-        el.style.backgroundColor = '#ef4444';
+        el.style.backgroundColor = '#ef4444'; // Vermelho - Ruim
       }
       
-      el.style.border = '3px solid white';
+      // Borda baseada no status (tempo desde última atualização)
+      const minutosAtras = operador.segundos_desde_atualizacao / 60;
+      if (minutosAtras > 30) {
+        el.style.border = '3px solid #9ca3af'; // Cinza - Offline
+        el.style.opacity = '0.6';
+      } else if (minutosAtras > 10) {
+        el.style.border = '3px solid #f59e0b'; // Laranja - Ausente
+      } else {
+        el.style.border = '3px solid white'; // Branco - Online
+      }
+      
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
 
       const marker = new mapboxgl.Marker(el)
@@ -212,7 +260,20 @@ export default function LocalizacaoOperadores() {
                   
                   <div className="flex items-center gap-2">
                     <MapPin className="w-3 h-3" />
-                    Precisão: {operador.precisao?.toFixed(0)}m
+                    <span>
+                      Precisão: {operador.precisao?.toFixed(0)}m
+                      {operador.precisao_rating && (
+                        <Badge 
+                          variant="outline" 
+                          className="ml-2 text-xs"
+                        >
+                          {operador.precisao_rating === 'excelente' && '⭐ Excelente'}
+                          {operador.precisao_rating === 'boa' && '✓ Boa'}
+                          {operador.precisao_rating === 'aceitavel' && '~ Aceitável'}
+                          {operador.precisao_rating === 'ruim' && '⚠ Ruim'}
+                        </Badge>
+                      )}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -255,24 +316,49 @@ export default function LocalizacaoOperadores() {
         )}
         
         {selectedOperador && !mapboxTokenMissing && (
-          <Card className="absolute top-4 left-4 z-10 w-72">
+          <Card className="absolute top-4 left-4 z-10 w-80">
             <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">{selectedOperador.operador_nome}</h3>
+              <h3 className="font-semibold mb-3">{selectedOperador.operador_nome}</h3>
               <div className="space-y-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Email:</span>
                   <p>{selectedOperador.operador_email}</p>
                 </div>
+                
+                {selectedOperador.endereco_estimado && (
+                  <div>
+                    <span className="text-muted-foreground">Localização:</span>
+                    <p className="text-xs mt-1">{selectedOperador.endereco_estimado}</p>
+                  </div>
+                )}
+                
                 <div>
                   <span className="text-muted-foreground">Última atualização:</span>
                   <p>{formatTempoAtras(selectedOperador.segundos_desde_atualizacao)}</p>
                 </div>
+                
+                <div>
+                  <span className="text-muted-foreground">Precisão GPS:</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p>{selectedOperador.precisao?.toFixed(0)}m</p>
+                    {selectedOperador.precisao_rating && (
+                      <Badge variant="outline" className="text-xs">
+                        {selectedOperador.precisao_rating === 'excelente' && '⭐ Excelente'}
+                        {selectedOperador.precisao_rating === 'boa' && '✓ Boa'}
+                        {selectedOperador.precisao_rating === 'aceitavel' && '~ Aceitável'}
+                        {selectedOperador.precisao_rating === 'ruim' && '⚠ Ruim'}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
                 <div>
                   <span className="text-muted-foreground">Coordenadas:</span>
                   <p className="text-xs">
                     {selectedOperador.latitude.toFixed(6)}, {selectedOperador.longitude.toFixed(6)}
                   </p>
                 </div>
+                
                 {selectedOperador.bateria_nivel !== null && (
                   <div>
                     <span className="text-muted-foreground">Bateria:</span>
