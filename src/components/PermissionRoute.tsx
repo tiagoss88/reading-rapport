@@ -18,7 +18,7 @@ export default function PermissionRoute({
   permissions = [],
   roles = [],
   requireAll = false,
-  redirectTo = '/'
+  redirectTo = '/not-authorized'
 }: PermissionRouteProps) {
   const { hasPermission, hasRole, loading } = usePermissions()
 

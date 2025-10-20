@@ -28,6 +28,7 @@ import AreaCliente from '@/pages/AreaCliente'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ColetorProtectedRoute from '@/components/ColetorProtectedRoute'
 import NotFound from "./pages/NotFound";
+import NotAuthorized from '@/pages/NotAuthorized'
 
 const queryClient = new QueryClient();
 
@@ -79,7 +80,7 @@ const App = () => (
                 } />
                 <Route path="/" element={
                   <ProtectedRoute>
-                    <PermissionRoute permission="view_dashboard">
+                    <PermissionRoute permission="view_dashboard" redirectTo="/not-authorized">
                       <Dashboard />
                     </PermissionRoute>
                   </ProtectedRoute>
@@ -142,12 +143,12 @@ const App = () => (
                 } />
                 <Route path="/rastreamento" element={
                   <ProtectedRoute>
-                    <PermissionRoute permission="view_rastreamento_operadores">
+                    <PermissionRoute permission="view_rastreamento_operadores" redirectTo="/not-authorized">
                       <RastreamentoOperadores />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
-                <Route path="*" element={<NotFound />} />
+                <Route path="/not-authorized" element={<NotAuthorized />} />
               </Routes>
               <Toaster />
             </div>
