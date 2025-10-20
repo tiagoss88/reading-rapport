@@ -59,6 +59,26 @@ export default function GeoreferenciarClientes() {
     }
   }, []);
 
+  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
+    if (!mapboxgl.accessToken) return null;
+    
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json?access_token=${mapboxgl.accessToken}&country=BR&limit=1`
+      );
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const [lng, lat] = data.features[0].center;
+        return { lat, lng };
+      }
+    } catch (error) {
+      console.error('Erro ao geocodificar endereço:', error);
+    }
+    
+    return null;
+  };
+
   const fetchClientes = async () => {
     // Buscar empreendimento do usuário
     const { data: { user } } = await supabase.auth.getUser();
@@ -91,6 +111,26 @@ export default function GeoreferenciarClientes() {
     if (empDataError) {
       console.error('Erro ao buscar dados do empreendimento:', empDataError);
     } else if (empData) {
+      // Se o empreendimento não tem coordenadas, tentar geocodificar
+      if (!empData.latitude || !empData.longitude) {
+        const coords = await geocodeAddress(empData.endereco);
+        if (coords) {
+          // Atualizar empreendimento com as coordenadas
+          const { error: updateError } = await supabase
+            .from('empreendimentos')
+            .update({
+              latitude: coords.lat,
+              longitude: coords.lng
+            })
+            .eq('id', empData.id);
+          
+          if (!updateError) {
+            empData.latitude = coords.lat;
+            empData.longitude = coords.lng;
+            toast.success('Empreendimento georreferenciado automaticamente');
+          }
+        }
+      }
       setEmpreendimento(empData);
     }
 
