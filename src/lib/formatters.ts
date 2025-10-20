@@ -34,6 +34,18 @@ export const formatCNPJ = (value: string): string => {
   }
 }
 
+export const formatCEP = (value: string): string => {
+  // Remove todos os caracteres não numéricos
+  const numbers = value.replace(/\D/g, '')
+  
+  // Aplica a máscara conforme a quantidade de dígitos
+  if (numbers.length <= 5) {
+    return numbers
+  } else {
+    return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`
+  }
+}
+
 export const removeMask = (value: string): string => {
   return value.replace(/\D/g, '')
 }

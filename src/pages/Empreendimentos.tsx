@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Building2, Edit, Trash2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import { formatCNPJ, removeMask } from '@/lib/formatters'
+import { formatCNPJ, formatCEP, removeMask } from '@/lib/formatters'
 import { empreendimentoSchema } from '@/lib/validation'
 import { z } from 'zod'
 
@@ -19,6 +19,7 @@ interface Empreendimento {
   id: string
   nome: string
   endereco: string
+  cep?: string
   email?: string
   cnpj?: string
   observacoes?: string
@@ -38,6 +39,7 @@ export default function Empreendimentos() {
   const [formData, setFormData] = useState({
     nome: '',
     endereco: '',
+    cep: '',
     email: '',
     cnpj: '',
     observacoes: '',
@@ -80,6 +82,7 @@ export default function Empreendimentos() {
       const dataToValidate = {
         nome: formData.nome,
         endereco: formData.endereco,
+        cep: formData.cep ? removeMask(formData.cep) : '',
         email: formData.email || '',
         cnpj: formData.cnpj ? removeMask(formData.cnpj) : '',
         observacoes: formData.observacoes || '',
@@ -95,6 +98,7 @@ export default function Empreendimentos() {
       const dataToSubmit: any = {
         nome: validatedData.nome,
         endereco: validatedData.endereco,
+        cep: validatedData.cep || null,
         email: validatedData.email || null,
         cnpj: validatedData.cnpj || null,
         observacoes: validatedData.observacoes || null,
@@ -219,6 +223,7 @@ export default function Empreendimentos() {
     setFormData({
       nome: empreendimento.nome,
       endereco: empreendimento.endereco,
+      cep: empreendimento.cep ? formatCEP(empreendimento.cep) : '',
       email: empreendimento.email || '',
       cnpj: empreendimento.cnpj ? formatCNPJ(empreendimento.cnpj) : '',
       observacoes: empreendimento.observacoes || '',
@@ -235,6 +240,7 @@ export default function Empreendimentos() {
     setFormData({
       nome: '',
       endereco: '',
+      cep: '',
       email: '',
       cnpj: '',
       observacoes: '',
@@ -294,6 +300,16 @@ export default function Empreendimentos() {
                     onChange={(e) => setFormData(prev => ({ ...prev, endereco: e.target.value.toUpperCase() }))}
                     placeholder="Ex: RUA DAS FLORES, 123 - CENTRO"
                     required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cep">CEP</Label>
+                  <Input
+                    id="cep"
+                    value={formData.cep}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cep: formatCEP(e.target.value) }))}
+                    placeholder="Ex: 40000-000"
+                    maxLength={9}
                   />
                 </div>
                 <div>
@@ -429,6 +445,7 @@ export default function Empreendimentos() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Endereço</TableHead>
+                  <TableHead>CEP</TableHead>
                   <TableHead>Tipo de Gás</TableHead>
                   <TableHead>Preço do Gás</TableHead>
                   <TableHead>CNPJ</TableHead>
@@ -440,6 +457,7 @@ export default function Empreendimentos() {
                   <TableRow key={empreendimento.id}>
                     <TableCell className="font-medium">{empreendimento.nome}</TableCell>
                     <TableCell>{empreendimento.endereco}</TableCell>
+                    <TableCell>{empreendimento.cep ? formatCEP(empreendimento.cep) : '-'}</TableCell>
                     <TableCell>
                       {empreendimento.tipo_gas ? (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">

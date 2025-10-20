@@ -6,6 +6,9 @@ const cpfRegex = /^\d{11}$/
 // CNPJ validation regex (14 digits)
 const cnpjRegex = /^\d{14}$/
 
+// CEP validation regex (8 digits, with or without hyphen)
+const cepRegex = /^\d{5}-?\d{3}$/
+
 // Cliente validation schema
 export const clienteSchema = z.object({
   nome: z.string().max(255, 'Nome muito longo').optional().or(z.literal('')),
@@ -28,6 +31,7 @@ export const operadorSchema = z.object({
 export const empreendimentoSchema = z.object({
   nome: z.string().min(1, 'Nome é obrigatório').max(255, 'Nome muito longo'),
   endereco: z.string().min(1, 'Endereço é obrigatório').max(500, 'Endereço muito longo'),
+  cep: z.string().regex(cepRegex, 'CEP deve estar no formato 12345-678 ou 12345678').optional().or(z.literal('')),
   email: z.string().email('Email inválido').max(255, 'Email muito longo').optional().or(z.literal('')),
   cnpj: z.string().regex(cnpjRegex, 'CNPJ deve conter 14 dígitos').optional().or(z.literal('')),
   observacoes: z.string().max(1000, 'Observações muito longas').optional().or(z.literal('')),

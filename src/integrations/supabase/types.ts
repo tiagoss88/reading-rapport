@@ -116,6 +116,7 @@ export type Database = {
       }
       empreendimentos: {
         Row: {
+          cep: string | null
           cnpj: string | null
           created_at: string
           email: string | null
@@ -132,6 +133,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cep?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
@@ -148,6 +150,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cep?: string | null
           cnpj?: string | null
           created_at?: string
           email?: string | null
