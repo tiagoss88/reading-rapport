@@ -556,6 +556,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_public_empreendimentos: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          endereco: string
+          id: string
+          latitude: number
+          longitude: number
+          nome: string
+        }[]
+      }
       has_permission: {
         Args: {
           _permission: Database["public"]["Enums"]["app_permission"]
