@@ -16,34 +16,58 @@ export type Database = {
     Tables: {
       clientes: {
         Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
           cpf: string | null
           created_at: string
           empreendimento_id: string
+          endereco: string | null
+          estado: string | null
           id: string
           identificacao_unidade: string
+          latitude: number | null
           leitura_inicial: number
+          longitude: number | null
           nome: string | null
           status: string
           updated_at: string
         }
         Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           empreendimento_id: string
+          endereco?: string | null
+          estado?: string | null
           id?: string
           identificacao_unidade: string
+          latitude?: number | null
           leitura_inicial?: number
+          longitude?: number | null
           nome?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           cpf?: string | null
           created_at?: string
           empreendimento_id?: string
+          endereco?: string | null
+          estado?: string | null
           id?: string
           identificacao_unidade?: string
+          latitude?: number | null
           leitura_inicial?: number
+          longitude?: number | null
           nome?: string | null
           status?: string
           updated_at?: string
