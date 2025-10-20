@@ -12,6 +12,8 @@ import { Plus, Building2, Edit, Trash2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { formatCNPJ, removeMask } from '@/lib/formatters'
+import { empreendimentoSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 interface Empreendimento {
   id: string
@@ -73,20 +75,35 @@ export default function Empreendimentos() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Prepare the data with proper types
-    const dataToSubmit = {
-      nome: formData.nome,
-      endereco: formData.endereco,
-      email: formData.email || null,
-      cnpj: formData.cnpj ? removeMask(formData.cnpj) : null,
-      observacoes: formData.observacoes || null,
-      tipo_gas: formData.tipo_gas || null,
-      fator_conversao: formData.fator_conversao ? parseFloat(formData.fator_conversao) : null,
-      preco_kg_gas: formData.preco_kg_gas ? parseFloat(formData.preco_kg_gas) : null,
-      preco_m3_gas: formData.preco_m3_gas ? parseFloat(formData.preco_m3_gas) : null
-    }
-    
     try {
+      // Prepare the data with proper types
+      const dataToValidate = {
+        nome: formData.nome,
+        endereco: formData.endereco,
+        email: formData.email || '',
+        cnpj: formData.cnpj ? removeMask(formData.cnpj) : '',
+        observacoes: formData.observacoes || '',
+        tipo_gas: formData.tipo_gas || '',
+        fator_conversao: formData.fator_conversao ? parseFloat(formData.fator_conversao) : undefined,
+        preco_kg_gas: formData.preco_kg_gas ? parseFloat(formData.preco_kg_gas) : undefined,
+        preco_m3_gas: formData.preco_m3_gas ? parseFloat(formData.preco_m3_gas) : undefined
+      }
+
+      // Validate input data
+      const validatedData = empreendimentoSchema.parse(dataToValidate)
+
+      const dataToSubmit: any = {
+        nome: validatedData.nome,
+        endereco: validatedData.endereco,
+        email: validatedData.email || null,
+        cnpj: validatedData.cnpj || null,
+        observacoes: validatedData.observacoes || null,
+        tipo_gas: validatedData.tipo_gas || null,
+        fator_conversao: validatedData.fator_conversao || null,
+        preco_kg_gas: validatedData.preco_kg_gas || null,
+        preco_m3_gas: validatedData.preco_m3_gas || null
+      }
+
       if (editingEmpreendimento) {
         const { error } = await supabase
           .from('empreendimentos')
@@ -155,11 +172,19 @@ export default function Empreendimentos() {
       setDialogOpen(false)
       resetForm()
     } catch (error: any) {
-      toast({
-        title: "Erro ao salvar empreendimento",
-        description: error.message,
-        variant: "destructive",
-      })
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Erro de validação",
+          description: error.errors[0]?.message || "Dados inválidos",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Erro ao salvar empreendimento",
+          description: error.message,
+          variant: "destructive",
+        })
+      }
     }
   }
 

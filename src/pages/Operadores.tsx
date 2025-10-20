@@ -12,6 +12,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, Plus, Pencil, Trash2 } from 'lucide-react'
+import { operadorSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 interface Operador {
   id: string
@@ -65,24 +67,18 @@ export default function Operadores() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.nome || !formData.email) {
-      toast({
-        title: "Erro",
-        description: "Nome e email são obrigatórios",
-        variant: "destructive"
-      })
-      return
-    }
-
     try {
+      // Validate input data
+      const validatedData = operadorSchema.parse(formData)
+
       if (editingOperador) {
         // Atualizar operador existente
         const { error } = await supabase
           .from('operadores')
           .update({
-            nome: formData.nome,
-            email: formData.email,
-            status: formData.status,
+            nome: validatedData.nome,
+            email: validatedData.email,
+            status: validatedData.status,
             updated_at: new Date().toISOString()
           })
           .eq('id', editingOperador.id)
@@ -95,7 +91,7 @@ export default function Operadores() {
         })
       } else {
         // Criar novo operador usando edge function
-        if (!formData.password) {
+        if (!validatedData.password) {
           toast({
             title: "Erro",
             description: "Senha é obrigatória para novo operador",
@@ -106,10 +102,10 @@ export default function Operadores() {
 
         const { data, error: functionError } = await supabase.functions.invoke('create-operador', {
           body: {
-            nome: formData.nome,
-            email: formData.email,
-            password: formData.password,
-            status: formData.status
+            nome: validatedData.nome,
+            email: validatedData.email,
+            password: validatedData.password,
+            status: validatedData.status
           }
         })
 
@@ -131,12 +127,20 @@ export default function Operadores() {
       setIsDialogOpen(false)
       fetchOperadores()
     } catch (error: any) {
-      console.error('Erro ao salvar operador:', error)
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao salvar operador",
-        variant: "destructive"
-      })
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Erro de validação",
+          description: error.errors[0]?.message || "Dados inválidos",
+          variant: "destructive"
+        })
+      } else {
+        console.error('Erro ao salvar operador:', error)
+        toast({
+          title: "Erro",
+          description: error.message || "Erro ao salvar operador",
+          variant: "destructive"
+        })
+      }
     }
   }
 

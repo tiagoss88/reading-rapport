@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast'
 import { formatCPF, removeMask } from '@/lib/formatters'
 import BulkCreateDialog from '@/components/clientes/BulkCreateDialog'
 import ClienteHistorico from '@/components/clientes/ClienteHistorico'
+import { clienteSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 interface Cliente {
   id: string
@@ -95,11 +97,23 @@ export default function Clientes() {
     e.preventDefault()
     
     try {
+      const dataToValidate = {
+        ...formData,
+        cpf: formData.cpf ? removeMask(formData.cpf) : '',
+        leitura_inicial: parseFloat(formData.leitura_inicial) || 0
+      }
+
+      // Validate input data
+      const validatedData = clienteSchema.parse(dataToValidate)
+
       if (editingCliente) {
-        const dataToUpdate = {
-          ...formData,
-          cpf: formData.cpf ? removeMask(formData.cpf) : null,
-          leitura_inicial: parseFloat(formData.leitura_inicial) || 0
+        const dataToUpdate: any = {
+          identificacao_unidade: validatedData.identificacao_unidade,
+          nome: validatedData.nome || null,
+          cpf: validatedData.cpf || null,
+          empreendimento_id: validatedData.empreendimento_id,
+          leitura_inicial: validatedData.leitura_inicial,
+          status: validatedData.status
         }
         const { error } = await supabase
           .from('clientes')
@@ -113,10 +127,13 @@ export default function Clientes() {
           description: "As alterações foram salvas com sucesso.",
         })
       } else {
-        const dataToInsert = {
-          ...formData,
-          cpf: formData.cpf ? removeMask(formData.cpf) : null,
-          leitura_inicial: parseFloat(formData.leitura_inicial) || 0
+        const dataToInsert: any = {
+          identificacao_unidade: validatedData.identificacao_unidade,
+          nome: validatedData.nome || null,
+          cpf: validatedData.cpf || null,
+          empreendimento_id: validatedData.empreendimento_id,
+          leitura_inicial: validatedData.leitura_inicial,
+          status: validatedData.status
         }
         const { error } = await supabase
           .from('clientes')
@@ -134,11 +151,19 @@ export default function Clientes() {
       setDialogOpen(false)
       resetForm()
     } catch (error: any) {
-      toast({
-        title: "Erro ao salvar cliente",
-        description: error.message,
-        variant: "destructive",
-      })
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Erro de validação",
+          description: error.errors[0]?.message || "Dados inválidos",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Erro ao salvar cliente",
+          description: error.message,
+          variant: "destructive",
+        })
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,20 +14,35 @@ interface CreateOperadorRequest {
   status: string
 }
 
+const createOperadorSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres').max(255, 'Nome muito longo'),
+  email: z.string().email('Email inválido').max(255, 'Email muito longo'),
+  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(72, 'Senha muito longa'),
+  status: z.enum(['ativo', 'inativo'], { errorMap: () => ({ message: 'Status deve ser ativo ou inativo' }) })
+})
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { nome, email, password, status } = await req.json() as CreateOperadorRequest
-
-    if (!nome || !email || !password) {
+    const requestBody = await req.json()
+    
+    // Validate input using Zod
+    const validationResult = createOperadorSchema.safeParse(requestBody)
+    
+    if (!validationResult.success) {
       return new Response(
-        JSON.stringify({ error: 'Nome, email e senha são obrigatórios' }),
+        JSON.stringify({ 
+          error: 'Dados inválidos', 
+          details: validationResult.error.errors.map(e => e.message).join(', ')
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    const { nome, email, password, status } = validationResult.data
 
     // Criar cliente Supabase com service role para ter permissões de admin
     const supabaseAdmin = createClient(

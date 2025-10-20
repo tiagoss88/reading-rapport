@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,12 @@ interface CreateEmpreendimentoUserRequest {
   empreendimento_id: string;
 }
 
+const createEmpreendimentoUserSchema = z.object({
+  email: z.string().email('Email inválido').max(255, 'Email muito longo'),
+  cnpj: z.string().regex(/^\d{14}$/, 'CNPJ deve conter 14 dígitos'),
+  empreendimento_id: z.string().uuid('ID de empreendimento inválido')
+})
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -20,7 +27,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, cnpj, empreendimento_id }: CreateEmpreendimentoUserRequest = await req.json();
+    const requestBody: CreateEmpreendimentoUserRequest = await req.json();
+
+    // Validate input using Zod
+    const validationResult = createEmpreendimentoUserSchema.safeParse(requestBody)
+    
+    if (!validationResult.success) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Dados inválidos', 
+          details: validationResult.error.errors.map(e => e.message).join(', ')
+        }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      )
+    }
+
+    const { email, cnpj, empreendimento_id } = validationResult.data
 
     // Create a Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(

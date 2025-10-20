@@ -11,6 +11,8 @@ import { CalendarDays, Plus, Building2, Home, Check, ChevronsUpDown } from 'luci
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
+import { servicoSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 const tiposServico = [
   { value: 'religacao', label: 'Religação' },
@@ -112,26 +114,21 @@ export default function CriarServico() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!formData.tipo_servico || !formData.empreendimento_id || !formData.cliente_id || 
-        !formData.data_agendamento) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      })
-      return
-    }
-
     try {
+      // Validate input data
+      const validatedData = servicoSchema.parse({
+        ...formData,
+        observacoes: formData.observacoes || ''
+      })
+
       const { error } = await supabase
         .from('servicos')
         .insert({
-          tipo_servico: formData.tipo_servico,
-          empreendimento_id: formData.empreendimento_id,
-          cliente_id: formData.cliente_id,
-          data_agendamento: formData.data_agendamento,
-          
-          observacoes: formData.observacoes || null
+          tipo_servico: validatedData.tipo_servico,
+          empreendimento_id: validatedData.empreendimento_id,
+          cliente_id: validatedData.cliente_id,
+          data_agendamento: validatedData.data_agendamento,
+          observacoes: validatedData.observacoes || null
         })
 
       if (error) {
@@ -156,12 +153,20 @@ export default function CriarServico() {
         data_agendamento: '',
         observacoes: ''
       })
-    } catch (error) {
-      toast({
-        title: "Erro ao criar serviço",
-        description: "Tente novamente",
-        variant: "destructive"
-      })
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Erro de validação",
+          description: error.errors[0]?.message || "Dados inválidos",
+          variant: "destructive"
+        })
+      } else {
+        toast({
+          title: "Erro ao criar serviço",
+          description: error.message || "Tente novamente",
+          variant: "destructive"
+        })
+      }
     }
   }
 
