@@ -27,9 +27,18 @@ interface OperadorLocalizacao {
 export default function RastreamentoOperadores() {
   const [operadores, setOperadores] = useState<OperadorLocalizacao[]>([]);
   const [selectedOperador, setSelectedOperador] = useState<OperadorLocalizacao | null>(null);
+  const [mapboxTokenMissing, setMapboxTokenMissing] = useState(false);
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
+
+  // Check if Mapbox token is configured
+  useEffect(() => {
+    if (!mapboxgl.accessToken) {
+      setMapboxTokenMissing(true);
+      console.error('VITE_MAPBOX_TOKEN não configurado! Adicione seu token público do Mapbox no arquivo .env');
+    }
+  }, []);
 
   // Buscar localizações dos operadores
   const fetchLocations = async () => {
@@ -49,16 +58,21 @@ export default function RastreamentoOperadores() {
 
   // Inicializar mapa
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current || !mapboxgl.accessToken) return;
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [-46.6333, -23.5505], // São Paulo como centro padrão
-      zoom: 12
-    });
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-46.6333, -23.5505], // São Paulo como centro padrão
+        zoom: 12
+      });
 
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    } catch (error) {
+      console.error('Erro ao inicializar mapa:', error);
+      setMapboxTokenMissing(true);
+    }
 
     return () => {
       map.current?.remove();
@@ -233,9 +247,35 @@ export default function RastreamentoOperadores() {
 
         {/* Mapa */}
         <div className="flex-1 relative">
-          <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
+          {mapboxTokenMissing ? (
+            <Card className="absolute inset-0 m-4 flex items-center justify-center">
+              <CardContent className="text-center p-8 max-w-md">
+                <MapPin className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-semibold mb-2">Token do Mapbox não configurado</h3>
+                <p className="text-muted-foreground mb-4">
+                  Para usar o rastreamento de operadores, você precisa configurar um token público do Mapbox.
+                </p>
+                <div className="bg-muted p-4 rounded-lg text-left text-sm space-y-2">
+                  <p className="font-medium">Como configurar:</p>
+                  <ol className="list-decimal list-inside space-y-1">
+                    <li>Acesse <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">mapbox.com</a> e crie uma conta gratuita</li>
+                    <li>Copie seu token público (começa com pk.)</li>
+                    <li>Adicione ao arquivo <code className="bg-background px-1 py-0.5 rounded">.env</code>:</li>
+                  </ol>
+                  <pre className="bg-background p-2 rounded mt-2 text-xs overflow-x-auto">
+                    VITE_MAPBOX_TOKEN=seu_token_aqui
+                  </pre>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Após adicionar, recarregue a página.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div ref={mapContainer} className="absolute inset-0 rounded-lg" />
+          )}
           
-          {selectedOperador && (
+          {selectedOperador && !mapboxTokenMissing && (
             <Card className="absolute top-4 left-4 z-10 w-72">
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-2">{selectedOperador.operador_nome}</h3>
