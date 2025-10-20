@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Navigate, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Navigate, Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,10 +14,48 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [nome, setNome] = useState('')
   const [loading, setLoading] = useState(false)
-  const { user, signIn, signUp } = useAuth()
+  const { user, signIn, signUp, loading: authLoading } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
+
+  // Check for email verification success
+  useEffect(() => {
+    const checkEmailVerification = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const type = hashParams.get('type')
+      
+      if (type === 'signup' && accessToken) {
+        console.log('Email verification successful, redirecting...')
+        toast({
+          title: "Email verificado!",
+          description: "Redirecionando para o sistema...",
+        })
+        
+        // Wait a moment for auth state to update, then redirect
+        setTimeout(() => {
+          navigate('/', { replace: true })
+        }, 1000)
+      }
+    }
+    
+    checkEmailVerification()
+  }, [toast, navigate])
+
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (user) {
+    console.log('User is logged in, redirecting to dashboard')
     return <Navigate to="/" replace />
   }
 
