@@ -149,11 +149,14 @@ export default function NovaLeituraDialog({ open, onOpenChange, onSuccess }: Nov
 
     if (uploadError) throw uploadError
 
-    const { data: { publicUrl } } = supabase.storage
+    // Use signed URL for secure access (1 hour expiration)
+    const { data, error: signedUrlError } = await supabase.storage
       .from('medidor-fotos')
-      .getPublicUrl(filePath)
+      .createSignedUrl(filePath, 3600)
 
-    return publicUrl
+    if (signedUrlError) throw signedUrlError
+
+    return data.signedUrl
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

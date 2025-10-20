@@ -7,8 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Battery, Clock } from 'lucide-react';
 
-// IMPORTANTE: Configure sua chave da API do Mapbox aqui
-mapboxgl.accessToken = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+// Mapbox token from environment variable
+// Add VITE_MAPBOX_TOKEN to your .env file with your Mapbox public token (pk.*)
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 interface OperadorLocalizacao {
   id: string;
