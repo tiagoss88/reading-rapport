@@ -136,7 +136,7 @@ const App = () => (
                 } />
                 <Route path="/permissions" element={
                   <ProtectedRoute>
-                    <PermissionRoute role="admin">
+                    <PermissionRoute permissions={['manage_operadores']} roles={['admin']}>
                       <PermissionsManagement />
                     </PermissionRoute>
                   </ProtectedRoute>
