@@ -32,7 +32,7 @@ interface Empreendimento {
 
 export default function GeoreferenciarClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [empreendimento, setEmpreendimento] = useState<Empreendimento | null>(null);
+  const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [mapboxTokenMissing, setMapboxTokenMissing] = useState(false);
@@ -51,7 +51,7 @@ export default function GeoreferenciarClientes() {
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const tempMarker = useRef<mapboxgl.Marker | null>(null);
-  const empreendimentoMarker = useRef<mapboxgl.Marker | null>(null);
+  const empreendimentoMarkers = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
   useEffect(() => {
     if (!mapboxgl.accessToken) {
@@ -79,8 +79,42 @@ export default function GeoreferenciarClientes() {
     return null;
   };
 
+  const fetchEmpreendimentos = async () => {
+    const { data, error } = await supabase.rpc('get_public_empreendimentos');
+
+    if (error) {
+      console.error('Erro ao buscar empreendimentos:', error);
+      return;
+    }
+
+    if (data) {
+      // Geocodificar empreendimentos sem coordenadas
+      const empsWithCoords = await Promise.all(
+        data.map(async (emp: Empreendimento) => {
+          if (!emp.latitude || !emp.longitude) {
+            const coords = await geocodeAddress(emp.endereco);
+            if (coords) {
+              // Atualizar no banco
+              await supabase
+                .from('empreendimentos')
+                .update({
+                  latitude: coords.lat,
+                  longitude: coords.lng
+                })
+                .eq('id', emp.id);
+              
+              return { ...emp, latitude: coords.lat, longitude: coords.lng };
+            }
+          }
+          return emp;
+        })
+      );
+      
+      setEmpreendimentos(empsWithCoords.filter(e => e.latitude && e.longitude));
+    }
+  };
+
   const fetchClientes = async () => {
-    // Buscar empreendimento do usuário
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -99,39 +133,6 @@ export default function GeoreferenciarClientes() {
     if (!empUsers) {
       toast.error('Nenhum empreendimento associado ao usuário');
       return;
-    }
-
-    // Buscar dados do empreendimento
-    const { data: empData, error: empDataError } = await supabase
-      .from('empreendimentos')
-      .select('id, nome, endereco, latitude, longitude')
-      .eq('id', empUsers.empreendimento_id)
-      .single();
-
-    if (empDataError) {
-      console.error('Erro ao buscar dados do empreendimento:', empDataError);
-    } else if (empData) {
-      // Se o empreendimento não tem coordenadas, tentar geocodificar
-      if (!empData.latitude || !empData.longitude) {
-        const coords = await geocodeAddress(empData.endereco);
-        if (coords) {
-          // Atualizar empreendimento com as coordenadas
-          const { error: updateError } = await supabase
-            .from('empreendimentos')
-            .update({
-              latitude: coords.lat,
-              longitude: coords.lng
-            })
-            .eq('id', empData.id);
-          
-          if (!updateError) {
-            empData.latitude = coords.lat;
-            empData.longitude = coords.lng;
-            toast.success('Empreendimento georreferenciado automaticamente');
-          }
-        }
-      }
-      setEmpreendimento(empData);
     }
 
     // Buscar clientes do empreendimento
@@ -214,30 +215,32 @@ export default function GeoreferenciarClientes() {
     Object.values(markers.current).forEach(marker => marker.remove());
     markers.current = {};
 
-    // Remover marcador do empreendimento
-    if (empreendimentoMarker.current) {
-      empreendimentoMarker.current.remove();
-      empreendimentoMarker.current = null;
-    }
+    // Remover marcadores dos empreendimentos
+    Object.values(empreendimentoMarkers.current).forEach(marker => marker.remove());
+    empreendimentoMarkers.current = {};
 
-    // Adicionar marcador do empreendimento se tiver coordenadas
-    if (empreendimento?.latitude && empreendimento?.longitude) {
-      const el = document.createElement('div');
-      el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
-      el.style.width = '32px';
-      el.style.height = '32px';
-      el.style.cursor = 'default';
-      el.style.color = '#ef4444';
-      el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+    // Adicionar marcadores dos empreendimentos
+    empreendimentos.forEach((emp) => {
+      if (emp.latitude && emp.longitude) {
+        const el = document.createElement('div');
+        el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>';
+        el.style.width = '24px';
+        el.style.height = '24px';
+        el.style.cursor = 'default';
+        el.style.color = '#ef4444';
+        el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
 
-      empreendimentoMarker.current = new mapboxgl.Marker(el)
-        .setLngLat([empreendimento.longitude, empreendimento.latitude])
-        .setPopup(
-          new mapboxgl.Popup({ offset: 25 })
-            .setHTML(`<div style="padding: 4px;"><strong>${empreendimento.nome}</strong><br/>${empreendimento.endereco}</div>`)
-        )
-        .addTo(map.current);
-    }
+        const marker = new mapboxgl.Marker(el)
+          .setLngLat([emp.longitude, emp.latitude])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 15 })
+              .setHTML(`<div style="padding: 4px;"><strong>${emp.nome}</strong><br/>${emp.endereco}</div>`)
+          )
+          .addTo(map.current!);
+
+        empreendimentoMarkers.current[emp.id] = marker;
+      }
+    });
 
     // Adicionar marcadores para clientes georreferenciados
     clientes
@@ -263,16 +266,16 @@ export default function GeoreferenciarClientes() {
         markers.current[cliente.id] = marker;
       });
 
-    // Ajustar bounds para incluir empreendimento e clientes
+    // Ajustar bounds para incluir empreendimentos e clientes
     const georeferencedClientes = clientes.filter(c => c.latitude && c.longitude);
-    const hasEmpreendimento = empreendimento?.latitude && empreendimento?.longitude;
+    const georeferencedEmps = empreendimentos.filter(e => e.latitude && e.longitude);
     
-    if (georeferencedClientes.length > 0 || hasEmpreendimento) {
+    if (georeferencedClientes.length > 0 || georeferencedEmps.length > 0) {
       const bounds = new mapboxgl.LngLatBounds();
       
-      if (hasEmpreendimento) {
-        bounds.extend([empreendimento.longitude!, empreendimento.latitude!]);
-      }
+      georeferencedEmps.forEach(e => {
+        bounds.extend([e.longitude!, e.latitude!]);
+      });
       
       georeferencedClientes.forEach(c => {
         bounds.extend([c.longitude!, c.latitude!]);
@@ -280,9 +283,10 @@ export default function GeoreferenciarClientes() {
       
       map.current.fitBounds(bounds, { padding: 50 });
     }
-  }, [clientes, empreendimento]);
+  }, [clientes, empreendimentos]);
 
   useEffect(() => {
+    fetchEmpreendimentos();
     fetchClientes();
   }, []);
 
