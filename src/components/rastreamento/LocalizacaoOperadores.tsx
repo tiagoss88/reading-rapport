@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Battery, Clock } from 'lucide-react';
+import { MapPin, Battery, Clock, X } from 'lucide-react';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
@@ -343,7 +343,15 @@ export default function LocalizacaoOperadores() {
         
         {selectedOperador && !mapboxTokenMissing && (
           <Card className="absolute top-4 left-4 z-10 w-80">
-            <CardContent className="p-4">
+            <CardContent className="p-4 relative">
+              <button
+                onClick={() => setSelectedOperador(null)}
+                className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted transition-colors"
+                aria-label="Fechar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              
               <h3 className="font-semibold mb-3">{selectedOperador.operador_nome}</h3>
               <div className="space-y-2 text-sm">
                 <div>
