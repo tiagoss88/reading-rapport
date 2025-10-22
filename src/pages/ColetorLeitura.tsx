@@ -71,14 +71,19 @@ export default function ColetorLeitura() {
   const [ultimaLeitura, setUltimaLeitura] = useState<number | null>(null)
   const [loadingUltimaLeitura, setLoadingUltimaLeitura] = useState(true)
 
-  // Carregar a última leitura do cliente (excluindo a atual se estiver editando)
+  // Carregar a última leitura do cliente (da competência anterior)
   useEffect(() => {
     const carregarUltimaLeitura = async () => {
       try {
+        // Calcular competência atual (YYYY/MM)
+        const competenciaAtual = format(new Date(), 'yyyy/MM')
+        
         let query = supabase
           .from('leituras')
           .select('leitura_atual')
           .eq('cliente_id', cliente.id)
+          .lt('competencia', competenciaAtual)
+          .order('competencia', { ascending: false })
           .order('data_leitura', { ascending: false })
 
         // Se estiver editando, excluir a leitura atual da busca
