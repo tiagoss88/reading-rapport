@@ -10,6 +10,7 @@ import { Plus, Upload, X, Camera } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
+import { format } from 'date-fns'
 
 interface Cliente {
   id: string
@@ -174,6 +175,30 @@ export default function NovaLeituraDialog({ open, onOpenChange, onSuccess }: Nov
     setIsSubmitting(true)
     
     try {
+      // Calcular competência (YYYY-MM)
+      const competencia = format(new Date(), 'yyyy-MM')
+
+      // Validar se já existe leitura na competência
+      const { data: leituraExistente, error: validacaoError } = await supabase
+        .from('leituras')
+        .select('id')
+        .eq('cliente_id', formData.cliente_id)
+        .eq('competencia', competencia)
+        .eq('tipo_leitura', 'normal')
+        .maybeSingle()
+
+      if (validacaoError) throw validacaoError
+
+      if (leituraExistente) {
+        toast({
+          title: "Leitura já registrada",
+          description: `Já existe uma leitura para este cliente na competência ${competencia}`,
+          variant: "destructive"
+        })
+        setIsSubmitting(false)
+        return
+      }
+
       let foto_url = null
       
       // Upload da imagem se fornecida
@@ -192,6 +217,8 @@ export default function NovaLeituraDialog({ open, onOpenChange, onSuccess }: Nov
           tipo_observacao: formData.tipo_observacao || null,
           foto_url,
           data_leitura: new Date().toISOString(),
+          competencia,
+          tipo_leitura: 'normal',
           status_sincronizacao: 'sincronizado'
         }])
 

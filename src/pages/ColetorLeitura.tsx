@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Camera, Save, MapPin, User, Home } from 'lucide-react'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
+import { format } from 'date-fns'
 
 interface Cliente {
   id: string
@@ -184,6 +185,31 @@ export default function ColetorLeitura() {
 
     setSaving(true)
     try {
+      // Calcular competência (YYYY-MM)
+      const competencia = format(new Date(), 'yyyy-MM')
+
+      // Validar se já existe leitura na competência (apenas se não estiver editando)
+      if (!leituraExistente) {
+        const { data: leituraExistente, error: validacaoError } = await supabase
+          .from('leituras')
+          .select('id')
+          .eq('cliente_id', cliente.id)
+          .eq('competencia', competencia)
+          .eq('tipo_leitura', 'normal')
+          .maybeSingle()
+
+        if (validacaoError) throw validacaoError
+
+        if (leituraExistente) {
+          toast({
+            title: "Leitura já registrada",
+            description: `Já existe uma leitura para este cliente na competência ${competencia}`,
+            variant: "destructive"
+          })
+          setSaving(false)
+          return
+        }
+      }
       let fotoUrl = null
 
       // Upload da foto se existir
@@ -229,7 +255,8 @@ export default function ColetorLeitura() {
             observacao: formData.observacao || null,
             tipo_observacao: formData.tipo_observacao || null,
             foto_url: fotoUrl || leituraExistente.foto_url,
-            data_leitura: new Date().toISOString()
+            data_leitura: new Date().toISOString(),
+            competencia: format(new Date(), 'yyyy-MM')
           })
           .eq('id', leituraExistente.id)
 
@@ -245,7 +272,9 @@ export default function ColetorLeitura() {
             observacao: formData.observacao || null,
             tipo_observacao: formData.tipo_observacao || null,
             foto_url: fotoUrl,
-            data_leitura: new Date().toISOString()
+            data_leitura: new Date().toISOString(),
+            competencia,
+            tipo_leitura: 'normal'
           })
 
         if (error) throw error

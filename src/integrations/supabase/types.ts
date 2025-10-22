@@ -171,6 +171,7 @@ export type Database = {
       leituras: {
         Row: {
           cliente_id: string
+          competencia: string
           created_at: string
           data_leitura: string
           foto_url: string | null
@@ -179,11 +180,13 @@ export type Database = {
           observacao: string | null
           operador_id: string
           status_sincronizacao: string
+          tipo_leitura: string | null
           tipo_observacao: string | null
           updated_at: string
         }
         Insert: {
           cliente_id: string
+          competencia: string
           created_at?: string
           data_leitura?: string
           foto_url?: string | null
@@ -192,11 +195,13 @@ export type Database = {
           observacao?: string | null
           operador_id: string
           status_sincronizacao?: string
+          tipo_leitura?: string | null
           tipo_observacao?: string | null
           updated_at?: string
         }
         Update: {
           cliente_id?: string
+          competencia?: string
           created_at?: string
           data_leitura?: string
           foto_url?: string | null
@@ -205,6 +210,7 @@ export type Database = {
           observacao?: string | null
           operador_id?: string
           status_sincronizacao?: string
+          tipo_leitura?: string | null
           tipo_observacao?: string | null
           updated_at?: string
         }
