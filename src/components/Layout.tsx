@@ -33,13 +33,13 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, permission: 'view_dashboard' },
-    { name: 'Leituras', href: '/leituras', icon: FileText, permission: 'view_leituras' },
     { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, permission: 'view_relatorios' },
     { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
   ]
 
   const medicaoItems = [
+    { name: 'Leituras', href: '/leituras', icon: FileText, permission: 'view_leituras' },
     { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2, permission: 'manage_empreendimentos' },
     { name: 'Clientes', href: '/clientes', icon: Users, permission: 'manage_clientes' }
   ]
@@ -94,7 +94,7 @@ export default function Layout({ children, title }: LayoutProps) {
             ))}
             
             {/* Medição Dropdown */}
-            <ProtectedComponent permissions={["manage_empreendimentos", "manage_clientes"]}>
+            <ProtectedComponent permissions={["view_leituras", "manage_empreendimentos", "manage_clientes"]}>
               <div className="space-y-1">
                 <button
                   onClick={() => setMedicaoOpen(!medicaoOpen)}
