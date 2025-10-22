@@ -572,7 +572,7 @@ export type Database = {
         Returns: undefined
       }
       get_public_empreendimentos: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           endereco: string
           id: string

@@ -122,7 +122,7 @@ const App = () => (
                 } />
                 <Route path="/servicos/criar-externo" element={
                   <ProtectedRoute>
-                    <PermissionRoute permission="create_servicos">
+                    <PermissionRoute permission="create_servicos_externos">
                       <CriarServicoExterno />
                     </PermissionRoute>
                   </ProtectedRoute>
@@ -136,7 +136,7 @@ const App = () => (
                 } />
                 <Route path="/permissions" element={
                   <ProtectedRoute>
-                    <PermissionRoute permissions={['manage_operadores']} roles={['admin']}>
+                    <PermissionRoute role="admin">
                       <PermissionsManagement />
                     </PermissionRoute>
                   </ProtectedRoute>
