@@ -32,6 +32,7 @@ interface PermissionsContextType {
   hasRole: (role: AppRole) => boolean
   isAdmin: boolean
   loading: boolean
+  refreshing: boolean
   refreshPermissions: () => Promise<void>
 }
 
@@ -42,16 +43,24 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   const [permissions, setPermissions] = useState<AppPermission[]>([])
   const [roles, setRoles] = useState<AppRole[]>([])
   const [loading, setLoading] = useState(true)
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const fetchUserPermissions = async () => {
     if (!user) {
       setPermissions([])
       setRoles([])
+      setInitialLoadComplete(true)
       setLoading(false)
       return
     }
 
-    setLoading(true)
+    // Only block UI on initial load, subsequent refreshes happen in background
+    if (!initialLoadComplete) {
+      setLoading(true)
+    } else {
+      setRefreshing(true)
+    }
     
     try {
       // Set timeout to prevent infinite loading
@@ -106,7 +115,11 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       setPermissions(['view_dashboard'])
       setRoles([])
     } finally {
-      setLoading(false)
+      if (!initialLoadComplete) {
+        setInitialLoadComplete(true)
+        setLoading(false)
+      }
+      setRefreshing(false)
     }
   }
 
@@ -135,6 +148,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     hasRole,
     isAdmin,
     loading,
+    refreshing,
     refreshPermissions,
   }
 
