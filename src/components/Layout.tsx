@@ -33,8 +33,8 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, permission: 'view_dashboard' },
-    { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, permission: 'view_relatorios' },
+    { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
     { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
   ]
 
@@ -74,7 +74,8 @@ export default function Layout({ children, title }: LayoutProps) {
         </div>
         <nav className="mt-6 flex-1">
           <div className="space-y-1 px-3">
-            {navigation.map((item) => (
+            {/* 1. Dashboard */}
+            {navigation.slice(0, 1).map((item) => (
               <ProtectedComponent key={item.name} permission={item.permission as any}>
                 <NavLink
                   to={item.href}
@@ -93,7 +94,7 @@ export default function Layout({ children, title }: LayoutProps) {
               </ProtectedComponent>
             ))}
             
-            {/* Medição Dropdown */}
+            {/* 2. Medição Dropdown */}
             <ProtectedComponent permissions={["view_leituras", "manage_empreendimentos", "manage_clientes"]}>
               <div className="space-y-1">
                 <button
@@ -132,7 +133,7 @@ export default function Layout({ children, title }: LayoutProps) {
               </div>
             </ProtectedComponent>
             
-            {/* Serviços Dropdown */}
+            {/* 3. Ordem de Serviço Dropdown */}
             <ProtectedComponent permissions={["create_servicos", "manage_agendamentos"]}>
               <div className="space-y-1">
                 <button
@@ -170,7 +171,27 @@ export default function Layout({ children, title }: LayoutProps) {
               </div>
             </ProtectedComponent>
             
-            {/* Admin only - Permissions Management */}
+            {/* 4-6. Relatórios, Rastreamento, Operadores */}
+            {navigation.slice(1).map((item) => (
+              <ProtectedComponent key={item.name} permission={item.permission as any}>
+                <NavLink
+                  to={item.href}
+                  className={({ isActive }) =>
+                    `flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`
+                  }
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                  {item.name}
+                </NavLink>
+              </ProtectedComponent>
+            ))}
+            
+            {/* 7. Permissões - Admin only */}
             <ProtectedComponent role="admin">
               <NavLink
                 to="/permissions"
