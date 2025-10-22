@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +9,8 @@ import { useRelatorioLeituras } from '@/hooks/useRelatorioLeituras';
 import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface FiltrosRelatorioProps {
   tipoRelatorio: TipoRelatorio;
@@ -23,6 +25,7 @@ export default function FiltrosRelatorio({
   onFiltrosChange,
   onGerarRelatorio,
 }: FiltrosRelatorioProps) {
+  const [isLoading, setIsLoading] = useState(false);
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
 
@@ -52,22 +55,47 @@ export default function FiltrosRelatorio({
   });
 
   const handleGerarRelatorio = async () => {
-    let dados: any[] = [];
+    setIsLoading(true);
+    try {
+      let dados: any[] = [];
 
-    // Relatórios de Leituras
-    if (tipoRelatorio.startsWith('leituras_') || tipoRelatorio === 'consumo_medio') {
-      dados = await gerarRelatorioLeituras(tipoRelatorio, filtros);
-    }
-    // Relatórios de Serviços
-    else if (tipoRelatorio.startsWith('servicos_') || tipoRelatorio === 'tempo_medio_execucao') {
-      dados = await gerarRelatorioServicos(tipoRelatorio, filtros);
-    }
-    // Relatórios Gerenciais (implementar futuramente)
-    else {
-      dados = [];
-    }
+      // Relatórios de Leituras
+      if (tipoRelatorio.startsWith('leituras_') || tipoRelatorio === 'consumo_medio') {
+        dados = await gerarRelatorioLeituras(tipoRelatorio, filtros);
+      }
+      // Relatórios de Serviços
+      else if (tipoRelatorio.startsWith('servicos_') || tipoRelatorio === 'tempo_medio_execucao') {
+        dados = await gerarRelatorioServicos(tipoRelatorio, filtros);
+      }
+      // Relatórios Gerenciais (implementar futuramente)
+      else {
+        dados = [];
+      }
 
-    onGerarRelatorio(dados);
+      if (dados.length === 0) {
+        toast({
+          title: "Nenhum dado encontrado",
+          description: "Não há registros para o período e filtros selecionados.",
+        });
+      } else {
+        toast({
+          title: "Relatório gerado com sucesso",
+          description: `${dados.length} registro(s) encontrado(s)`,
+        });
+      }
+
+      onGerarRelatorio(dados);
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      toast({
+        title: "Erro ao gerar relatório",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+      onGerarRelatorio([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const mostrarFiltroEmpreendimento = !tipoRelatorio.includes('empreendimento');
@@ -216,9 +244,22 @@ export default function FiltrosRelatorio({
         </div>
 
         <div className="mt-4">
-          <Button onClick={handleGerarRelatorio} className="w-full md:w-auto">
-            <Search className="w-4 h-4 mr-2" />
-            Gerar Relatório
+          <Button 
+            onClick={handleGerarRelatorio} 
+            className="w-full md:w-auto"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Gerando...
+              </>
+            ) : (
+              <>
+                <Search className="w-4 h-4 mr-2" />
+                Gerar Relatório
+              </>
+            )}
           </Button>
         </div>
       </CardContent>

@@ -138,6 +138,16 @@ export default function Relatorios() {
             />
           </>
         )}
+
+        {/* Mensagem quando não há dados */}
+        {dadosRelatorio.length === 0 && tipoSelecionado && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
+              <p>Nenhum dado encontrado. Ajuste os filtros e tente novamente.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

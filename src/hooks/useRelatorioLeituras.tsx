@@ -10,61 +10,78 @@ export function useRelatorioLeituras() {
 
     switch (tipo) {
       case 'leituras_periodo': {
-        let query = supabase
-          .from('leituras')
-          .select(`
-            *,
-            clientes!inner(id, identificacao_unidade, nome, empreendimento_id, empreendimentos!inner(nome)),
-            operadores!inner(nome)
-          `)
-          .gte('data_leitura', dataInicio)
-          .lte('data_leitura', dataFim)
-          .order('data_leitura', { ascending: false });
+        try {
+          console.log('Gerando relatório de leituras por período:', { dataInicio, dataFim, empreendimentoId, operadorId });
+          
+          let query = supabase
+            .from('leituras')
+            .select(`
+              *,
+              clientes!inner(id, identificacao_unidade, nome, empreendimento_id, empreendimentos!inner(nome)),
+              operadores!inner(nome)
+            `)
+            .gte('data_leitura', dataInicio)
+            .lte('data_leitura', dataFim)
+            .order('data_leitura', { ascending: false });
 
-        if (empreendimentoId) {
-          query = query.eq('clientes.empreendimento_id', empreendimentoId);
-        }
-
-        if (operadorId) {
-          query = query.eq('operador_id', operadorId);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        // Calcular consumo
-        const clientesLeituras = new Map<string, any[]>();
-        
-        data?.forEach((leitura: any) => {
-          const clienteId = leitura.clientes.id;
-          if (!clientesLeituras.has(clienteId)) {
-            clientesLeituras.set(clienteId, []);
+          if (empreendimentoId) {
+            query = query.eq('clientes.empreendimento_id', empreendimentoId);
           }
-          clientesLeituras.get(clienteId)!.push(leitura);
-        });
 
-        const resultado = data?.map((leitura: any) => {
-          const leiturasPrevias = clientesLeituras
-            .get(leitura.clientes.id)
-            ?.filter((l: any) => new Date(l.data_leitura) < new Date(leitura.data_leitura))
-            .sort((a: any, b: any) => new Date(b.data_leitura).getTime() - new Date(a.data_leitura).getTime());
+          if (operadorId) {
+            query = query.eq('operador_id', operadorId);
+          }
 
-          const leituraAnterior = leiturasPrevias?.[0]?.leitura_atual;
-          const consumo = leituraAnterior ? leitura.leitura_atual - leituraAnterior : null;
+          const { data, error } = await query;
 
-          return {
-            data_leitura: leitura.data_leitura,
-            cliente_nome: leitura.clientes.nome || leitura.clientes.identificacao_unidade,
-            empreendimento: leitura.clientes.empreendimentos.nome,
-            operador: leitura.operadores.nome,
-            leitura_anterior: leituraAnterior,
-            leitura_atual: leitura.leitura_atual,
-            consumo,
-          };
-        });
+          if (error) {
+            console.error('Erro na query de leituras:', error);
+            throw new Error(`Erro ao buscar leituras: ${error.message}`);
+          }
 
-        return resultado || [];
+          if (!data || data.length === 0) {
+            console.log('Nenhuma leitura encontrada para o período');
+            return [];
+          }
+
+          console.log(`${data.length} leitura(s) encontrada(s)`);
+
+          // Calcular consumo
+          const clientesLeituras = new Map<string, any[]>();
+          
+          data?.forEach((leitura: any) => {
+            const clienteId = leitura.clientes.id;
+            if (!clientesLeituras.has(clienteId)) {
+              clientesLeituras.set(clienteId, []);
+            }
+            clientesLeituras.get(clienteId)!.push(leitura);
+          });
+
+          const resultado = data?.map((leitura: any) => {
+            const leiturasPrevias = clientesLeituras
+              .get(leitura.clientes.id)
+              ?.filter((l: any) => new Date(l.data_leitura) < new Date(leitura.data_leitura))
+              .sort((a: any, b: any) => new Date(b.data_leitura).getTime() - new Date(a.data_leitura).getTime());
+
+            const leituraAnterior = leiturasPrevias?.[0]?.leitura_atual;
+            const consumo = leituraAnterior ? leitura.leitura_atual - leituraAnterior : null;
+
+            return {
+              data_leitura: leitura.data_leitura,
+              cliente_nome: leitura.clientes.nome || leitura.clientes.identificacao_unidade,
+              empreendimento: leitura.clientes.empreendimentos.nome,
+              operador: leitura.operadores.nome,
+              leitura_anterior: leituraAnterior,
+              leitura_atual: leitura.leitura_atual,
+              consumo,
+            };
+          });
+
+          return resultado || [];
+        } catch (error) {
+          console.error('Erro no relatório leituras_periodo:', error);
+          throw error;
+        }
       }
 
       case 'leituras_operador': {
