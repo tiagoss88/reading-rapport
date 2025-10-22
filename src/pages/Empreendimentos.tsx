@@ -268,7 +268,11 @@ export default function Empreendimentos() {
               Novo Empreendimento
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[95vh] overflow-hidden w-[98vw] sm:w-[95vw]">
+            <DialogContent 
+              className="max-w-md sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[95vh] overflow-hidden w-[98vw] sm:w-[95vw]"
+              onInteractOutside={(e) => e.preventDefault()}
+              onEscapeKeyDown={(e) => e.preventDefault()}
+            >
             <DialogHeader>
               <DialogTitle>
                 {editingEmpreendimento ? 'Editar Empreendimento' : 'Novo Empreendimento'}
