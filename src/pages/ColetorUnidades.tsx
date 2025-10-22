@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { format } from 'date-fns'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -32,6 +33,7 @@ interface Leitura {
   tipo_observacao?: string
   data_leitura: string
   foto_url?: string
+  competencia: string
 }
 
 export default function ColetorUnidades() {
@@ -46,6 +48,7 @@ export default function ColetorUnidades() {
   const { toast } = useToast()
 
   const empreendimento = location.state?.empreendimento as Empreendimento
+  const competenciaAtual = format(new Date(), 'yyyy/MM')
 
   useEffect(() => {
     if (empreendimentoId) {
@@ -143,7 +146,7 @@ export default function ColetorUnidades() {
 
       const { data, error } = await supabase
         .from('leituras')
-        .select('*')
+        .select('*, competencia')
         .eq('operador_id', operador.id)
         .in('cliente_id', clienteIds)
         .order('data_leitura', { ascending: false })
@@ -156,11 +159,17 @@ export default function ColetorUnidades() {
   }
 
   const temLeitura = (clienteId: string) => {
-    return leituras.some(leitura => leitura.cliente_id === clienteId)
+    return leituras.some(leitura => 
+      leitura.cliente_id === clienteId && 
+      leitura.competencia === competenciaAtual
+    )
   }
 
   const getLeitura = (clienteId: string) => {
-    return leituras.find(leitura => leitura.cliente_id === clienteId)
+    return leituras.find(leitura => 
+      leitura.cliente_id === clienteId && 
+      leitura.competencia === competenciaAtual
+    )
   }
 
   const selecionarUnidade = (cliente: Cliente) => {
