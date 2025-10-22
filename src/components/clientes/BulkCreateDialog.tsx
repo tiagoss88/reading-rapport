@@ -139,18 +139,47 @@ export default function BulkCreateDialog({ open, onOpenChange, empreendimentos, 
       const clientsToInsert = clientsData.map(client => ({
         ...client,
         cpf: client.cpf ? removeMask(client.cpf) : null,
-        empreendimento_id: selectedEmpreendimento
+        empreendimento_id: selectedEmpreendimento,
+        leitura_inicial: client.leitura_inicial || 0
       }))
 
-      const { error } = await supabase
+      const { data: newClientes, error } = await supabase
         .from('clientes')
         .insert(clientsToInsert)
+        .select('id, leitura_inicial')
 
       if (error) throw error
 
+      // Criar leituras iniciais automaticamente
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (user && newClientes && newClientes.length > 0) {
+        const { data: operador } = await supabase
+          .from('operadores')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (operador) {
+          const competenciaAtual = new Date().toISOString().slice(0, 7).replace('-', '/')
+          
+          const leiturasIniciais = newClientes.map(cliente => ({
+            cliente_id: cliente.id,
+            operador_id: operador.id,
+            leitura_atual: cliente.leitura_inicial || 0,
+            competencia: competenciaAtual,
+            tipo_leitura: 'inicial_titularidade',
+            data_leitura: new Date().toISOString(),
+            observacao: 'Leitura inicial cadastrada automaticamente no sistema'
+          }))
+
+          await supabase.from('leituras').insert(leiturasIniciais)
+        }
+      }
+
       toast({
         title: "Unidades criadas com sucesso!",
-        description: `${clientsData.length} unidade(s) foram adicionadas ao empreendimento.`,
+        description: `${newClientes.length} unidade(s) e suas leituras iniciais foram adicionadas.`,
       })
 
       onSuccess()

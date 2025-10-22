@@ -135,15 +135,42 @@ export default function Clientes() {
           leitura_inicial: validatedData.leitura_inicial,
           status: validatedData.status
         }
-        const { error } = await supabase
+        const { data: newCliente, error } = await supabase
           .from('clientes')
           .insert([dataToInsert])
+          .select('id')
+          .single()
 
         if (error) throw error
+
+        // Criar leitura inicial automaticamente
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user && newCliente) {
+          const { data: operador } = await supabase
+            .from('operadores')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+          if (operador) {
+            const competenciaAtual = new Date().toISOString().slice(0, 7).replace('-', '/')
+            
+            await supabase.from('leituras').insert([{
+              cliente_id: newCliente.id,
+              operador_id: operador.id,
+              leitura_atual: validatedData.leitura_inicial,
+              competencia: competenciaAtual,
+              tipo_leitura: 'inicial_titularidade',
+              data_leitura: new Date().toISOString(),
+              observacao: 'Leitura inicial cadastrada automaticamente no sistema'
+            }])
+          }
+        }
         
         toast({
           title: "Cliente criado!",
-          description: "O novo cliente foi adicionado com sucesso.",
+          description: "O novo cliente e sua leitura inicial foram adicionados com sucesso.",
         })
       }
 
