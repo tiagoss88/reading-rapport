@@ -611,6 +611,7 @@ export type Database = {
         | "view_agendamentos"
         | "create_servicos_externos"
         | "view_rastreamento_operadores"
+        | "view_relatorios"
       app_role:
         | "admin"
         | "gestor_empreendimento"
@@ -758,6 +759,7 @@ export const Constants = {
         "view_agendamentos",
         "create_servicos_externos",
         "view_rastreamento_operadores",
+        "view_relatorios",
       ],
       app_role: [
         "admin",
