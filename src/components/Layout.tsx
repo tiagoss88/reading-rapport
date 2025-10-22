@@ -16,7 +16,8 @@ import {
   Settings,
   MapPin,
   BarChart3,
-  Gauge
+  Gauge,
+  Shield
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -30,12 +31,12 @@ export default function Layout({ children, title }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [servicosOpen, setServicosOpen] = useState(false)
   const [medicaoOpen, setMedicaoOpen] = useState(false)
+  const [configuracoesOpen, setConfiguracoesOpen] = useState(false)
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, permission: 'view_dashboard' },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, permission: 'view_relatorios' },
     { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
-    { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
   ]
 
   const medicaoItems = [
@@ -48,6 +49,11 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Criar Serviço', href: '/servicos/criar', permission: 'create_servicos' },
     { name: 'Criar Serviço Externo', href: '/servicos/criar-externo', permission: 'create_servicos' },
     { name: 'Agendamentos', href: '/servicos/agendamentos', permission: 'manage_agendamentos' }
+  ]
+
+  const configuracoesItems = [
+    { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
+    { name: 'Permissões', href: '/permissions', icon: Shield, role: 'admin' }
   ]
 
   return (
@@ -171,7 +177,7 @@ export default function Layout({ children, title }: LayoutProps) {
               </div>
             </ProtectedComponent>
             
-            {/* 4-6. Relatórios, Rastreamento, Operadores */}
+            {/* 4-5. Relatórios, Rastreamento */}
             {navigation.slice(1).map((item) => (
               <ProtectedComponent key={item.name} permission={item.permission as any}>
                 <NavLink
@@ -191,22 +197,47 @@ export default function Layout({ children, title }: LayoutProps) {
               </ProtectedComponent>
             ))}
             
-            {/* 7. Permissões - Admin only */}
-            <ProtectedComponent role="admin">
-              <NavLink
-                to="/permissions"
-                className={({ isActive }) =>
-                  `flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`
-                }
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Settings className="mr-3 h-5 w-5 flex-shrink-0" />
-                Permissões
-              </NavLink>
+            {/* 6. Configurações Dropdown - Admin/Manage Operadores */}
+            <ProtectedComponent permissions={["manage_operadores"]} roles={["admin"]}>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setConfiguracoesOpen(!configuracoesOpen)}
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <div className="flex items-center">
+                    <Settings className="mr-3 h-5 w-5 flex-shrink-0" />
+                    Configurações
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${configuracoesOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {configuracoesOpen && (
+                  <div className="ml-8 space-y-1">
+                    {configuracoesItems.map((item) => (
+                      <ProtectedComponent 
+                        key={item.name} 
+                        permission={item.permission as any}
+                        role={item.role as any}
+                      >
+                        <NavLink
+                          to={item.href}
+                          className={({ isActive }) =>
+                            `flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+                              isActive
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`
+                          }
+                          onClick={() => setSidebarOpen(false)}
+                        >
+                          <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                          {item.name}
+                        </NavLink>
+                      </ProtectedComponent>
+                    ))}
+                  </div>
+                )}
+              </div>
             </ProtectedComponent>
           </div>
         </nav>
