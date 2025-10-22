@@ -14,7 +14,8 @@ import {
   Wrench,
   ChevronDown,
   Settings,
-  MapPin
+  MapPin,
+  BarChart3
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -34,6 +35,7 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Clientes', href: '/clientes', icon: Users, permission: 'manage_clientes' },
     { name: 'Leituras', href: '/leituras', icon: FileText, permission: 'view_leituras' },
     { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
+    { name: 'Relatórios', href: '/relatorios', icon: BarChart3, permission: 'view_relatorios' },
     { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
   ]
 

@@ -13,7 +13,8 @@ export const ROLE_PERMISSIONS = {
     'coletor_leituras',
     'coletor_servicos',
     'view_agendamentos',
-    'view_rastreamento_operadores'
+    'view_rastreamento_operadores',
+    'view_relatorios'
   ],
   gestor_empreendimento: [
     'view_dashboard',
@@ -23,7 +24,8 @@ export const ROLE_PERMISSIONS = {
     'create_servicos_externos',
     'manage_agendamentos',
     'view_agendamentos',
-    'view_rastreamento_operadores'
+    'view_rastreamento_operadores',
+    'view_relatorios'
   ],
   operador_completo: [
     'coletor_leituras',
@@ -54,7 +56,8 @@ export const PERMISSION_LABELS = {
   coletor_leituras: 'Coletor de Leituras',
   coletor_servicos: 'Coletor de Serviços',
   view_agendamentos: 'Ver Agendamentos',
-  view_rastreamento_operadores: 'Ver Rastreamento de Operadores'
+  view_rastreamento_operadores: 'Ver Rastreamento de Operadores',
+  view_relatorios: 'Ver Relatórios'
 } as const
 
 export const ROLE_LABELS = {

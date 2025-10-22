@@ -16,6 +16,7 @@ export type AppPermission =
   | 'coletor_servicos'
   | 'view_agendamentos'
   | 'view_rastreamento_operadores'
+  | 'view_relatorios'
 
 export type AppRole =
   | 'admin'

@@ -16,6 +16,7 @@ import Agendamentos from '@/pages/Agendamentos'
 import OperadorApp from '@/pages/OperadorApp'
 import PermissionsManagement from '@/pages/PermissionsManagement'
 import RastreamentoOperadores from '@/pages/RastreamentoOperadores'
+import Relatorios from '@/pages/Relatorios'
 import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
@@ -145,6 +146,13 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute permission="view_rastreamento_operadores" redirectTo="/not-authorized">
                       <RastreamentoOperadores />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/relatorios" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="view_relatorios" redirectTo="/not-authorized">
+                      <Relatorios />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
