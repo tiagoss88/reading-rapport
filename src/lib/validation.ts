@@ -9,6 +9,9 @@ const cnpjRegex = /^\d{14}$/
 // CEP validation regex (8 digits, with or without hyphen)
 const cepRegex = /^\d{5}-?\d{3}$/
 
+// Competência validation regex (YYYY-MM)
+const competenciaRegex = /^\d{4}-(0[1-9]|1[0-2])$/
+
 // Cliente validation schema
 export const clienteSchema = z.object({
   nome: z.string().max(255, 'Nome muito longo').optional().or(z.literal('')),
@@ -39,6 +42,19 @@ export const empreendimentoSchema = z.object({
   fator_conversao: z.number().min(0, 'Fator de conversão não pode ser negativo').optional(),
   preco_kg_gas: z.number().min(0, 'Preço não pode ser negativo').optional(),
   preco_m3_gas: z.number().min(0, 'Preço não pode ser negativo').optional()
+})
+
+// Leitura validation schema
+export const leituraSchema = z.object({
+  cliente_id: z.string().uuid('ID de cliente inválido'),
+  operador_id: z.string().uuid('ID de operador inválido'),
+  leitura_atual: z.number().min(0, 'Leitura não pode ser negativa'),
+  competencia: z.string().regex(competenciaRegex, 'Competência deve estar no formato YYYY-MM'),
+  tipo_leitura: z.enum(['normal', 'final_titularidade', 'inicial_titularidade'], { 
+    errorMap: () => ({ message: 'Tipo de leitura inválido' }) 
+  }).default('normal'),
+  observacao: z.string().max(1000, 'Observação muito longa').optional().or(z.literal('')),
+  tipo_observacao: z.string().max(100, 'Tipo de observação inválido').optional().or(z.literal(''))
 })
 
 // Servico validation schema
