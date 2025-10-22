@@ -7,6 +7,14 @@ export function useRelatorioLeituras() {
     filtros: FiltrosRelatorioType
   ): Promise<any[]> => {
     const { dataInicio, dataFim, empreendimentoId, operadorId } = filtros;
+    
+    // Adiciona 1 dia à data fim para incluir o dia completo (até 23:59:59)
+    const addOneDay = (dateStr: string) => {
+      const date = new Date(dateStr);
+      date.setDate(date.getDate() + 1);
+      return date.toISOString().split('T')[0];
+    };
+    const fimExclusivo = addOneDay(dataFim);
 
     switch (tipo) {
       case 'leituras_periodo': {
@@ -21,7 +29,7 @@ export function useRelatorioLeituras() {
               operadores!inner(nome)
             `)
             .gte('data_leitura', dataInicio)
-            .lte('data_leitura', dataFim)
+            .lt('data_leitura', fimExclusivo)
             .order('data_leitura', { ascending: false });
 
           if (empreendimentoId) {
@@ -92,7 +100,7 @@ export function useRelatorioLeituras() {
             operadores!inner(id, nome)
           `)
           .gte('data_leitura', dataInicio)
-          .lte('data_leitura', dataFim);
+          .lt('data_leitura', fimExclusivo);
 
         if (operadorId) {
           query = query.eq('operador_id', operadorId);
@@ -135,7 +143,7 @@ export function useRelatorioLeituras() {
             clientes!inner(empreendimento_id, empreendimentos!inner(nome))
           `)
           .gte('data_leitura', dataInicio)
-          .lte('data_leitura', dataFim);
+          .lt('data_leitura', fimExclusivo);
 
         if (empreendimentoId) {
           query = query.eq('clientes.empreendimento_id', empreendimentoId);
@@ -178,7 +186,7 @@ export function useRelatorioLeituras() {
           `)
           .eq('status_sincronizacao', 'pendente')
           .gte('data_leitura', dataInicio)
-          .lte('data_leitura', dataFim);
+          .lt('data_leitura', fimExclusivo);
 
         if (error) throw error;
         return data || [];
@@ -194,7 +202,7 @@ export function useRelatorioLeituras() {
           `)
           .not('observacao', 'is', null)
           .gte('data_leitura', dataInicio)
-          .lte('data_leitura', dataFim);
+          .lt('data_leitura', fimExclusivo);
 
         if (error) throw error;
         return data || [];

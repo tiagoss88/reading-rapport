@@ -7,6 +7,14 @@ export function useRelatorioServicos() {
     filtros: FiltrosRelatorioType
   ): Promise<any[]> => {
     const { dataInicio, dataFim, empreendimentoId, operadorId, status, tipoServico } = filtros;
+    
+    // Adiciona 1 dia à data fim para incluir o dia completo (até 23:59:59)
+    const addOneDay = (dateStr: string) => {
+      const date = new Date(dateStr);
+      date.setDate(date.getDate() + 1);
+      return date.toISOString().split('T')[0];
+    };
+    const fimExclusivo = addOneDay(dataFim);
 
     switch (tipo) {
       case 'servicos_periodo':
@@ -19,7 +27,7 @@ export function useRelatorioServicos() {
             operadores(nome)
           `)
           .gte('data_agendamento', dataInicio)
-          .lte('data_agendamento', dataFim);
+          .lt('data_agendamento', fimExclusivo);
 
         if (empreendimentoId) {
           query = query.eq('empreendimento_id', empreendimentoId);
@@ -58,7 +66,7 @@ export function useRelatorioServicos() {
             servicos:servicos!operador_responsavel_id(status)
           `)
           .gte('servicos.data_agendamento', dataInicio)
-          .lte('servicos.data_agendamento', dataFim);
+          .lt('servicos.data_agendamento', fimExclusivo);
 
         if (error) throw error;
 
@@ -86,7 +94,7 @@ export function useRelatorioServicos() {
           .from('servicos')
           .select('tipo_servico, status')
           .gte('data_agendamento', dataInicio)
-          .lte('data_agendamento', dataFim);
+          .lt('data_agendamento', fimExclusivo);
 
         if (tipoServico) {
           query = query.eq('tipo_servico', tipoServico);
@@ -125,7 +133,7 @@ export function useRelatorioServicos() {
             operadores(nome)
           `)
           .gte('data_agendamento', dataInicio)
-          .lte('data_agendamento', dataFim);
+          .lt('data_agendamento', fimExclusivo);
 
         if (operadorId) {
           query = query.eq('operador_responsavel_id', operadorId);
