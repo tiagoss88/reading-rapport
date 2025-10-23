@@ -229,14 +229,12 @@ export default function ColetorLeitura() {
 
         if (uploadError) throw uploadError
 
-        // Use signed URL for secure access (1 hour expiration)
-        const { data: signedData, error: signedUrlError } = await supabase.storage
+        // Use public URL for permanent access
+        const { data } = supabase.storage
           .from('medidor-fotos')
-          .createSignedUrl(filePath, 3600)
+          .getPublicUrl(filePath)
 
-        if (signedUrlError) throw signedUrlError
-
-        fotoUrl = signedData.signedUrl
+        fotoUrl = data.publicUrl
       }
 
       // Buscar o operador atual (assumindo que está logado)

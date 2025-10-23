@@ -111,14 +111,12 @@ export default function ServicoExecucaoDialog({
 
       if (error) throw error
 
-      // Use signed URL for secure access (1 hour expiration)
-      const { data: signedData, error: signedUrlError } = await supabase.storage
+      // Use public URL for permanent access
+      const { data } = supabase.storage
         .from('medidor-fotos')
-        .createSignedUrl(fileName, 3600)
+        .getPublicUrl(fileName)
 
-      if (signedUrlError) throw signedUrlError
-
-      return signedData.signedUrl
+      return data.publicUrl
     } catch (error) {
       console.error('Erro ao fazer upload da imagem:', error)
       return null
