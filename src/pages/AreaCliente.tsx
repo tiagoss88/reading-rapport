@@ -527,13 +527,12 @@ export default function AreaCliente() {
                     <TableRow>
                       <TableHead>Unidade</TableHead>
                       <TableHead>Nome</TableHead>
-                      <TableHead>Leitura</TableHead>
                       <TableHead>Leitura Anterior</TableHead>
+                      <TableHead>Leitura Atual</TableHead>
                       <TableHead>Consumo</TableHead>
                       <TableHead>Valor Fatura</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Observação</TableHead>
-                      <TableHead>Operador</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
@@ -545,7 +544,6 @@ export default function AreaCliente() {
                           {leitura.clientes?.identificacao_unidade}
                         </TableCell>
                         <TableCell>{leitura.clientes?.nome}</TableCell>
-                        <TableCell>{leitura.leitura_atual.toFixed(3)}</TableCell>
                         <TableCell>
                           <span className="text-muted-foreground">
                             {leitura.leitura_anterior !== undefined 
@@ -553,6 +551,7 @@ export default function AreaCliente() {
                               : '-'}
                           </span>
                         </TableCell>
+                        <TableCell>{leitura.leitura_atual.toFixed(3)}</TableCell>
                         <TableCell>
                           <span className={leitura.consumo && leitura.consumo > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
                             {leitura.consumo ? leitura.consumo.toFixed(2) : '0.00'} {empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'}
@@ -569,7 +568,6 @@ export default function AreaCliente() {
                         <TableCell>
                           {getObservacaoBadge(leitura.observacao, leitura.tipo_observacao)}
                         </TableCell>
-                        <TableCell>{leitura.operadores?.nome}</TableCell>
                         <TableCell>
                           {getStatusBadge(leitura.status_sincronizacao)}
                         </TableCell>
