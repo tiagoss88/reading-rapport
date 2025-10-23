@@ -83,8 +83,8 @@ export default function Leituras() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [empreendimentoFilter, setEmpreendimentoFilter] = useState('')
   const [clienteFilter, setClienteFilter] = useState('')
-  const [mesFilter, setMesFilter] = useState('')
-  const [anoFilter, setAnoFilter] = useState('')
+  const [mesFilter, setMesFilter] = useState('all')
+  const [anoFilter, setAnoFilter] = useState('all')
   const [empreendimentoOpen, setEmpreendimentoOpen] = useState(false)
   const [clienteOpen, setClienteOpen] = useState(false)
   const [novaLeituraOpen, setNovaLeituraOpen] = useState(false)
@@ -103,16 +103,16 @@ export default function Leituras() {
     } else {
       setClientes([])
       setClienteFilter('')
-      setMesFilter('')
-      setAnoFilter('')
+      setMesFilter('all')
+      setAnoFilter('all')
     }
   }, [empreendimentoFilter])
 
   // Reset filtros de competência quando cliente mudar
   useEffect(() => {
     if (!clienteFilter) {
-      setMesFilter('')
-      setAnoFilter('')
+      setMesFilter('all')
+      setAnoFilter('all')
     }
   }, [clienteFilter])
 
@@ -291,16 +291,16 @@ export default function Leituras() {
     
     // Filtro de competência (mês e ano)
     let matchesCompetencia = true
-    if (mesFilter || anoFilter) {
+    if (mesFilter !== 'all' || anoFilter !== 'all') {
       const competenciaParts = leitura.competencia?.split(/[/-]/) || []
       const leituraAno = competenciaParts[0]
       const leituraMes = competenciaParts[1]?.padStart(2, '0')
       
-      if (mesFilter && anoFilter) {
+      if (mesFilter !== 'all' && anoFilter !== 'all') {
         matchesCompetencia = leituraAno === anoFilter && leituraMes === mesFilter
-      } else if (mesFilter) {
+      } else if (mesFilter !== 'all') {
         matchesCompetencia = leituraMes === mesFilter
-      } else if (anoFilter) {
+      } else if (anoFilter !== 'all') {
         matchesCompetencia = leituraAno === anoFilter
       }
     }
@@ -525,19 +525,19 @@ export default function Leituras() {
                   <Label htmlFor="mes-filter" className="text-sm font-medium mb-2 block">
                     Mês
                   </Label>
-                  <Select value={mesFilter} onValueChange={setMesFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os meses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todos os meses</SelectItem>
-                      {MESES.map((mes) => (
-                        <SelectItem key={mes.value} value={mes.value}>
-                          {mes.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <Select value={mesFilter} onValueChange={setMesFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os meses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os meses</SelectItem>
+                  {MESES.map((mes) => (
+                    <SelectItem key={mes.value} value={mes.value}>
+                      {mes.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
                 </div>
               )}
 
@@ -547,19 +547,19 @@ export default function Leituras() {
                   <Label htmlFor="ano-filter" className="text-sm font-medium mb-2 block">
                     Ano
                   </Label>
-                  <Select value={anoFilter} onValueChange={setAnoFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os anos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Todos os anos</SelectItem>
-                      {gerarAnosDisponiveis().map((ano) => (
-                        <SelectItem key={ano} value={ano}>
-                          {ano}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <Select value={anoFilter} onValueChange={setAnoFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os anos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os anos</SelectItem>
+                  {gerarAnosDisponiveis().map((ano) => (
+                    <SelectItem key={ano} value={ano}>
+                      {ano}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
                 </div>
               )}
 
