@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Users, Edit, Trash2, Upload, History } from 'lucide-react'
+import { Plus, Users, Edit, Trash2, Upload, History, Search } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { formatCPF, removeMask } from '@/lib/formatters'
@@ -46,6 +46,9 @@ export default function Clientes() {
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false)
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null)
   const [selectedClienteHistorico, setSelectedClienteHistorico] = useState<Cliente | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterEmpreendimento, setFilterEmpreendimento] = useState<string>('todos')
+  const [filterStatus, setFilterStatus] = useState<string>('todos')
   const [formData, setFormData] = useState({
     identificacao_unidade: '',
     nome: '',
@@ -263,6 +266,24 @@ export default function Clientes() {
     setHistoricoDialogOpen(true)
   }
 
+  const clientesFiltrados = clientes.filter((cliente) => {
+    // Filtro de busca textual
+    const matchSearch = searchTerm === '' || 
+      cliente.identificacao_unidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cliente.cpf?.includes(removeMask(searchTerm))
+
+    // Filtro por empreendimento
+    const matchEmpreendimento = filterEmpreendimento === 'todos' || 
+      cliente.empreendimento_id === filterEmpreendimento
+
+    // Filtro por status
+    const matchStatus = filterStatus === 'todos' || 
+      cliente.status === filterStatus
+
+    return matchSearch && matchEmpreendimento && matchStatus
+  })
+
   return (
     <Layout title="Clientes">
       <div className="flex justify-between items-center mb-6">
@@ -390,6 +411,68 @@ export default function Clientes() {
         </div>
       </div>
 
+      {/* Barra de Filtros */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Campo de Busca */}
+            <div className="md:col-span-1">
+              <Label htmlFor="search">Buscar</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search"
+                  placeholder="Buscar por unidade, cliente ou CPF..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+
+            {/* Filtro por Empreendimento */}
+            <div>
+              <Label htmlFor="filterEmpreendimento">Empreendimento</Label>
+              <Select
+                value={filterEmpreendimento}
+                onValueChange={setFilterEmpreendimento}
+              >
+                <SelectTrigger id="filterEmpreendimento">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {empreendimentos.map((emp) => (
+                    <SelectItem key={emp.id} value={emp.id}>
+                      {emp.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro por Status */}
+            <div>
+              <Label htmlFor="filterStatus">Status</Label>
+              <Select
+                value={filterStatus}
+                onValueChange={setFilterStatus}
+              >
+                <SelectTrigger id="filterStatus">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="inativo">Inativo</SelectItem>
+                  <SelectItem value="bloqueado">Bloqueado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -397,7 +480,10 @@ export default function Clientes() {
             Lista de Unidades
           </CardTitle>
           <CardDescription>
-            Total de {clientes.length} unidade(s) cadastrada(s)
+            {searchTerm || filterEmpreendimento !== 'todos' || filterStatus !== 'todos' 
+              ? `${clientesFiltrados.length} de ${clientes.length} unidade(s)`
+              : `Total de ${clientes.length} unidade(s) cadastrada(s)`
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -405,12 +491,19 @@ export default function Clientes() {
             <div className="text-center py-8">
               <p className="text-muted-foreground">Carregando unidades...</p>
             </div>
-          ) : clientes.length === 0 ? (
+          ) : clientesFiltrados.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Nenhuma unidade encontrada</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Clique em "Nova Unidade" para adicionar a primeira
+              <p className="text-muted-foreground">
+                {searchTerm || filterEmpreendimento !== 'todos' || filterStatus !== 'todos'
+                  ? 'Nenhuma unidade encontrada com os filtros aplicados'
+                  : 'Nenhuma unidade encontrada'
+                }
               </p>
+              {!(searchTerm || filterEmpreendimento !== 'todos' || filterStatus !== 'todos') && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Clique em "Nova Unidade" para adicionar a primeira
+                </p>
+              )}
             </div>
           ) : (
             <Table>
@@ -425,7 +518,7 @@ export default function Clientes() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clientes.map((cliente) => (
+                {clientesFiltrados.map((cliente) => (
                   <TableRow key={cliente.id}>
                     <TableCell className="font-medium">
                       {cliente.identificacao_unidade}
