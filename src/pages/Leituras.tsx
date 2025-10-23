@@ -21,10 +21,35 @@ import NovaLeituraDialog from '@/components/leituras/NovaLeituraDialog'
 
 const TODAS_UNIDADES = 'TODOS'
 
+const MESES = [
+  { value: '01', label: 'Janeiro' },
+  { value: '02', label: 'Fevereiro' },
+  { value: '03', label: 'Março' },
+  { value: '04', label: 'Abril' },
+  { value: '05', label: 'Maio' },
+  { value: '06', label: 'Junho' },
+  { value: '07', label: 'Julho' },
+  { value: '08', label: 'Agosto' },
+  { value: '09', label: 'Setembro' },
+  { value: '10', label: 'Outubro' },
+  { value: '11', label: 'Novembro' },
+  { value: '12', label: 'Dezembro' },
+]
+
+const gerarAnosDisponiveis = () => {
+  const anoAtual = new Date().getFullYear()
+  const anos = []
+  for (let i = 0; i < 5; i++) {
+    anos.push((anoAtual - i).toString())
+  }
+  return anos
+}
+
 interface Leitura {
   id: string
   leitura_atual: number
   data_leitura: string
+  competencia: string
   observacao?: string
   tipo_observacao?: string
   foto_url?: string
@@ -58,6 +83,8 @@ export default function Leituras() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [empreendimentoFilter, setEmpreendimentoFilter] = useState('')
   const [clienteFilter, setClienteFilter] = useState('')
+  const [mesFilter, setMesFilter] = useState('')
+  const [anoFilter, setAnoFilter] = useState('')
   const [empreendimentoOpen, setEmpreendimentoOpen] = useState(false)
   const [clienteOpen, setClienteOpen] = useState(false)
   const [novaLeituraOpen, setNovaLeituraOpen] = useState(false)
@@ -76,8 +103,18 @@ export default function Leituras() {
     } else {
       setClientes([])
       setClienteFilter('')
+      setMesFilter('')
+      setAnoFilter('')
     }
   }, [empreendimentoFilter])
+
+  // Reset filtros de competência quando cliente mudar
+  useEffect(() => {
+    if (!clienteFilter) {
+      setMesFilter('')
+      setAnoFilter('')
+    }
+  }, [clienteFilter])
 
   const fetchEmpreendimentos = async () => {
     try {
@@ -133,6 +170,7 @@ export default function Leituras() {
         .from('leituras')
         .select(`
           *,
+          competencia,
           clientes:cliente_id (
             identificacao_unidade,
             leitura_inicial,
@@ -251,7 +289,23 @@ export default function Leituras() {
     
     const matchesStatus = statusFilter === 'all' || leitura.status_sincronizacao === statusFilter
     
-    return matchesSearch && matchesStatus
+    // Filtro de competência (mês e ano)
+    let matchesCompetencia = true
+    if (mesFilter || anoFilter) {
+      const competenciaParts = leitura.competencia?.split(/[/-]/) || []
+      const leituraAno = competenciaParts[0]
+      const leituraMes = competenciaParts[1]?.padStart(2, '0')
+      
+      if (mesFilter && anoFilter) {
+        matchesCompetencia = leituraAno === anoFilter && leituraMes === mesFilter
+      } else if (mesFilter) {
+        matchesCompetencia = leituraMes === mesFilter
+      } else if (anoFilter) {
+        matchesCompetencia = leituraAno === anoFilter
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesCompetencia
   })
 
   const exportToCSV = () => {
@@ -464,6 +518,50 @@ export default function Leituras() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Filtro de Mês */}
+              {clienteFilter && (
+                <div className="w-full sm:w-48">
+                  <Label htmlFor="mes-filter" className="text-sm font-medium mb-2 block">
+                    Mês
+                  </Label>
+                  <Select value={mesFilter} onValueChange={setMesFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os meses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todos os meses</SelectItem>
+                      {MESES.map((mes) => (
+                        <SelectItem key={mes.value} value={mes.value}>
+                          {mes.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Filtro de Ano */}
+              {clienteFilter && (
+                <div className="w-full sm:w-48">
+                  <Label htmlFor="ano-filter" className="text-sm font-medium mb-2 block">
+                    Ano
+                  </Label>
+                  <Select value={anoFilter} onValueChange={setAnoFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos os anos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Todos os anos</SelectItem>
+                      {gerarAnosDisponiveis().map((ano) => (
+                        <SelectItem key={ano} value={ano}>
+                          {ano}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Busca (apenas se cliente estiver selecionado) */}
               {clienteFilter && (
