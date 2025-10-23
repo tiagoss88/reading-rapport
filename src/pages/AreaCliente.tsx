@@ -29,6 +29,7 @@ interface EmpreendimentoData {
 interface Leitura {
   id: string
   leitura_atual: number
+  leitura_anterior?: number
   data_leitura: string
   observacao?: string
   tipo_observacao?: string
@@ -200,6 +201,7 @@ export default function AreaCliente() {
 
         return {
           ...leitura,
+          leitura_anterior: leituraAnteriorValor,
           consumo,
           valor_fatura: valorFatura
         }
@@ -248,7 +250,9 @@ export default function AreaCliente() {
       // Dados simples da tabela
       const tableData = leituras.map((leitura, index) => {
         console.log(`Processando leitura ${index + 1}/${leituras.length}`)
-        const leituraAnteriorValor = leitura.leitura_atual - (leitura.consumo || 0)
+        const leituraAnteriorValor = leitura.leitura_anterior !== undefined 
+          ? leitura.leitura_anterior 
+          : (leitura.leitura_atual - (leitura.consumo || 0))
         
         return [
           format(new Date(leitura.data_leitura), 'dd/MM/yyyy', { locale: ptBR }),
@@ -524,6 +528,7 @@ export default function AreaCliente() {
                       <TableHead>Unidade</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Leitura</TableHead>
+                      <TableHead>Leitura Anterior</TableHead>
                       <TableHead>Consumo</TableHead>
                       <TableHead>Valor Fatura</TableHead>
                       <TableHead>Data</TableHead>
@@ -540,7 +545,14 @@ export default function AreaCliente() {
                           {leitura.clientes?.identificacao_unidade}
                         </TableCell>
                         <TableCell>{leitura.clientes?.nome}</TableCell>
-                        <TableCell>{leitura.leitura_atual}</TableCell>
+                        <TableCell>{leitura.leitura_atual.toFixed(3)}</TableCell>
+                        <TableCell>
+                          <span className="text-muted-foreground">
+                            {leitura.leitura_anterior !== undefined 
+                              ? leitura.leitura_anterior.toFixed(3)
+                              : '-'}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <span className={leitura.consumo && leitura.consumo > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
                             {leitura.consumo ? leitura.consumo.toFixed(2) : '0.00'} {empreendimento?.tipo_gas === 'GLP' ? 'kg' : 'm³'}
