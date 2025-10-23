@@ -112,11 +112,11 @@ export default function ServicoExecucaoDialog({
       if (error) throw error
 
       // Use public URL for permanent access
-      const { data } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('medidor-fotos')
         .getPublicUrl(fileName)
 
-      return data.publicUrl
+      return urlData.publicUrl
     } catch (error) {
       console.error('Erro ao fazer upload da imagem:', error)
       return null
