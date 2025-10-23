@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Plus, Building2, Edit, Trash2 } from 'lucide-react'
+import { Plus, Building2, Edit, Trash2, Key } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { formatCNPJ, formatCEP, removeMask } from '@/lib/formatters'
@@ -212,6 +212,59 @@ export default function Empreendimentos() {
     } catch (error: any) {
       toast({
         title: "Erro ao excluir empreendimento",
+        description: error.message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCreateAccess = async (empreendimento: Empreendimento) => {
+    if (!empreendimento.email || !empreendimento.cnpj) {
+      toast({
+        title: "Dados incompletos",
+        description: "É necessário ter email e CNPJ cadastrados para criar o acesso.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!confirm(`Criar/recriar acesso para ${empreendimento.nome}?\n\nEmail: ${empreendimento.email}\nSenha: CNPJ (${formatCNPJ(empreendimento.cnpj)})`)) {
+      return
+    }
+
+    try {
+      console.log('Criando acesso para empreendimento:', empreendimento.id)
+      const response = await supabase.functions.invoke('create-empreendimento-user', {
+        body: {
+          email: empreendimento.email,
+          cnpj: removeMask(empreendimento.cnpj),
+          empreendimento_id: empreendimento.id
+        }
+      })
+
+      console.log('Resposta da função:', response)
+
+      if (response.error) {
+        // Verificar se o erro é de usuário já existente
+        if (response.error.message?.includes('User already registered')) {
+          toast({
+            title: "Usuário já existe",
+            description: "O email já está cadastrado. O usuário pode fazer login normalmente.",
+            variant: "default",
+          })
+        } else {
+          throw new Error(response.error.message)
+        }
+      } else {
+        toast({
+          title: "Acesso criado!",
+          description: `Credenciais criadas com sucesso.\nEmail: ${empreendimento.email}\nSenha: CNPJ`,
+        })
+      }
+    } catch (error: any) {
+      console.error('Erro ao criar acesso:', error)
+      toast({
+        title: "Erro ao criar acesso",
         description: error.message,
         variant: "destructive",
       })
@@ -453,6 +506,7 @@ export default function Empreendimentos() {
                   <TableHead>Tipo de Gás</TableHead>
                   <TableHead>Preço do Gás</TableHead>
                   <TableHead>CNPJ</TableHead>
+                  <TableHead>Acesso Cliente</TableHead>
                   <TableHead className="w-24">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -478,6 +532,21 @@ export default function Empreendimentos() {
                       }
                     </TableCell>
                     <TableCell>{empreendimento.cnpj ? formatCNPJ(empreendimento.cnpj) : '-'}</TableCell>
+                    <TableCell>
+                      {empreendimento.email && empreendimento.cnpj ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCreateAccess(empreendimento)}
+                          title="Criar/recriar acesso do cliente"
+                        >
+                          <Key className="h-4 w-4 mr-1" />
+                          Criar Acesso
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Email/CNPJ não cadastrado</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
                         <Button
