@@ -19,6 +19,8 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import NovaLeituraDialog from '@/components/leituras/NovaLeituraDialog'
 
+const TODAS_UNIDADES = 'TODOS'
+
 interface Leitura {
   id: string
   leitura_atual: number
@@ -123,11 +125,11 @@ export default function Leituras() {
   }
 
   const fetchLeituras = async () => {
-    if (!clienteFilter) return
+    if (!clienteFilter || !empreendimentoFilter) return
 
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leituras')
         .select(`
           *,
@@ -138,8 +140,18 @@ export default function Leituras() {
           ),
           operadores:operador_id (nome)
         `)
-        .eq('cliente_id', clienteFilter)
-        .order('data_leitura', { ascending: false })
+      
+      // Se for "TODOS", filtra por empreendimento via clientes
+      // Se for específico, filtra por cliente_id
+      if (clienteFilter === TODAS_UNIDADES) {
+        // Buscar IDs dos clientes deste empreendimento
+        const clienteIds = clientes.map(c => c.id)
+        query = query.in('cliente_id', clienteIds)
+      } else {
+        query = query.eq('cliente_id', clienteFilter)
+      }
+      
+      const { data, error } = await query.order('data_leitura', { ascending: false })
 
       if (error) throw error
 
@@ -234,7 +246,8 @@ export default function Leituras() {
     const matchesSearch = 
       leitura.clientes?.identificacao_unidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
       leitura.clientes?.empreendimentos?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      leitura.operadores?.nome.toLowerCase().includes(searchTerm.toLowerCase())
+      leitura.operadores?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      leitura.observacao?.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = statusFilter === 'all' || leitura.status_sincronizacao === statusFilter
     
@@ -371,11 +384,13 @@ export default function Leituras() {
                         aria-expanded={clienteOpen}
                         className="w-full justify-between"
                       >
-                        {clienteFilter
-                          ? clientes.find((cliente) => cliente.id === clienteFilter)
-                              ? `${clientes.find((cliente) => cliente.id === clienteFilter)?.identificacao_unidade} - ${clientes.find((cliente) => cliente.id === clienteFilter)?.nome || 'Sem nome'}`
-                              : "Selecione uma unidade"
-                          : "Selecione uma unidade"}
+                        {clienteFilter === TODAS_UNIDADES
+                          ? "Todas as unidades"
+                          : clienteFilter
+                            ? clientes.find((cliente) => cliente.id === clienteFilter)
+                                ? `${clientes.find((cliente) => cliente.id === clienteFilter)?.identificacao_unidade} - ${clientes.find((cliente) => cliente.id === clienteFilter)?.nome || 'Sem nome'}`
+                                : "Selecione uma unidade"
+                            : "Selecione uma unidade"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -385,6 +400,27 @@ export default function Leituras() {
                         <CommandList>
                           <CommandEmpty>Nenhuma unidade encontrada.</CommandEmpty>
                           <CommandGroup>
+                            {/* Opção especial: Todas as unidades */}
+                            <CommandItem
+                              value="todas_unidades"
+                              onSelect={() => {
+                                setClienteFilter(TODAS_UNIDADES)
+                                setClienteOpen(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  clienteFilter === TODAS_UNIDADES ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="font-semibold">Todas as unidades</span>
+                            </CommandItem>
+                            
+                            {/* Separador visual */}
+                            <div className="h-px bg-border my-1" />
+                            
+                            {/* Unidades individuais */}
                             {clientes.map((cliente) => (
                               <CommandItem
                                 key={cliente.id}
@@ -439,7 +475,11 @@ export default function Leituras() {
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="search"
-                      placeholder="Pesquisar por operador ou observação..."
+                      placeholder={
+                        clienteFilter === TODAS_UNIDADES 
+                          ? "Pesquisar por unidade, operador ou observação..." 
+                          : "Pesquisar por operador ou observação..."
+                      }
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
@@ -474,10 +514,22 @@ export default function Leituras() {
                 Lista de Leituras
               </CardTitle>
               <CardDescription>
-                {filteredLeituras.length} de {leituras.length} leitura(s) encontrada(s)
-                {clientes.find(c => c.id === clienteFilter) && 
-                  ` para ${clientes.find(c => c.id === clienteFilter)?.identificacao_unidade}`
-                }
+                {clienteFilter === TODAS_UNIDADES ? (
+                  <>
+                    {filteredLeituras.length} de {leituras.length} leitura(s) encontrada(s)
+                    {' '}de{' '}
+                    {new Set(leituras.map(l => l.cliente_id)).size} unidade(s)
+                    {' '}no empreendimento{' '}
+                    {empreendimentos.find(e => e.id === empreendimentoFilter)?.nome}
+                  </>
+                ) : (
+                  <>
+                    {filteredLeituras.length} de {leituras.length} leitura(s) encontrada(s)
+                    {clientes.find(c => c.id === clienteFilter) && 
+                      ` para ${clientes.find(c => c.id === clienteFilter)?.identificacao_unidade}`
+                    }
+                  </>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
