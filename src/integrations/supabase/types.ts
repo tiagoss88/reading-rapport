@@ -358,6 +358,7 @@ export type Database = {
           observacoes: string | null
           observacoes_execucao: string | null
           operador_responsavel_id: string | null
+          preco_servico: number | null
           status: string
           tipo_servico: string
           updated_at: string
@@ -378,6 +379,7 @@ export type Database = {
           observacoes?: string | null
           observacoes_execucao?: string | null
           operador_responsavel_id?: string | null
+          preco_servico?: number | null
           status?: string
           tipo_servico: string
           updated_at?: string
@@ -398,6 +400,7 @@ export type Database = {
           observacoes?: string | null
           observacoes_execucao?: string | null
           operador_responsavel_id?: string | null
+          preco_servico?: number | null
           status?: string
           tipo_servico?: string
           updated_at?: string
@@ -443,6 +446,7 @@ export type Database = {
           observacoes: string | null
           observacoes_execucao: string | null
           operador_responsavel_id: string | null
+          preco_servico: number | null
           status: string
           telefone_cliente: string
           tipo_servico: string
@@ -464,6 +468,7 @@ export type Database = {
           observacoes?: string | null
           observacoes_execucao?: string | null
           operador_responsavel_id?: string | null
+          preco_servico?: number | null
           status?: string
           telefone_cliente: string
           tipo_servico: string
@@ -485,9 +490,40 @@ export type Database = {
           observacoes?: string | null
           observacoes_execucao?: string | null
           operador_responsavel_id?: string | null
+          preco_servico?: number | null
           status?: string
           telefone_cliente?: string
           tipo_servico?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tipos_servico: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          preco_padrao: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          preco_padrao?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          preco_padrao?: number
+          status?: string
           updated_at?: string
         }
         Relationships: []

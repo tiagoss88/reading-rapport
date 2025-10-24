@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,19 +10,9 @@ import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
 
-const tiposServico = [
-  { value: 'religacao', label: 'Religação' },
-  { value: 'religacao_emergencial', label: 'Religação Emergencial' },
-  { value: 'bloqueio', label: 'Bloqueio (Pedido do Cliente)' },
-  { value: 'corte', label: 'Corte (Falta de Pagamento)' },
-  { value: 'visita_tecnica', label: 'Visita Técnica' },
-  { value: 'instalacao', label: 'Instalação' },
-  { value: 'cheiro_gas', label: 'Cheiro de Gás' },
-  { value: 'falta_gas', label: 'Falta de Gás' }
-]
-
 export default function CriarServicoExterno() {
   const { toast } = useToast()
+  const [tiposServico, setTiposServico] = useState<any[]>([])
   
   const [formData, setFormData] = useState({
     tipo_servico: '',
@@ -31,8 +21,41 @@ export default function CriarServicoExterno() {
     endereco_servico: '',
     data_agendamento: '',
     hora_agendamento: '',
+    preco_servico: 0,
     observacoes: ''
   })
+
+  // Carregar tipos de serviço
+  useEffect(() => {
+    const fetchTiposServico = async () => {
+      const { data, error } = await supabase
+        .from('tipos_servico')
+        .select('id, nome, preco_padrao')
+        .eq('status', 'ativo')
+        .order('nome')
+      
+      if (error) {
+        toast({
+          title: "Erro ao carregar tipos de serviço",
+          description: error.message,
+          variant: "destructive"
+        })
+      } else {
+        setTiposServico(data || [])
+      }
+    }
+
+    fetchTiposServico()
+  }, [])
+
+  const handleTipoServicoChange = (nome: string) => {
+    const tipoSelecionado = tiposServico.find(t => t.nome === nome)
+    setFormData({
+      ...formData,
+      tipo_servico: nome,
+      preco_servico: tipoSelecionado?.preco_padrao || 0
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,6 +80,7 @@ export default function CriarServicoExterno() {
           endereco_servico: formData.endereco_servico,
           data_agendamento: formData.data_agendamento,
           hora_agendamento: formData.hora_agendamento || null,
+          preco_servico: formData.preco_servico || null,
           observacoes: formData.observacoes || null
         })
 
@@ -82,6 +106,7 @@ export default function CriarServicoExterno() {
         endereco_servico: '',
         data_agendamento: '',
         hora_agendamento: '',
+        preco_servico: 0,
         observacoes: ''
       })
     } catch (error) {
@@ -113,15 +138,15 @@ export default function CriarServicoExterno() {
                   <Label htmlFor="tipo_servico">Tipo de Serviço</Label>
                   <Select 
                     value={formData.tipo_servico} 
-                    onValueChange={(value) => setFormData({...formData, tipo_servico: value})}
+                    onValueChange={handleTipoServicoChange}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo de serviço" />
                     </SelectTrigger>
                     <SelectContent>
                       {tiposServico.map((tipo) => (
-                        <SelectItem key={tipo.value} value={tipo.value}>
-                          {tipo.label}
+                        <SelectItem key={tipo.id} value={tipo.nome}>
+                          {tipo.nome} - R$ {tipo.preco_padrao?.toFixed(2)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -172,30 +197,30 @@ export default function CriarServicoExterno() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="endereco_servico" className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Endereço do Serviço
-                  </Label>
-                  <Textarea
-                    id="endereco_servico"
-                    placeholder="Endereço completo onde o serviço será realizado"
-                    value={formData.endereco_servico}
-                    onChange={(e) => setFormData({...formData, endereco_servico: e.target.value})}
-                    rows={2}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="hora_agendamento">Horário (Opcional)</Label>
-                  <Input
-                    id="hora_agendamento"
-                    type="time"
-                    value={formData.hora_agendamento}
-                    onChange={(e) => setFormData({...formData, hora_agendamento: e.target.value})}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="endereco_servico" className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Endereço do Serviço
+                </Label>
+                <Textarea
+                  id="endereco_servico"
+                  placeholder="Endereço completo onde o serviço será realizado"
+                  value={formData.endereco_servico}
+                  onChange={(e) => setFormData({...formData, endereco_servico: e.target.value})}
+                  rows={2}
+                />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hora_agendamento">Horário (Opcional)</Label>
+                <Input
+                  id="hora_agendamento"
+                  type="time"
+                  value={formData.hora_agendamento}
+                  onChange={(e) => setFormData({...formData, hora_agendamento: e.target.value})}
+                />
+              </div>
+            </div>
 
               <div className="space-y-2">
                 <Label htmlFor="observacoes">Observações</Label>

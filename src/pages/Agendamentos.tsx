@@ -219,6 +219,7 @@ export default function Agendamentos() {
                   <TableHead>Tipo de Serviço</TableHead>
                   <TableHead>Cliente/Unidade</TableHead>
                   <TableHead>Data e Hora</TableHead>
+                  <TableHead>Preço</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Observações</TableHead>
                   <TableHead className="w-12">Ações</TableHead>
@@ -270,6 +271,11 @@ export default function Agendamentos() {
                           {agendamento.hora_agendamento}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">
+                        R$ {agendamento.preco_servico?.toFixed(2) || '0.00'}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge className={getStatusColor(agendamento.status)}>

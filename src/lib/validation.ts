@@ -57,11 +57,20 @@ export const leituraSchema = z.object({
   tipo_observacao: z.string().max(100, 'Tipo de observação inválido').optional().or(z.literal(''))
 })
 
+// Tipo Servico validation schema
+export const tipoServicoSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres').max(100, 'Nome muito longo'),
+  preco_padrao: z.number().min(0, 'Preço não pode ser negativo'),
+  descricao: z.string().max(500, 'Descrição muito longa').optional().or(z.literal('')),
+  status: z.enum(['ativo', 'inativo'], { errorMap: () => ({ message: 'Status inválido' }) })
+})
+
 // Servico validation schema
 export const servicoSchema = z.object({
   tipo_servico: z.string().min(1, 'Tipo de serviço é obrigatório').max(100, 'Tipo de serviço inválido'),
   empreendimento_id: z.string().uuid('ID de empreendimento inválido'),
   cliente_id: z.string().uuid('ID de cliente inválido'),
   data_agendamento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida (formato: YYYY-MM-DD)'),
+  preco_servico: z.number().min(0, 'Preço não pode ser negativo').optional(),
   observacoes: z.string().max(1000, 'Observações muito longas').optional().or(z.literal(''))
 })

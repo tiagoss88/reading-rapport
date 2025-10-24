@@ -14,19 +14,10 @@ import Layout from '@/components/Layout'
 import { servicoSchema } from '@/lib/validation'
 import { z } from 'zod'
 
-const tiposServico = [
-  { value: 'religacao', label: 'Religação' },
-  { value: 'religacao_emergencial', label: 'Religação Emergencial' },
-  { value: 'bloqueio', label: 'Bloqueio (Pedido do Cliente)' },
-  { value: 'corte', label: 'Corte (Falta de Pagamento)' },
-  { value: 'visita_tecnica', label: 'Visita Técnica' },
-  { value: 'instalacao', label: 'Instalação' },
-  { value: 'cheiro_gas', label: 'Cheiro de Gás' },
-  { value: 'falta_gas', label: 'Falta de Gás' }
-]
 
 export default function CriarServico() {
   const { toast } = useToast()
+  const [tiposServico, setTiposServico] = useState<any[]>([])
   const [empreendimentos, setEmpreendimentos] = useState<any[]>([])
   const [clientes, setClientes] = useState<any[]>([])
   const [loadingClientes, setLoadingClientes] = useState(false)
@@ -38,29 +29,48 @@ export default function CriarServico() {
     empreendimento_id: '',
     cliente_id: '',
     data_agendamento: '',
+    preco_servico: 0,
     observacoes: ''
   })
 
-  // Carregar empreendimentos ao montar o componente
+  // Carregar tipos de serviço e empreendimentos ao montar o componente
   useEffect(() => {
-    const fetchEmpreendimentos = async () => {
-      const { data, error } = await supabase
+    const fetchData = async () => {
+      // Buscar tipos de serviço
+      const { data: tiposData, error: tiposError } = await supabase
+        .from('tipos_servico')
+        .select('id, nome, preco_padrao')
+        .eq('status', 'ativo')
+        .order('nome')
+      
+      if (tiposError) {
+        toast({
+          title: "Erro ao carregar tipos de serviço",
+          description: tiposError.message,
+          variant: "destructive"
+        })
+      } else {
+        setTiposServico(tiposData || [])
+      }
+
+      // Buscar empreendimentos
+      const { data: empData, error: empError } = await supabase
         .from('empreendimentos')
         .select('id, nome')
         .order('nome')
       
-      if (error) {
+      if (empError) {
         toast({
           title: "Erro ao carregar empreendimentos",
-          description: error.message,
+          description: empError.message,
           variant: "destructive"
         })
       } else {
-        setEmpreendimentos(data || [])
+        setEmpreendimentos(empData || [])
       }
     }
 
-    fetchEmpreendimentos()
+    fetchData()
   }, [])
 
   // Carregar clientes quando empreendimento for selecionado
@@ -111,6 +121,15 @@ export default function CriarServico() {
     setOpenCliente(false)
   }
 
+  const handleTipoServicoChange = (nome: string) => {
+    const tipoSelecionado = tiposServico.find(t => t.nome === nome)
+    setFormData({
+      ...formData,
+      tipo_servico: nome,
+      preco_servico: tipoSelecionado?.preco_padrao || 0
+    })
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -128,6 +147,7 @@ export default function CriarServico() {
           empreendimento_id: validatedData.empreendimento_id,
           cliente_id: validatedData.cliente_id,
           data_agendamento: validatedData.data_agendamento,
+          preco_servico: validatedData.preco_servico || null,
           observacoes: validatedData.observacoes || null
         })
 
@@ -151,6 +171,7 @@ export default function CriarServico() {
         empreendimento_id: '',
         cliente_id: '',
         data_agendamento: '',
+        preco_servico: 0,
         observacoes: ''
       })
     } catch (error: any) {
@@ -190,15 +211,15 @@ export default function CriarServico() {
                   <Label htmlFor="tipo_servico">Tipo de Serviço</Label>
                   <Select 
                     value={formData.tipo_servico} 
-                    onValueChange={(value) => setFormData({...formData, tipo_servico: value})}
+                    onValueChange={handleTipoServicoChange}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o tipo de serviço" />
                     </SelectTrigger>
                     <SelectContent>
                       {tiposServico.map((tipo) => (
-                        <SelectItem key={tipo.value} value={tipo.value}>
-                          {tipo.label}
+                        <SelectItem key={tipo.id} value={tipo.nome}>
+                          {tipo.nome} - R$ {tipo.preco_padrao?.toFixed(2)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -306,17 +327,35 @@ export default function CriarServico() {
                 </Popover>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="data_agendamento" className="flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4" />
-                  Data do Agendamento
-                </Label>
-                <Input
-                  id="data_agendamento"
-                  type="date"
-                  value={formData.data_agendamento}
-                  onChange={(e) => setFormData({...formData, data_agendamento: e.target.value})}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="data_agendamento" className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    Data do Agendamento
+                  </Label>
+                  <Input
+                    id="data_agendamento"
+                    type="date"
+                    value={formData.data_agendamento}
+                    onChange={(e) => setFormData({...formData, data_agendamento: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="preco_servico">Preço do Serviço (R$)</Label>
+                  <Input
+                    id="preco_servico"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.preco_servico || 0}
+                    onChange={(e) => setFormData({...formData, preco_servico: parseFloat(e.target.value) || 0})}
+                    placeholder="150.00"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Preço ajustado automaticamente ao selecionar o tipo
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-2">
