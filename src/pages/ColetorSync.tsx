@@ -52,9 +52,9 @@ export default function ColetorSync() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
-    // Carregar empreendimentos e cache ao montar
-    loadEmpreendimentos()
+    // Carregar apenas cache ao montar
     setSyncedIds(getSyncedEmpreendimentos())
+    setLoading(false)
 
     return () => {
       window.removeEventListener('online', handleOnline)
@@ -62,22 +62,44 @@ export default function ColetorSync() {
     }
   }, [])
 
-  const loadEmpreendimentos = async () => {
+  // Debounce para busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm.trim().length >= 2) {
+        loadEmpreendimentos(searchTerm)
+      } else {
+        setEmpreendimentos([])
+        setLoading(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const loadEmpreendimentos = async (term: string) => {
+    if (!term || term.trim().length < 2) {
+      setEmpreendimentos([])
+      return
+    }
+
     setLoading(true)
     try {
+      const searchPattern = `%${term.trim()}%`
       const { data, error } = await supabase
         .from('empreendimentos')
         .select('id, nome, endereco, tipo_gas')
+        .or(`nome.ilike.${searchPattern},endereco.ilike.${searchPattern}`)
         .order('nome')
+        .limit(20)
 
       if (error) throw error
 
       setEmpreendimentos(data || [])
     } catch (error: any) {
-      console.error('Erro ao carregar empreendimentos:', error)
+      console.error('Erro ao buscar empreendimentos:', error)
       toast({
-        title: "Erro ao carregar",
-        description: error.message || "Falha ao carregar empreendimentos",
+        title: "Erro na busca",
+        description: error.message || "Falha ao buscar empreendimentos",
         variant: "destructive"
       })
     } finally {
@@ -146,10 +168,8 @@ export default function ColetorSync() {
     })
   }
 
-  const filteredEmpreendimentos = empreendimentos.filter(emp =>
-    emp.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.endereco.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Busca já vem filtrada do banco
+  const filteredEmpreendimentos = empreendimentos
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -197,18 +217,24 @@ export default function ColetorSync() {
         </Card>
 
         {/* Campo de Busca */}
-        {empreendimentos.length > 0 && (
+        <div className="space-y-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               type="text"
-              placeholder="Buscar empreendimento..."
+              placeholder="Digite o nome ou endereço do empreendimento..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+              autoFocus
             />
           </div>
-        )}
+          {searchTerm.length > 0 && searchTerm.length < 2 && (
+            <p className="text-xs text-muted-foreground text-center">
+              Digite pelo menos 2 caracteres para buscar
+            </p>
+          )}
+        </div>
 
         {/* Lista de Empreendimentos */}
         {filteredEmpreendimentos.length > 0 && (
@@ -304,37 +330,41 @@ export default function ColetorSync() {
           </Button>
         )}
 
-        {/* Estado vazio */}
-        {empreendimentos.length === 0 && !loading && (
+        {/* Estado inicial vazio */}
+        {empreendimentos.length === 0 && !loading && searchTerm.length === 0 && (
           <Card>
-            <CardContent className="pt-6 text-center">
-              <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">
-                Nenhum empreendimento encontrado.
-              </p>
+            <CardContent className="pt-6 text-center space-y-4">
+              <Search className="w-16 h-16 text-muted-foreground mx-auto opacity-50" />
+              <div className="space-y-2">
+                <p className="font-medium text-foreground">
+                  Busque o empreendimento
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Digite o nome ou endereço do empreendimento para começar
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Sem resultados na busca */}
-        {empreendimentos.length > 0 && filteredEmpreendimentos.length === 0 && (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">
-                Nenhum empreendimento encontrado com "{searchTerm}".
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Estado de carregamento */}
+        {/* Loading state durante busca */}
         {loading && (
           <Card>
-            <CardContent className="pt-6 text-center">
-              <RefreshCw className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
-              <p className="text-gray-600">
-                Carregando empreendimentos...
+            <CardContent className="flex items-center justify-center p-8">
+              <RefreshCw className="w-5 h-5 animate-spin text-primary mr-2" />
+              <span>Buscando empreendimentos...</span>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Nenhum resultado encontrado */}
+        {!loading && empreendimentos.length === 0 && searchTerm.length >= 2 && (
+          <Card>
+            <CardContent className="pt-6 text-center space-y-2">
+              <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">Nenhum empreendimento encontrado</p>
+              <p className="text-sm text-muted-foreground">
+                Tente buscar por outro termo
               </p>
             </CardContent>
           </Card>
