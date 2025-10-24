@@ -4,7 +4,8 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Smartphone, Wifi, WifiOff, RefreshCw, Building2, Users, ArrowLeft } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Smartphone, Wifi, WifiOff, RefreshCw, Building2, Users, ArrowLeft, Search, CheckCircle2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 interface Empreendimento {
@@ -15,9 +16,31 @@ interface Empreendimento {
   clientesCount?: number
 }
 
+// Funções para gerenciar cache de sincronização
+const getSyncedEmpreendimentos = (): string[] => {
+  const data = localStorage.getItem('coletor_synced_empreendimentos')
+  return data ? JSON.parse(data) : []
+}
+
+const setSyncedEmpreendimento = (id: string) => {
+  const synced = getSyncedEmpreendimentos()
+  if (!synced.includes(id)) {
+    localStorage.setItem('coletor_synced_empreendimentos', JSON.stringify([...synced, id]))
+    localStorage.setItem('coletor_sync_timestamp', new Date().toISOString())
+  }
+}
+
+const clearSyncedEmpreendimentos = () => {
+  localStorage.removeItem('coletor_synced_empreendimentos')
+  localStorage.removeItem('coletor_sync_timestamp')
+}
+
 export default function ColetorSync() {
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [syncingId, setSyncingId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [syncedIds, setSyncedIds] = useState<string[]>([])
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -29,59 +52,32 @@ export default function ColetorSync() {
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
 
+    // Carregar empreendimentos e cache ao montar
+    loadEmpreendimentos()
+    setSyncedIds(getSyncedEmpreendimentos())
+
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
 
-  const syncData = async () => {
-    if (!isOnline) {
-      toast({
-        title: "Sem conexão",
-        description: "Conecte-se à internet para sincronizar os dados",
-        variant: "destructive"
-      })
-      return
-    }
-
+  const loadEmpreendimentos = async () => {
     setLoading(true)
     try {
-      // Buscar empreendimentos
-      const { data: empreendimentosData, error: empreendimentosError } = await supabase
+      const { data, error } = await supabase
         .from('empreendimentos')
-        .select('*')
+        .select('id, nome, endereco, tipo_gas')
         .order('nome')
 
-      if (empreendimentosError) throw empreendimentosError
+      if (error) throw error
 
-      // Buscar contagem de clientes para cada empreendimento
-      const empreendimentosComContagem = await Promise.all(
-        (empreendimentosData || []).map(async (emp) => {
-          const { count } = await supabase
-            .from('clientes')
-            .select('*', { count: 'exact', head: true })
-            .eq('empreendimento_id', emp.id)
-            .eq('status', 'ativo')
-
-          return {
-            ...emp,
-            clientesCount: count || 0
-          }
-        })
-      )
-
-      setEmpreendimentos(empreendimentosComContagem)
-      
-      toast({
-        title: "Sincronização concluída",
-        description: `${empreendimentosComContagem.length} empreendimento(s) sincronizado(s)`,
-      })
+      setEmpreendimentos(data || [])
     } catch (error: any) {
-      console.error('Erro na sincronização:', error)
+      console.error('Erro ao carregar empreendimentos:', error)
       toast({
-        title: "Erro na sincronização",
-        description: error.message || "Falha ao sincronizar dados",
+        title: "Erro ao carregar",
+        description: error.message || "Falha ao carregar empreendimentos",
         variant: "destructive"
       })
     } finally {
@@ -89,11 +85,71 @@ export default function ColetorSync() {
     }
   }
 
-  const selecionarEmpreendimento = (empreendimento: Empreendimento) => {
+  const syncEmpreendimento = async (empreendimento: Empreendimento) => {
+    if (!isOnline) {
+      toast({
+        title: "Sem conexão",
+        description: "Conecte-se à internet para sincronizar",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setSyncingId(empreendimento.id)
+    try {
+      // Buscar clientes do empreendimento
+      const { count, error } = await supabase
+        .from('clientes')
+        .select('*', { count: 'exact', head: true })
+        .eq('empreendimento_id', empreendimento.id)
+        .eq('status', 'ativo')
+
+      if (error) throw error
+
+      // Marcar como sincronizado
+      setSyncedEmpreendimento(empreendimento.id)
+      setSyncedIds(getSyncedEmpreendimentos())
+
+      toast({
+        title: "Sincronizado com sucesso",
+        description: `${count || 0} unidade(s) encontrada(s)`,
+      })
+
+      // Navegar para as unidades
+      navigate(`/coletor/unidades/${empreendimento.id}`, { 
+        state: { empreendimento } 
+      })
+    } catch (error: any) {
+      console.error('Erro na sincronização:', error)
+      toast({
+        title: "Erro na sincronização",
+        description: error.message || "Falha ao sincronizar empreendimento",
+        variant: "destructive"
+      })
+    } finally {
+      setSyncingId(null)
+    }
+  }
+
+  const acessarEmpreendimento = (empreendimento: Empreendimento) => {
     navigate(`/coletor/unidades/${empreendimento.id}`, { 
       state: { empreendimento } 
     })
   }
+
+  const handleClearCache = () => {
+    clearSyncedEmpreendimentos()
+    setSyncedIds([])
+    toast({
+      title: "Cache limpo",
+      description: "Todas as sincronizações foram resetadas",
+    })
+  }
+
+  const filteredEmpreendimentos = empreendimentos.filter(emp =>
+    emp.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.endereco.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -116,7 +172,7 @@ export default function ColetorSync() {
             <Smartphone className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Coletor de Leituras</h1>
-          <p className="text-gray-600">Sincronize os dados para começar</p>
+          <p className="text-gray-600">Selecione o empreendimento para sincronizar</p>
         </div>
 
         {/* Status de Conexão */}
@@ -140,70 +196,112 @@ export default function ColetorSync() {
           </CardContent>
         </Card>
 
-        {/* Botão de Sincronização */}
-        <Button 
-          onClick={syncData} 
-          disabled={loading || !isOnline}
-          className="w-full h-12 text-lg"
-          size="lg"
-        >
-          {loading ? (
-            <>
-              <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-              Sincronizando...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-5 h-5 mr-2" />
-              Sincronizar Dados
-            </>
-          )}
-        </Button>
+        {/* Campo de Busca */}
+        {empreendimentos.length > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Buscar empreendimento..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        )}
 
         {/* Lista de Empreendimentos */}
-        {empreendimentos.length > 0 && (
+        {filteredEmpreendimentos.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-gray-900">
-              Empreendimentos Disponíveis
+              {searchTerm ? `${filteredEmpreendimentos.length} resultado(s)` : 'Empreendimentos Disponíveis'}
             </h2>
             
-            {empreendimentos.map((empreendimento) => (
-              <Card 
-                key={empreendimento.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => selecionarEmpreendimento(empreendimento)}
-              >
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-base font-medium text-gray-900">
-                        {empreendimento.nome}
-                      </CardTitle>
-                      <CardDescription className="text-sm text-gray-600 mt-1">
-                        {empreendimento.endereco}
-                      </CardDescription>
+            {filteredEmpreendimentos.map((empreendimento) => {
+              const isSynced = syncedIds.includes(empreendimento.id)
+              const isSyncing = syncingId === empreendimento.id
+
+              return (
+                <Card 
+                  key={empreendimento.id} 
+                  className="hover:shadow-md transition-shadow"
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-base font-medium text-gray-900">
+                            {empreendimento.nome}
+                          </CardTitle>
+                          {isSynced && (
+                            <Badge variant="default" className="bg-green-500 text-white gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Sincronizado
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="text-sm text-gray-600 mt-1">
+                          {empreendimento.endereco}
+                        </CardDescription>
+                      </div>
+                      <Building2 className="w-5 h-5 text-primary ml-2 flex-shrink-0" />
                     </div>
-                    <Building2 className="w-5 h-5 text-primary ml-2 flex-shrink-0" />
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-gray-500" />
-                      <span className="text-sm text-gray-600">
-                        {empreendimento.clientesCount} unidade(s)
-                      </span>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {empreendimento.tipo_gas && (
+                          <Badge variant="outline" className="text-xs">
+                            {empreendimento.tipo_gas}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        {isSynced ? (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => acessarEmpreendimento(empreendimento)}
+                            disabled={!isOnline}
+                          >
+                            Acessar →
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => syncEmpreendimento(empreendimento)}
+                            disabled={isSyncing || !isOnline}
+                          >
+                            {isSyncing ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                                Sincronizando...
+                              </>
+                            ) : (
+                              'Sincronizar →'
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    {empreendimento.tipo_gas && (
-                      <Badge variant="outline" className="text-xs">
-                        {empreendimento.tipo_gas}
-                      </Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
+        )}
+
+        {/* Botão para limpar cache */}
+        {syncedIds.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearCache}
+            className="w-full"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Limpar cache de sincronizações
+          </Button>
         )}
 
         {/* Estado vazio */}
@@ -213,8 +311,30 @@ export default function ColetorSync() {
               <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">
                 Nenhum empreendimento encontrado.
-                <br />
-                Clique em "Sincronizar Dados" para carregar.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sem resultados na busca */}
+        {empreendimentos.length > 0 && filteredEmpreendimentos.length === 0 && (
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">
+                Nenhum empreendimento encontrado com "{searchTerm}".
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Estado de carregamento */}
+        {loading && (
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <RefreshCw className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
+              <p className="text-gray-600">
+                Carregando empreendimentos...
               </p>
             </CardContent>
           </Card>
