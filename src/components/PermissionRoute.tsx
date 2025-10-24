@@ -22,8 +22,8 @@ export default function PermissionRoute({
 }: PermissionRouteProps) {
   const { hasPermission, hasRole, loading, permissions: userPermissions, roles: userRoles } = usePermissions()
 
-  // Only show loading spinner on initial load (when we have no cached permissions/roles)
-  if (loading && userPermissions.length === 0 && userRoles.length === 0) {
+  // Always wait for permissions to load before checking access
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

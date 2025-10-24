@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from '@/contexts/AuthContext'
 import { PermissionsProvider } from '@/contexts/PermissionsContext'
 import Login from '@/pages/Login'
+import Index from '@/pages/Index'
 import Dashboard from '@/pages/Dashboard'
 import Empreendimentos from '@/pages/Empreendimentos'
 import Clientes from '@/pages/Clientes'
@@ -81,6 +82,11 @@ const App = () => (
                   </ColetorProtectedRoute>
                 } />
                 <Route path="/" element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <PermissionRoute permission="view_dashboard" redirectTo="/not-authorized">
                       <Dashboard />

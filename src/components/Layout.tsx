@@ -34,7 +34,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const [configuracoesOpen, setConfiguracoesOpen] = useState(false)
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home, permission: 'view_dashboard' },
+    { name: 'Dashboard', href: '/dashboard', icon: Home, permission: 'view_dashboard' },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, permission: 'view_relatorios' },
     { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
   ]
