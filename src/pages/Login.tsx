@@ -76,45 +76,9 @@ export default function Login() {
       return
     }
 
-    // Buscar perfil do usuário para redirecionamento inteligente
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      // Verificar se é operador
-      const { data: operadorData } = await supabase
-        .from('operadores')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (operadorData) {
-        toast({
-          title: "Login realizado com sucesso!",
-        })
-        navigate('/coletor')
-        setLoading(false)
-        return
-      }
-
-      // Buscar roles para admin/gestor
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-
-      const roles = rolesData?.map(r => r.role) || []
-
-      toast({
-        title: "Login realizado com sucesso!",
-      })
-
-      // Admin ou gestor vai para dashboard
-      if (roles.includes('admin') || roles.includes('gestor_empreendimento')) {
-        navigate('/dashboard')
-      } else {
-        navigate('/')
-      }
-    }
+    toast({
+      title: "Login realizado com sucesso!",
+    })
     
     setLoading(false)
   }
