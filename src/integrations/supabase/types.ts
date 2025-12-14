@@ -82,6 +82,36 @@ export type Database = {
           },
         ]
       }
+      dias_uteis: {
+        Row: {
+          ano: number
+          created_at: string
+          data: string
+          id: string
+          mes: number
+          numero_rota: number
+          uf: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          data: string
+          id?: string
+          mes: number
+          numero_rota: number
+          uf: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          data?: string
+          id?: string
+          mes?: number
+          numero_rota?: number
+          uf?: string
+        }
+        Relationships: []
+      }
       empreendimento_users: {
         Row: {
           created_at: string
@@ -164,6 +194,39 @@ export type Database = {
           preco_kg_gas?: number | null
           preco_m3_gas?: number | null
           tipo_gas?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      empreendimentos_terceirizados: {
+        Row: {
+          created_at: string
+          endereco: string
+          id: string
+          nome: string
+          quantidade_medidores: number
+          rota: number
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endereco: string
+          id?: string
+          nome: string
+          quantidade_medidores?: number
+          rota: number
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endereco?: string
+          id?: string
+          nome?: string
+          quantidade_medidores?: number
+          rota?: number
+          uf?: string
           updated_at?: string
         }
         Relationships: []
@@ -341,6 +404,54 @@ export type Database = {
         }
         Relationships: []
       }
+      rotas_leitura: {
+        Row: {
+          created_at: string
+          data: string
+          empreendimento_id: string
+          id: string
+          observacoes: string | null
+          operador_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          empreendimento_id: string
+          id?: string
+          observacoes?: string | null
+          operador_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          empreendimento_id?: string
+          id?: string
+          observacoes?: string | null
+          operador_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotas_leitura_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos_terceirizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotas_leitura_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servicos: {
         Row: {
           cliente_id: string
@@ -497,6 +608,125 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      servicos_nacional_gas: {
+        Row: {
+          apartamento: string | null
+          bloco: string | null
+          condominio_nome_original: string
+          created_at: string
+          data_agendamento: string | null
+          data_solicitacao: string | null
+          email: string | null
+          empreendimento_id: string | null
+          fonte: string | null
+          id: string
+          morador_nome: string | null
+          observacao: string | null
+          status_atendimento: string
+          tecnico_id: string | null
+          telefone: string | null
+          tipo_servico: string
+          turno: string | null
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          apartamento?: string | null
+          bloco?: string | null
+          condominio_nome_original: string
+          created_at?: string
+          data_agendamento?: string | null
+          data_solicitacao?: string | null
+          email?: string | null
+          empreendimento_id?: string | null
+          fonte?: string | null
+          id?: string
+          morador_nome?: string | null
+          observacao?: string | null
+          status_atendimento?: string
+          tecnico_id?: string | null
+          telefone?: string | null
+          tipo_servico: string
+          turno?: string | null
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          apartamento?: string | null
+          bloco?: string | null
+          condominio_nome_original?: string
+          created_at?: string
+          data_agendamento?: string | null
+          data_solicitacao?: string | null
+          email?: string | null
+          empreendimento_id?: string | null
+          fonte?: string | null
+          id?: string
+          morador_nome?: string | null
+          observacao?: string | null
+          status_atendimento?: string
+          tecnico_id?: string | null
+          telefone?: string | null
+          tipo_servico?: string
+          turno?: string | null
+          uf?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_nacional_gas_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos_terceirizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicos_nacional_gas_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      servicos_nacional_gas_historico: {
+        Row: {
+          alterado_por: string | null
+          campo_alterado: string
+          created_at: string
+          id: string
+          servico_id: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          alterado_por?: string | null
+          campo_alterado: string
+          created_at?: string
+          id?: string
+          servico_id: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          alterado_por?: string | null
+          campo_alterado?: string
+          created_at?: string
+          id?: string
+          servico_id?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_nacional_gas_historico_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_nacional_gas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tipos_servico: {
         Row: {

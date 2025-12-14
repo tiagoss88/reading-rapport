@@ -19,6 +19,9 @@ import PermissionsManagement from '@/pages/PermissionsManagement'
 import RastreamentoOperadores from '@/pages/RastreamentoOperadores'
 import Relatorios from '@/pages/Relatorios'
 import TiposServico from '@/pages/TiposServico'
+import EmpreendimentosTerceirizados from '@/pages/MedicaoTerceirizada/Empreendimentos'
+import PlanejamentoRotas from '@/pages/MedicaoTerceirizada/PlanejamentoRotas'
+import ServicosNacionalGas from '@/pages/MedicaoTerceirizada/Servicos'
 import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
@@ -167,6 +170,27 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute permission="manage_operadores">
                       <TiposServico />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/medicao-terceirizada/empreendimentos" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <EmpreendimentosTerceirizados />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/medicao-terceirizada/rotas" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <PlanejamentoRotas />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/medicao-terceirizada/servicos" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <ServicosNacionalGas />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
