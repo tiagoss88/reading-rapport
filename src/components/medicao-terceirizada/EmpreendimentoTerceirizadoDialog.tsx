@@ -88,7 +88,13 @@ export default function EmpreendimentoTerceirizadoDialog({ open, onOpenChange, e
       } else {
         const { error } = await supabase
           .from('empreendimentos_terceirizados')
-          .insert(data)
+          .insert({
+            nome: data.nome,
+            endereco: data.endereco,
+            uf: data.uf,
+            quantidade_medidores: data.quantidade_medidores,
+            rota: data.rota
+          })
         
         if (error) throw error
       }
