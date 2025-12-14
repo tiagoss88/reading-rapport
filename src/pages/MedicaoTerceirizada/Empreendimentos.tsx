@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Pencil, Trash2, Search, Building2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Search, Building2, Upload } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import EmpreendimentoTerceirizadoDialog from '@/components/medicao-terceirizada/EmpreendimentoTerceirizadoDialog'
+import ImportarEmpreendimentosDialog from '@/components/medicao-terceirizada/ImportarEmpreendimentosDialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 
 interface EmpreendimentoTerceirizado {
@@ -24,6 +25,7 @@ interface EmpreendimentoTerceirizado {
 
 export default function EmpreendimentosTerceirizados() {
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [editingEmpreendimento, setEditingEmpreendimento] = useState<EmpreendimentoTerceirizado | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [ufFilter, setUfFilter] = useState<string>('all')
@@ -95,10 +97,16 @@ export default function EmpreendimentosTerceirizados() {
               <Building2 className="h-5 w-5" />
               Empreendimentos Terceirizados
             </CardTitle>
-            <Button onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Empreendimento
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Importar Excel
+              </Button>
+              <Button onClick={handleCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Empreendimento
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Filtros */}
@@ -215,6 +223,11 @@ export default function EmpreendimentosTerceirizados() {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         empreendimento={editingEmpreendimento}
+      />
+
+      <ImportarEmpreendimentosDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
       />
     </Layout>
   )
