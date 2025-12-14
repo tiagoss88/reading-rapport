@@ -17,7 +17,8 @@ import {
   MapPin,
   BarChart3,
   Gauge,
-  Shield
+  Shield,
+  Handshake
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -31,6 +32,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [servicosOpen, setServicosOpen] = useState(false)
   const [medicaoOpen, setMedicaoOpen] = useState(false)
+  const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(false)
   const [configuracoesOpen, setConfiguracoesOpen] = useState(false)
 
   const navigation = [
@@ -43,6 +45,12 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Leituras', href: '/leituras', icon: FileText, permission: 'view_leituras' },
     { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2, permission: 'manage_empreendimentos' },
     { name: 'Clientes', href: '/clientes', icon: Users, permission: 'manage_clientes' }
+  ]
+
+  const medicaoTerceirizadaItems = [
+    { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
+    { name: 'Planejamento de Rotas', href: '/medicao-terceirizada/rotas', icon: MapPin },
+    { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench }
   ]
 
   const servicosItems = [
@@ -134,6 +142,44 @@ export default function Layout({ children, title }: LayoutProps) {
                           {item.name}
                         </NavLink>
                       </ProtectedComponent>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ProtectedComponent>
+
+            {/* 2.5 Medição Terceirizada Dropdown */}
+            <ProtectedComponent roles={["admin", "gestor_empreendimento"]}>
+              <div className="space-y-1">
+                <button
+                  onClick={() => setMedicaoTerceirizadaOpen(!medicaoTerceirizadaOpen)}
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <div className="flex items-center">
+                    <Handshake className="mr-3 h-5 w-5 flex-shrink-0" />
+                    Medição Terceirizada
+                  </div>
+                  <ChevronDown className={`h-4 w-4 transition-transform ${medicaoTerceirizadaOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {medicaoTerceirizadaOpen && (
+                  <div className="ml-8 space-y-1">
+                    {medicaoTerceirizadaItems.map((item) => (
+                      <NavLink
+                        key={item.name}
+                        to={item.href}
+                        className={({ isActive }) =>
+                          `flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+                            isActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`
+                        }
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                        {item.name}
+                      </NavLink>
                     ))}
                   </div>
                 )}
