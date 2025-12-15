@@ -228,7 +228,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh]">
+      <DialogContent className="max-w-7xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
@@ -286,18 +286,19 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
               )}
             </div>
 
-            <ScrollArea className="h-[400px] border rounded-md">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-background border-b">
-                  <tr>
-                    <th className="text-left p-2 w-[80px]">Status</th>
-                    <th className="text-left p-2">Nome</th>
-                    <th className="text-left p-2">Endereço</th>
-                    <th className="text-left p-2 w-[60px]">UF</th>
-                    <th className="text-left p-2 w-[80px]">Rota</th>
-                    <th className="text-left p-2 w-[100px]">Medidores</th>
-                  </tr>
-                </thead>
+            <ScrollArea className="h-[500px] border rounded-md">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[900px]">
+                  <thead className="sticky top-0 bg-background border-b">
+                    <tr>
+                      <th className="text-left p-2 w-[120px]">Status</th>
+                      <th className="text-left p-2 min-w-[250px]">Nome</th>
+                      <th className="text-left p-2 min-w-[300px]">Endereço</th>
+                      <th className="text-left p-2 w-[60px]">UF</th>
+                      <th className="text-left p-2 w-[80px]">Rota</th>
+                      <th className="text-left p-2 w-[100px]">Medidores</th>
+                    </tr>
+                  </thead>
                 <tbody>
                   {parsedData.map((row, idx) => (
                     <tr key={idx} className={`border-b ${row.isDuplicate ? 'bg-yellow-50/50 dark:bg-yellow-900/10 opacity-60' : ''}`}>
@@ -321,8 +322,8 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
                           </Badge>
                         )}
                       </td>
-                      <td className="p-2 font-medium">{row.nome}</td>
-                      <td className="p-2 max-w-[200px] truncate" title={row.endereco}>{row.endereco}</td>
+                      <td className="p-2 font-medium break-words">{row.nome}</td>
+                      <td className="p-2 break-words">{row.endereco}</td>
                       <td className="p-2">{row.uf}</td>
                       <td className="p-2">{row.rota.toString().padStart(2, '0')}</td>
                       <td className="p-2">{row.quantidade_medidores}</td>
@@ -330,6 +331,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
                   ))}
                 </tbody>
               </table>
+              </div>
             </ScrollArea>
 
             {duplicateCount > 0 && (
