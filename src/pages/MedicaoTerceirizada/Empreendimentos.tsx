@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, Pencil, Trash2, Search, Building2, Upload } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import EmpreendimentoTerceirizadoDialog from '@/components/medicao-terceirizada/EmpreendimentoTerceirizadoDialog'
 import ImportarEmpreendimentosDialog from '@/components/medicao-terceirizada/ImportarEmpreendimentosDialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -30,6 +31,7 @@ export default function EmpreendimentosTerceirizados() {
   const [searchTerm, setSearchTerm] = useState('')
   const [ufFilter, setUfFilter] = useState<string>('all')
   const [rotaFilter, setRotaFilter] = useState<string>('all')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -65,6 +67,44 @@ export default function EmpreendimentosTerceirizados() {
     }
   })
 
+  const deleteMultipleMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('empreendimentos_terceirizados')
+        .delete()
+        .in('id', ids)
+      
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['empreendimentos-terceirizados'] })
+      setSelectedIds(new Set())
+      toast({ title: 'Empreendimentos excluídos com sucesso' })
+    },
+    onError: () => {
+      toast({ title: 'Erro ao excluir empreendimentos', variant: 'destructive' })
+    }
+  })
+
+  const toggleSelectAll = () => {
+    if (!filteredEmpreendimentos) return
+    if (selectedIds.size === filteredEmpreendimentos.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredEmpreendimentos.map(e => e.id)))
+    }
+  }
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedIds(newSelected)
+  }
+
   const rotas = empreendimentos 
     ? [...new Set(empreendimentos.map(e => e.rota))].sort((a, b) => a - b)
     : []
@@ -98,6 +138,30 @@ export default function EmpreendimentosTerceirizados() {
               Empreendimentos Terceirizados
             </CardTitle>
             <div className="flex gap-2">
+              {selectedIds.size > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir {selectedIds.size} selecionado(s)
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir Empreendimentos</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja excluir {selectedIds.size} empreendimento(s)? Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteMultipleMutation.mutate(Array.from(selectedIds))}>
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
                 Importar Excel
@@ -155,6 +219,12 @@ export default function EmpreendimentosTerceirizados() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={filteredEmpreendimentos && filteredEmpreendimentos.length > 0 && selectedIds.size === filteredEmpreendimentos.length}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
                       <TableHead>Rota</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Endereço</TableHead>
@@ -166,13 +236,19 @@ export default function EmpreendimentosTerceirizados() {
                   <TableBody>
                     {filteredEmpreendimentos?.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                           Nenhum empreendimento encontrado
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredEmpreendimentos?.map((emp) => (
                         <TableRow key={emp.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(emp.id)}
+                              onCheckedChange={() => toggleSelect(emp.id)}
+                            />
+                          </TableCell>
                           <TableCell className="font-medium">
                             {emp.rota.toString().padStart(2, '0')}
                           </TableCell>
