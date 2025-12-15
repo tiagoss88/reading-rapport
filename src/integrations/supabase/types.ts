@@ -203,6 +203,8 @@ export type Database = {
           created_at: string
           endereco: string
           id: string
+          latitude: number | null
+          longitude: number | null
           nome: string
           quantidade_medidores: number
           rota: number
@@ -213,6 +215,8 @@ export type Database = {
           created_at?: string
           endereco: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome: string
           quantidade_medidores?: number
           rota: number
@@ -223,6 +227,8 @@ export type Database = {
           created_at?: string
           endereco?: string
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           nome?: string
           quantidade_medidores?: number
           rota?: number

@@ -18,7 +18,8 @@ import {
   BarChart3,
   Gauge,
   Shield,
-  Handshake
+  Handshake,
+  Navigation2
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -50,6 +51,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const medicaoTerceirizadaItems = [
     { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
     { name: 'Planejamento de Rotas', href: '/medicao-terceirizada/rotas', icon: MapPin },
+    { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench }
   ]
 
