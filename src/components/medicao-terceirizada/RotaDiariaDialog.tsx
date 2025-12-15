@@ -156,26 +156,26 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[80vh] overflow-visible flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             Planejamento - Rota {diaUtil.numero_rota.toString().padStart(2, '0')} ({diaUtil.uf})
           </DialogTitle>
         </DialogHeader>
         
-        <div className="mb-4 p-3 bg-muted rounded-md text-sm">
+        <div className="flex-shrink-0 mb-4 p-3 bg-muted rounded-md text-sm">
           <p><strong>Data:</strong> {format(parse(diaUtil.data, 'yyyy-MM-dd', new Date()), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
           <p><strong>Empreendimentos da rota:</strong> {empreendimentos?.length || 0}</p>
         </div>
 
-        {/* Adicionar à Rota */}
-        <div className="flex gap-2 mb-4">
+        {/* Adicionar à Rota - Fora da área de scroll */}
+        <div className="flex-shrink-0 flex gap-2 mb-4">
           <Select value={selectedEmpreendimento} onValueChange={setSelectedEmpreendimento}>
             <SelectTrigger className="flex-1">
               <SelectValue placeholder="Selecione um empreendimento" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[200]">
               {empreendimentosDisponiveis.length === 0 ? (
                 <SelectItem value="none" disabled>Todos já adicionados</SelectItem>
               ) : (
@@ -191,7 +191,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Operador (opcional)" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[200]">
               <SelectItem value="none">Sem operador</SelectItem>
               {operadores?.map(op => (
                 <SelectItem key={op.id} value={op.id}>{op.nome}</SelectItem>
@@ -207,74 +207,76 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
           </Button>
         </div>
 
-        {/* Lista de Rotas do Dia */}
-        {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-        ) : rotasLeitura?.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground border rounded-md">
-            Nenhum empreendimento adicionado a esta rota ainda
-          </div>
-        ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Empreendimento</TableHead>
-                  <TableHead className="text-center">Medidores</TableHead>
-                  <TableHead>Operador</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rotasLeitura?.map((rota) => (
-                  <TableRow key={rota.id}>
-                    <TableCell className="font-medium">
-                      {rota.empreendimento?.nome}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {rota.empreendimento?.quantidade_medidores}
-                    </TableCell>
-                    <TableCell>
-                      <Select 
-                        value={rota.operador_id || 'none'} 
-                        onValueChange={(value) => updateOperadorMutation.mutate({ 
-                          rotaId: rota.id, 
-                          operadorId: value === 'none' ? null : value 
-                        })}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Selecionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Não atribuído</SelectItem>
-                          {operadores?.map(op => (
-                            <SelectItem key={op.id} value={op.id}>{op.nome}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={statusColors[rota.status]}>
-                        {rota.status === 'pendente' ? 'Pendente' : 
-                         rota.status === 'em_andamento' ? 'Em andamento' : 'Concluído'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => removeRotaMutation.mutate(rota.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
+        {/* Lista de Rotas do Dia - Com scroll interno */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+          ) : rotasLeitura?.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border rounded-md">
+              Nenhum empreendimento adicionado a esta rota ainda
+            </div>
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empreendimento</TableHead>
+                    <TableHead className="text-center">Medidores</TableHead>
+                    <TableHead>Operador</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                </TableHeader>
+                <TableBody>
+                  {rotasLeitura?.map((rota) => (
+                    <TableRow key={rota.id}>
+                      <TableCell className="font-medium">
+                        {rota.empreendimento?.nome}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {rota.empreendimento?.quantidade_medidores}
+                      </TableCell>
+                      <TableCell>
+                        <Select 
+                          value={rota.operador_id || 'none'} 
+                          onValueChange={(value) => updateOperadorMutation.mutate({ 
+                            rotaId: rota.id, 
+                            operadorId: value === 'none' ? null : value 
+                          })}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Selecionar" />
+                          </SelectTrigger>
+                          <SelectContent position="popper" className="z-[200]">
+                            <SelectItem value="none">Não atribuído</SelectItem>
+                            {operadores?.map(op => (
+                              <SelectItem key={op.id} value={op.id}>{op.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={statusColors[rota.status]}>
+                          {rota.status === 'pendente' ? 'Pendente' : 
+                           rota.status === 'em_andamento' ? 'Em andamento' : 'Concluído'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => removeRotaMutation.mutate(rota.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )
