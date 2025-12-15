@@ -175,7 +175,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
             <SelectTrigger className="flex-1">
               <SelectValue placeholder="Selecione um empreendimento" />
             </SelectTrigger>
-            <SelectContent position="popper" className="z-[200]">
+            <SelectContent position="popper" side="bottom" sideOffset={4} className="z-[200] max-h-[300px] overflow-y-auto">
               {empreendimentosDisponiveis.length === 0 ? (
                 <SelectItem value="none" disabled>Todos já adicionados</SelectItem>
               ) : (
@@ -191,7 +191,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Operador (opcional)" />
             </SelectTrigger>
-            <SelectContent position="popper" className="z-[200]">
+            <SelectContent position="popper" side="bottom" sideOffset={4} className="z-[200] max-h-[300px] overflow-y-auto">
               <SelectItem value="none">Sem operador</SelectItem>
               {operadores?.map(op => (
                 <SelectItem key={op.id} value={op.id}>{op.nome}</SelectItem>
@@ -247,7 +247,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
                           <SelectTrigger className="w-[180px]">
                             <SelectValue placeholder="Selecionar" />
                           </SelectTrigger>
-                          <SelectContent position="popper" className="z-[200]">
+                          <SelectContent position="popper" side="bottom" sideOffset={4} className="z-[200] max-h-[300px] overflow-y-auto">
                             <SelectItem value="none">Não atribuído</SelectItem>
                             {operadores?.map(op => (
                               <SelectItem key={op.id} value={op.id}>{op.nome}</SelectItem>
