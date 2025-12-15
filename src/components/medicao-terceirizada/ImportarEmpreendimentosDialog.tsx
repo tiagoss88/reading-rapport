@@ -17,6 +17,7 @@ interface ImportedRow {
   rota: number
   isDuplicate?: boolean
   duplicateReason?: string
+  duplicateMatch?: string // Nome do empreendimento que causou o match
 }
 
 interface Props {
@@ -50,12 +51,13 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
       .replace(/\s+/g, ' ') // Normaliza espaços
   }
 
-  const checkDuplicate = (nome: string, endereco: string, uf: string): { isDuplicate: boolean; reason?: string } => {
+  const checkDuplicate = (nome: string, endereco: string, uf: string): { isDuplicate: boolean; reason?: string; matchName?: string } => {
     if (!existingEmpreendimentos) return { isDuplicate: false }
     
     const normalizedNome = normalizeString(nome)
     const normalizedEndereco = normalizeString(endereco)
     
+    // Apenas marca como duplicado se NOME E ENDEREÇO E UF forem iguais
     const matchByNameAndAddress = existingEmpreendimentos.find(e => 
       normalizeString(e.nome) === normalizedNome && 
       normalizeString(e.endereco) === normalizedEndereco &&
@@ -63,7 +65,11 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
     )
     
     if (matchByNameAndAddress) {
-      return { isDuplicate: true, reason: 'Nome e endereço já existem' }
+      return { 
+        isDuplicate: true, 
+        reason: `Já existe no banco: "${matchByNameAndAddress.nome}"`,
+        matchName: matchByNameAndAddress.nome
+      }
     }
     
     return { isDuplicate: false }
@@ -135,7 +141,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
           if (!nome || !endereco) continue
           if (uf !== 'BA' && uf !== 'CE') uf = 'BA' // Default
 
-          // Verificar duplicata no arquivo
+          // Verificar duplicata no arquivo (somente se nome E endereço E uf forem iguais)
           const fileKey = `${normalizeString(nome)}|${normalizeString(endereco)}|${uf}`
           if (seenInFile.has(fileKey)) {
             rows.push({
@@ -145,14 +151,14 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
               quantidade_medidores: quantidade,
               rota,
               isDuplicate: true,
-              duplicateReason: 'Duplicado na planilha'
+              duplicateReason: 'Duplicado na própria planilha (mesmo nome + endereço + UF)'
             })
             continue
           }
           seenInFile.add(fileKey)
 
           // Verificar duplicata no banco
-          const { isDuplicate, reason } = checkDuplicate(nome, endereco, uf)
+          const { isDuplicate, reason, matchName } = checkDuplicate(nome, endereco, uf)
           
           rows.push({
             nome,
@@ -161,7 +167,8 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
             quantidade_medidores: quantidade,
             rota,
             isDuplicate,
-            duplicateReason: reason
+            duplicateReason: reason,
+            duplicateMatch: matchName
           })
         }
 
@@ -296,10 +303,17 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
                     <tr key={idx} className={`border-b ${row.isDuplicate ? 'bg-yellow-50/50 dark:bg-yellow-900/10 opacity-60' : ''}`}>
                       <td className="p-2">
                         {row.isDuplicate ? (
-                          <Badge variant="outline" className="text-yellow-600 border-yellow-400">
-                            <Copy className="h-3 w-3 mr-1" />
-                            Dup
-                          </Badge>
+                          <div className="space-y-1">
+                            <Badge variant="outline" className="text-yellow-600 border-yellow-400">
+                              <Copy className="h-3 w-3 mr-1" />
+                              Dup
+                            </Badge>
+                            {row.duplicateReason && (
+                              <p className="text-xs text-yellow-600 max-w-[150px]" title={row.duplicateReason}>
+                                {row.duplicateReason}
+                              </p>
+                            )}
+                          </div>
                         ) : (
                           <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                             <CheckCircle className="h-3 w-3 mr-1" />
