@@ -228,7 +228,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-7xl max-h-[90vh]">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
@@ -268,8 +268,8 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
         )}
 
         {step === 'preview' && (
-          <div className="space-y-4">
-            <div className="flex gap-4">
+          <div className="flex flex-col flex-1 min-h-0 gap-4">
+            <div className="flex gap-4 flex-shrink-0">
               <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-md">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-green-800 dark:text-green-400">
@@ -286,7 +286,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
               )}
             </div>
 
-            <ScrollArea className="h-[500px] border rounded-md">
+            <ScrollArea className="flex-1 min-h-0 border rounded-md">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[900px]">
                   <thead className="sticky top-0 bg-background border-b">
@@ -335,7 +335,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
             </ScrollArea>
 
             {duplicateCount > 0 && (
-              <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-sm">
+              <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-sm flex-shrink-0">
                 <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
                 <div>
                   <p className="text-yellow-800 dark:text-yellow-400 font-medium">
@@ -348,7 +348,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
               </div>
             )}
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 flex-shrink-0 pt-2 border-t">
               <Button variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
