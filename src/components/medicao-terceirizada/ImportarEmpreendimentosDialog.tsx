@@ -286,7 +286,7 @@ export default function ImportarEmpreendimentosDialog({ open, onOpenChange }: Pr
               )}
             </div>
 
-            <ScrollArea className="flex-1 min-h-0 border rounded-md">
+            <ScrollArea className="flex-1 min-h-[200px] max-h-[50vh] border rounded-md">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[900px]">
                   <thead className="sticky top-0 bg-background border-b">
