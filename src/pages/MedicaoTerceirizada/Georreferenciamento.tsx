@@ -50,6 +50,19 @@ const GeorreferenciamentoTerceirizado = () => {
   const [tokenInput, setTokenInput] = useState('');
   const [mapReady, setMapReady] = useState(false);
 
+  // Buscar token do Mapbox do banco de dados
+  const { data: mapboxConfig } = useQuery({
+    queryKey: ['configuracao-mapbox'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('configuracoes_sistema')
+        .select('valor')
+        .eq('chave', 'mapbox_token')
+        .maybeSingle();
+      return data?.valor || null;
+    }
+  });
+
   // Buscar empreendimentos
   const { data: empreendimentos = [], isLoading } = useQuery({
     queryKey: ['empreendimentos-terceirizados-geo'],
@@ -291,13 +304,17 @@ const GeorreferenciamentoTerceirizado = () => {
     }
   };
 
-  // Carregar token salvo
+  // Carregar token: prioridade banco de dados > localStorage > input manual
   useEffect(() => {
-    const savedToken = localStorage.getItem('mapbox_token');
-    if (savedToken) {
-      setMapboxToken(savedToken);
+    if (mapboxConfig) {
+      setMapboxToken(mapboxConfig);
+    } else {
+      const savedToken = localStorage.getItem('mapbox_token');
+      if (savedToken) {
+        setMapboxToken(savedToken);
+      }
     }
-  }, []);
+  }, [mapboxConfig]);
 
   return (
     <Layout title="Georreferenciamento">
