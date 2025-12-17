@@ -19,6 +19,7 @@ import PermissionsManagement from '@/pages/PermissionsManagement'
 import RastreamentoOperadores from '@/pages/RastreamentoOperadores'
 import Relatorios from '@/pages/Relatorios'
 import TiposServico from '@/pages/TiposServico'
+import ConfiguracoesSistema from '@/pages/ConfiguracoesSistema'
 import EmpreendimentosTerceirizados from '@/pages/MedicaoTerceirizada/Empreendimentos'
 import PlanejamentoRotas from '@/pages/MedicaoTerceirizada/PlanejamentoRotas'
 import ServicosNacionalGas from '@/pages/MedicaoTerceirizada/Servicos'
@@ -171,6 +172,13 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute permission="manage_operadores">
                       <TiposServico />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/configuracoes/sistema" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <ConfiguracoesSistema />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
