@@ -179,14 +179,17 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Técnico Responsável</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <Select 
+                    onValueChange={(val) => field.onChange(val === "_none" ? null : val)} 
+                    value={field.value || "_none"}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um técnico" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Nenhum</SelectItem>
+                      <SelectItem value="_none">Nenhum</SelectItem>
                       {operadores?.map(op => (
                         <SelectItem key={op.id} value={op.id}>{op.nome}</SelectItem>
                       ))}
