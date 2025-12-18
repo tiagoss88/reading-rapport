@@ -49,6 +49,20 @@ const GeorreferenciamentoTerceirizado = () => {
   const [mapboxToken, setMapboxToken] = useState<string>('');
   const [tokenInput, setTokenInput] = useState('');
   const [mapReady, setMapReady] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(10);
+
+  // Função para calcular tamanho do marcador baseado no zoom
+  const getMarkerSize = (zoom: number, isSelected: boolean) => {
+    const minZoom = 6;
+    const maxZoom = 18;
+    const minSize = isSelected ? 12 : 8;
+    const maxSize = isSelected ? 40 : 28;
+    
+    const clampedZoom = Math.max(minZoom, Math.min(maxZoom, zoom));
+    const ratio = (clampedZoom - minZoom) / (maxZoom - minZoom);
+    
+    return Math.round(minSize + (maxSize - minSize) * ratio);
+  };
 
   // Buscar token do Mapbox do banco de dados
   const { data: mapboxConfig } = useQuery({
@@ -170,6 +184,11 @@ const GeorreferenciamentoTerceirizado = () => {
       setMapReady(true);
     });
 
+    // Atualizar zoom atual
+    map.current.on('zoom', () => {
+      setCurrentZoom(map.current?.getZoom() || 10);
+    });
+
     // Click no mapa para definir coordenadas
     map.current.on('click', (e) => {
       if (selectedEmpreendimento) {
@@ -191,24 +210,22 @@ const GeorreferenciamentoTerceirizado = () => {
     filteredEmpreendimentos.forEach(emp => {
       if (emp.latitude && emp.longitude) {
         const color = ROTA_COLORS[emp.rota] || '#6B7280';
+        const isSelected = selectedEmpreendimento?.id === emp.id;
+        const size = getMarkerSize(currentZoom, isSelected);
+        const borderWidth = Math.max(2, Math.round(size / 8));
         
         const el = document.createElement('div');
         el.className = 'marker';
-        el.style.width = '24px';
-        el.style.height = '24px';
+        el.style.width = `${size}px`;
+        el.style.height = `${size}px`;
         el.style.borderRadius = '50%';
         el.style.backgroundColor = color;
-        el.style.border = '3px solid white';
+        el.style.border = isSelected ? `${borderWidth}px solid #000` : `${borderWidth}px solid white`;
         el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         el.style.cursor = 'pointer';
-        
-        if (selectedEmpreendimento?.id === emp.id) {
-          el.style.width = '32px';
-          el.style.height = '32px';
-          el.style.border = '4px solid #000';
-        }
+        el.style.transition = 'width 0.15s, height 0.15s';
 
-        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(`
+        const popup = new mapboxgl.Popup({ offset: size / 2 }).setHTML(`
           <div style="padding: 8px;">
             <strong style="color: ${color};">Rota ${emp.rota}</strong>
             <h3 style="margin: 4px 0; font-size: 14px;">${emp.nome}</h3>
@@ -229,7 +246,7 @@ const GeorreferenciamentoTerceirizado = () => {
         markersRef.current.push(marker);
       }
     });
-  }, [filteredEmpreendimentos, selectedEmpreendimento, mapReady]);
+  }, [filteredEmpreendimentos, selectedEmpreendimento, mapReady, currentZoom]);
 
   // Efeito para inicializar mapa
   useEffect(() => {
