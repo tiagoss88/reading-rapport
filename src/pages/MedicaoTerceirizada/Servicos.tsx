@@ -7,13 +7,24 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Search, FileText, History, Pencil, AlertTriangle } from 'lucide-react'
+import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { format } from 'date-fns'
 import ImportarPlanilhaDialog from '@/components/medicao-terceirizada/ImportarPlanilhaDialog'
 import ServicoNacionalGasDialog from '@/components/medicao-terceirizada/ServicoNacionalGasDialog'
 import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHistoricoDialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface ServicoNacionalGas {
   id: string
@@ -56,13 +67,34 @@ export default function ServicosNacionalGas() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [selectedServico, setSelectedServico] = useState<ServicoNacionalGas | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [ufFilter, setUfFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [tipoFilter, setTipoFilter] = useState<string>('all')
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  const deleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase
+        .from('servicos_nacional_gas')
+        .delete()
+        .in('id', ids)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
+      setSelectedIds(new Set())
+      setDeleteDialogOpen(false)
+      toast({ title: 'Serviços excluídos com sucesso' })
+    },
+    onError: () => {
+      toast({ title: 'Erro ao excluir serviços', variant: 'destructive' })
+    }
+  })
 
   const { data: servicos, isLoading } = useQuery({
     queryKey: ['servicos-nacional-gas'],
@@ -108,10 +140,32 @@ export default function ServicosNacionalGas() {
     setHistoricoDialogOpen(true)
   }
 
+  const handleDelete = () => {
+    deleteMutation.mutate(Array.from(selectedIds))
+  }
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked && filteredServicos) {
+      setSelectedIds(new Set(filteredServicos.map(s => s.id)))
+    } else {
+      setSelectedIds(new Set())
+    }
+  }
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    const newSet = new Set(selectedIds)
+    if (checked) {
+      newSet.add(id)
+    } else {
+      newSet.delete(id)
+    }
+    setSelectedIds(newSet)
+  }
+
   const servicosNaoAssociados = servicos?.filter(s => !s.empreendimento_id).length || 0
 
   return (
-    <Layout title="Serviços Nacional Gás">
+    <Layout title="Serviços">
       <div className="space-y-6">
         {/* Alerta de serviços não associados */}
         {servicosNaoAssociados > 0 && (
@@ -129,12 +183,20 @@ export default function ServicosNacionalGas() {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Serviços Nacional Gás
+              Serviços
             </CardTitle>
-            <Button onClick={() => setImportDialogOpen(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              Importar Planilha
-            </Button>
+            <div className="flex gap-2">
+              {selectedIds.size > 0 && (
+                <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir ({selectedIds.size})
+                </Button>
+              )}
+              <Button onClick={() => setImportDialogOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Importar Planilha
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {/* Filtros */}
@@ -193,6 +255,12 @@ export default function ServicosNacionalGas() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[50px]">
+                        <Checkbox
+                          checked={filteredServicos && filteredServicos.length > 0 && selectedIds.size === filteredServicos.length}
+                          onCheckedChange={(checked) => toggleSelectAll(!!checked)}
+                        />
+                      </TableHead>
                       <TableHead>Condomínio</TableHead>
                       <TableHead>Bloco/Apto</TableHead>
                       <TableHead>Morador</TableHead>
@@ -207,13 +275,19 @@ export default function ServicosNacionalGas() {
                   <TableBody>
                     {filteredServicos?.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                           Nenhum serviço encontrado
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredServicos?.map((servico) => (
                         <TableRow key={servico.id} className={!servico.empreendimento_id ? 'bg-yellow-50/50 dark:bg-yellow-900/5' : ''}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(servico.id)}
+                              onCheckedChange={(checked) => toggleSelectOne(servico.id, !!checked)}
+                            />
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
                               <span className="font-medium">{servico.condominio_nome_original}</span>
@@ -289,6 +363,23 @@ export default function ServicosNacionalGas() {
           />
         </>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir {selectedIds.size} serviço(s)? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   )
 }
