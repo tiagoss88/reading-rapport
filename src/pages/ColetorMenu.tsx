@@ -64,26 +64,6 @@ export default function ColetorMenu() {
           </Button>
         </div>
 
-        {/* Indicador de Rastreamento */}
-        {isTracking && (
-          <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-            <MapPin className="w-5 h-5 text-green-600 animate-pulse" />
-            <div className="flex-1">
-              <span className="text-sm font-medium text-green-700">
-                Rastreamento ativo
-              </span>
-              <p className="text-xs text-green-600">
-                Sua localização está sendo atualizada automaticamente
-              </p>
-            </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
-            <span className="text-sm text-red-700">{error}</span>
-          </div>
-        )}
 
         {/* Menu Options */}
         <div className="space-y-4">
