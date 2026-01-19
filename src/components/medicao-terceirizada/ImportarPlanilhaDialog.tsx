@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, ClipboardPaste } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ImportedRow {
   data_solicitacao: string | null
@@ -37,6 +39,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ImportedRow[]>([])
   const [step, setStep] = useState<'upload' | 'preview' | 'success'>('upload')
+  const [pastedText, setPastedText] = useState('')
+  const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -265,7 +269,102 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     setFile(null)
     setParsedData([])
     setStep('upload')
+    setPastedText('')
+    setImportMethod('file')
     onOpenChange(false)
+  }
+
+  const parseTextData = (text: string) => {
+    const lines = text.trim().split('\n')
+    if (lines.length < 2) {
+      toast({ title: 'Dados insuficientes. Cole pelo menos cabeçalho + 1 linha de dados.', variant: 'destructive' })
+      return
+    }
+
+    // Primeira linha = cabeçalhos
+    const headers = lines[0].split('\t').map(h => h.toUpperCase().trim())
+    
+    const getIndex = (names: string[]) => {
+      for (const name of names) {
+        const idx = headers.findIndex(h => h.includes(name))
+        if (idx >= 0) return idx
+      }
+      return -1
+    }
+
+    const colMap = {
+      solicitacao: getIndex(['SOLICITAÇÃO', 'SOLICITACAO', 'DATA']),
+      uf: getIndex(['UF', 'ESTADO']),
+      condominio: getIndex(['CONDOMÍNIO', 'CONDOMINIO', 'EMPREENDIMENTO']),
+      bloco: getIndex(['BLOCO', 'TORRE']),
+      apto: getIndex(['APTO', 'APARTAMENTO', 'UNIDADE']),
+      fonte: getIndex(['FONTE', 'ORIGEM']),
+      morador: getIndex(['MORADOR', 'NOME', 'CLIENTE']),
+      telefone: getIndex(['TELEFONE', 'TEL', 'CELULAR']),
+      email: getIndex(['E-MAIL', 'EMAIL']),
+      tipo: getIndex(['TIPO', 'SERVIÇO', 'SERVICO']),
+      agend: getIndex(['AGEND', 'AGENDAMENTO']),
+      atend: getIndex(['ATEND', 'ATENDIMENTO', 'STATUS']),
+      turno: getIndex(['TURNO']),
+      tecnico: getIndex(['TÉCNICO', 'TECNICO', 'RESPONSAVEL', 'RESPONSÁVEL']),
+      obs: getIndex(['OBSERVAÇÃO', 'OBSERVACAO', 'OBS'])
+    }
+
+    const rows: ImportedRow[] = []
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split('\t')
+      if (!values || values.length === 0) continue
+
+      const uf = colMap.uf >= 0 ? String(values[colMap.uf] || '').toUpperCase().trim() : ''
+      const condominio = colMap.condominio >= 0 ? String(values[colMap.condominio] || '').trim() : ''
+      const tipo = colMap.tipo >= 0 ? String(values[colMap.tipo] || '').trim() : ''
+
+      if (!condominio || !tipo) continue
+      if (uf !== 'BA' && uf !== 'CE') continue
+
+      const empreendimentoId = findEmpreendimento(condominio, uf)
+      const tecnicoNome = colMap.tecnico >= 0 ? String(values[colMap.tecnico] || '').trim() : null
+
+      // Parse date from text format (DD/MM/YYYY)
+      const parseDateText = (val: string | undefined): string | null => {
+        if (!val) return null
+        const trimmed = val.trim()
+        const parts = trimmed.split('/')
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
+        }
+        return null
+      }
+
+      rows.push({
+        data_solicitacao: colMap.solicitacao >= 0 ? parseDateText(values[colMap.solicitacao]) : null,
+        uf,
+        condominio_nome_original: condominio,
+        bloco: colMap.bloco >= 0 ? String(values[colMap.bloco] || '').trim() || null : null,
+        apartamento: colMap.apto >= 0 ? String(values[colMap.apto] || '').trim() || null : null,
+        fonte: colMap.fonte >= 0 ? String(values[colMap.fonte] || '').trim() || null : null,
+        morador_nome: colMap.morador >= 0 ? String(values[colMap.morador] || '').trim() || null : null,
+        telefone: colMap.telefone >= 0 ? String(values[colMap.telefone] || '').trim() || null : null,
+        email: colMap.email >= 0 ? String(values[colMap.email] || '').trim() || null : null,
+        tipo_servico: tipo,
+        data_agendamento: colMap.agend >= 0 ? parseDateText(values[colMap.agend]) : null,
+        status_atendimento: colMap.atend >= 0 ? parseStatus(String(values[colMap.atend] || '')) : 'pendente',
+        turno: colMap.turno >= 0 ? parseTurno(String(values[colMap.turno] || '')) : null,
+        tecnico_nome: tecnicoNome || null,
+        observacao: colMap.obs >= 0 ? String(values[colMap.obs] || '').trim() || null : null,
+        empreendimento_id: empreendimentoId,
+        matched: !!empreendimentoId
+      })
+    }
+
+    if (rows.length === 0) {
+      toast({ title: 'Nenhum serviço válido encontrado nos dados colados', variant: 'destructive' })
+      return
+    }
+
+    setParsedData(rows)
+    setStep('preview')
   }
 
   const matchedCount = parsedData.filter(r => r.matched).length
@@ -283,23 +382,55 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
 
         {step === 'upload' && (
           <div className="space-y-4">
-            <div 
-              className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer hover:border-primary transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">Clique para selecionar um arquivo</p>
-              <p className="text-sm text-muted-foreground">
-                Formatos aceitos: .xlsx, .xls
-              </p>
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={handleFileChange}
-            />
+            <Tabs value={importMethod} onValueChange={(v) => setImportMethod(v as 'file' | 'paste')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="file" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload de Arquivo
+                </TabsTrigger>
+                <TabsTrigger value="paste" className="flex items-center gap-2">
+                  <ClipboardPaste className="h-4 w-4" />
+                  Colar da Planilha
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="file" className="space-y-4">
+                <div 
+                  className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium">Clique para selecionar um arquivo</p>
+                  <p className="text-sm text-muted-foreground">
+                    Formatos aceitos: .xlsx, .xls
+                  </p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+              </TabsContent>
+
+              <TabsContent value="paste" className="space-y-4">
+                <Textarea
+                  placeholder="Cole aqui os dados copiados diretamente da planilha Excel (Ctrl+V)..."
+                  className="min-h-[200px] font-mono text-sm"
+                  value={pastedText}
+                  onChange={(e) => setPastedText(e.target.value)}
+                />
+                <Button 
+                  onClick={() => parseTextData(pastedText)} 
+                  disabled={!pastedText.trim()}
+                  className="w-full"
+                >
+                  <ClipboardPaste className="h-4 w-4 mr-2" />
+                  Processar Dados Colados
+                </Button>
+              </TabsContent>
+            </Tabs>
 
             <div className="text-sm text-muted-foreground bg-muted p-4 rounded-md">
               <p className="font-medium mb-2">Colunas esperadas:</p>
