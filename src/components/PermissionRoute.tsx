@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { usePermissions, AppPermission, AppRole } from '@/contexts/PermissionsContext'
 
@@ -20,7 +21,12 @@ export default function PermissionRoute({
   requireAll = false,
   redirectTo = '/not-authorized'
 }: PermissionRouteProps) {
-  const { hasPermission, hasRole, loading, permissions: userPermissions, roles: userRoles } = usePermissions()
+  const { hasPermission, hasRole, loading, refreshPermissions } = usePermissions()
+
+  // Refresh permissions silently when component mounts
+  useEffect(() => {
+    refreshPermissions()
+  }, [])
 
   // Always wait for permissions to load before checking access
   if (loading) {
