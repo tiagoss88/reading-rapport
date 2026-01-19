@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpen, Wrench, LogOut, User, Gauge, MapPin } from 'lucide-react'
+import { BookOpen, Wrench, LogOut, User, Gauge, Building2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
 
@@ -36,6 +36,10 @@ export default function ColetorMenu() {
 
   const goToServicos = () => {
     navigate('/coletor/servicos')
+  }
+
+  const goToServicosTerceirizados = () => {
+    navigate('/coletor/servicos-terceirizados')
   }
 
   return (
@@ -117,6 +121,33 @@ export default function ColetorMenu() {
               <CardContent className="pt-0">
                 <div className="flex items-center text-sm text-gray-600">
                   <span>Visualizar e gerenciar serviços agendados</span>
+                </div>
+              </CardContent>
+            </Card>
+          </ProtectedComponent>
+
+          {/* Serviços Terceirizados */}
+          <ProtectedComponent permission="coletor_servicos">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardHeader 
+                className="pb-3"
+                onClick={goToServicosTerceirizados}
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">Serviços Terceirizados</CardTitle>
+                    <CardDescription>
+                      Serviços agendados da Nacional Gás
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center text-sm text-gray-600">
+                  <span>Visualizar e executar serviços de medição terceirizada</span>
                 </div>
               </CardContent>
             </Card>
