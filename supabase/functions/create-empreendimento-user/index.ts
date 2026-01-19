@@ -27,6 +27,54 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticação necessária' }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      )
+    }
+
+    // Create client with user's auth token to verify identity
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      )
+    }
+
+    // Create a Supabase client with service role key for admin operations
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
+
+    // Check if user has admin role or manage_empreendimentos permission
+    const { data: hasAdminRole } = await supabaseAdmin.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    })
+
+    const { data: hasPermission } = await supabaseAdmin.rpc('has_permission', {
+      _user_id: user.id,
+      _permission: 'manage_empreendimentos'
+    })
+
+    if (!hasAdminRole && !hasPermission) {
+      return new Response(
+        JSON.stringify({ error: 'Permissão insuficiente para criar usuários de empreendimento' }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      )
+    }
+
     const requestBody: CreateEmpreendimentoUserRequest = await req.json();
 
     // Validate input using Zod
@@ -44,14 +92,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { email, cnpj, empreendimento_id } = validationResult.data
 
-    // Create a Supabase client with service role key for admin operations
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    );
-
     // Create the user with email and CNPJ as password
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: cnpj,
       email_confirm: true, // Auto-confirm email
@@ -61,10 +103,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     });
 
-    if (authError) {
-      console.error("Error creating user:", authError);
+    if (createAuthError) {
+      console.error("Error creating user:", createAuthError);
       return new Response(
-        JSON.stringify({ error: `Erro ao criar usuário: ${authError.message}` }),
+        JSON.stringify({ error: `Erro ao criar usuário: ${createAuthError.message}` }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -94,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Empreendimento user created successfully:", authData.user.id);
+    console.log(`Empreendimento user created by ${user.id}: ${authData.user.id}`);
 
     return new Response(
       JSON.stringify({ 
