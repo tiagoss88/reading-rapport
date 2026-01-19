@@ -21,6 +21,60 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Autenticação necessária' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Create client with user's auth token to verify identity
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Criar cliente Supabase com service role para verificar permissões
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Check if user has admin role or manage_operadores permission
+    const { data: hasAdminRole } = await supabaseAdmin.rpc('has_role', {
+      _user_id: user.id,
+      _role: 'admin'
+    })
+
+    const { data: hasPermission } = await supabaseAdmin.rpc('has_permission', {
+      _user_id: user.id,
+      _permission: 'manage_operadores'
+    })
+
+    if (!hasAdminRole && !hasPermission) {
+      return new Response(
+        JSON.stringify({ error: 'Permissão insuficiente para deletar operadores' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const requestBody = await req.json()
     
     // Validate input using Zod
@@ -37,18 +91,6 @@ serve(async (req) => {
     }
 
     const { operador_id } = validationResult.data
-
-    // Criar cliente Supabase com service role para ter permissões de admin
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
 
     // Buscar o operador para obter o user_id
     const { data: operador, error: fetchError } = await supabaseAdmin
@@ -84,6 +126,8 @@ serve(async (req) => {
       // Nota: mesmo se falhar ao deletar do Auth, consideramos sucesso
       // pois o operador foi removido da tabela
     }
+
+    console.log(`Operador ${operador_id} deletado por usuário ${user.id}`)
 
     return new Response(
       JSON.stringify({ success: true, message: 'Operador deletado com sucesso' }),
