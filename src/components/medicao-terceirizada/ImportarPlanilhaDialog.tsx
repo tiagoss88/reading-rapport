@@ -440,8 +440,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
         )}
 
         {step === 'preview' && (
-          <div className="space-y-4">
-            <div className="flex gap-4">
+          <div className="flex flex-col flex-1 min-h-0 gap-4">
+            <div className="flex gap-4 shrink-0">
               <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-md">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-green-800 dark:text-green-400">
@@ -458,7 +458,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
               )}
             </div>
 
-            <ScrollArea className="h-[400px] border rounded-md">
+            <ScrollArea className="flex-1 min-h-[200px] max-h-[50vh] border rounded-md">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-background border-b">
                   <tr>
@@ -493,7 +493,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
               </table>
             </ScrollArea>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 shrink-0 pt-2 border-t">
               <Button variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
