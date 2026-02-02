@@ -177,7 +177,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         message: 'Operador criado com sucesso',
-        user_id: authData.user.id
+        user_id: userId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
