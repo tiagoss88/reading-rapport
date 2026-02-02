@@ -98,41 +98,80 @@ serve(async (req) => {
 
     const { nome, email, password, status } = validationResult.data
 
-    // Criar usuário no Auth usando admin API (não faz login automático)
-    const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Confirma email automaticamente
-      user_metadata: {
-        nome
-      }
-    })
-
-    if (createAuthError) {
-      throw createAuthError
+    // Verificar se o usuário já existe no Auth
+    const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+    
+    if (listError) {
+      console.error('Erro ao listar usuários:', listError)
+      throw listError
     }
 
-    if (!authData.user) {
-      throw new Error('Falha ao criar usuário')
+    const existingUser = existingUsers?.users.find(u => u.email === email)
+
+    let userId: string
+
+    if (existingUser) {
+      // Verificar se já existe um operador com esse user_id
+      const { data: existingOperador } = await supabaseAdmin
+        .from('operadores')
+        .select('id')
+        .eq('user_id', existingUser.id)
+        .single()
+
+      if (existingOperador) {
+        return new Response(
+          JSON.stringify({ error: 'Já existe um operador cadastrado com este email' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Atualizar senha do usuário existente
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        existingUser.id,
+        { password, user_metadata: { nome } }
+      )
+
+      if (updateError) {
+        throw updateError
+      }
+
+      userId = existingUser.id
+      console.log(`Reutilizando usuário existente: ${userId}`)
+    } else {
+      // Criar novo usuário no Auth
+      const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { nome }
+      })
+
+      if (createAuthError) throw createAuthError
+      if (!authData.user) throw new Error('Falha ao criar usuário')
+
+      userId = authData.user.id
+      console.log(`Novo usuário Auth criado: ${userId}`)
     }
 
     // Criar perfil do operador
     const { error: operadorError } = await supabaseAdmin
       .from('operadores')
       .insert({
-        user_id: authData.user.id,
+        user_id: userId,
         nome,
         email,
         status: status || 'ativo'
       })
 
     if (operadorError) {
-      // Se falhar ao criar operador, deletar o usuário criado
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      // Se falhar ao criar operador e era um usuário novo, deletar o usuário criado
+      if (!existingUser) {
+        await supabaseAdmin.auth.admin.deleteUser(userId)
+      }
       throw operadorError
     }
 
-    console.log(`Operador criado por usuário ${user.id}: ${authData.user.id}`)
+    console.log(`Operador criado por usuário ${user.id}: ${userId}`)
 
     return new Response(
       JSON.stringify({ 
