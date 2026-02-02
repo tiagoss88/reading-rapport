@@ -82,7 +82,6 @@ export default function ColetorServicosTerceirizados() {
           observacao,
           empreendimento:empreendimentos_terceirizados(nome, endereco)
         `)
-        .eq('tecnico_id', operadorId)
         .in('status_atendimento', ['pendente', 'agendado'])
         .order('data_agendamento', { ascending: true, nullsFirst: false })
 
@@ -186,7 +185,7 @@ export default function ColetorServicosTerceirizados() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">Serviços Terceirizados</h1>
             <p className="text-sm text-gray-600">
-              Serviços da Nacional Gás agendados para você
+              Todos os serviços da Nacional Gás
             </p>
           </div>
         </div>
