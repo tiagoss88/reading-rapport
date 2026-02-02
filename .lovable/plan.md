@@ -1,95 +1,125 @@
 
-## Plano: Permitir que Todos os Operadores Vejam Todos os Serviços Terceirizados
+## Plano: Corrigir Erro ao Criar Operador com Email Já Existente
 
-### Objetivo
-Alterar o sistema para que qualquer operador autenticado possa visualizar todos os serviços terceirizados pendentes/agendados, independentemente de a quem estejam atribuídos.
+### Problema Identificado
+O email `rafael@agasen.com.br` já existe na tabela `auth.users` (criado em 20/10/2025), mas **não possui registro correspondente na tabela `operadores`**. A edge function atual tenta criar um novo usuário no Auth e falha com o erro "email_exists".
+
+### Evidência do Problema
+
+| Tabela | Email | Status |
+|--------|-------|--------|
+| `auth.users` | rafael@agasen.com.br | Existe (id: e4aa6dc7-...) |
+| `operadores` | rafael@agasen.com.br | Não existe |
 
 ---
 
-### Alterações Necessárias
+### Solução
 
-#### 1. Migração SQL - Nova Política RLS
+Atualizar a edge function `create-operador` para verificar se o usuário já existe no Auth antes de tentar criar. Se existir, usar o `user_id` existente para criar apenas o registro na tabela `operadores`.
 
-Criar política que permite qualquer operador ver todos os serviços:
+### Alterações no Arquivo
 
-```sql
--- Permitir operadores verem TODOS os serviços terceirizados
-CREATE POLICY "Operadores podem ver todos os servicos"
-ON public.servicos_nacional_gas
-FOR SELECT
-USING (
-  EXISTS (
-    SELECT 1 FROM operadores 
-    WHERE user_id = auth.uid()
-  )
-);
+**Arquivo:** `supabase/functions/create-operador/index.ts`
 
--- Permitir operadores atualizarem qualquer serviço
-CREATE POLICY "Operadores podem atualizar servicos"
-ON public.servicos_nacional_gas
-FOR UPDATE
-USING (
-  EXISTS (
-    SELECT 1 FROM operadores 
-    WHERE user_id = auth.uid()
-  )
-);
+#### Lógica Atualizada
+
+```text
+1. Validar dados de entrada
+2. Verificar se o email já existe no auth.users
+   └─ Se SIM:
+      ├─ Verificar se já existe registro em operadores
+      │  └─ Se SIM: Retornar erro "Operador já existe"
+      └─ Se NÃO existe em operadores:
+         ├─ (Opcional) Atualizar senha do usuário existente
+         └─ Criar registro na tabela operadores com user_id existente
+   └─ Se NÃO:
+      ├─ Criar usuário no Auth
+      └─ Criar registro na tabela operadores
+3. Retornar sucesso
 ```
 
-#### 2. Alterar o Código do Coletor
+#### Trecho de Código Principal
 
-**Arquivo:** `src/pages/ColetorServicosTerceirizados.tsx`
+Antes da criação do usuário (linha ~101), adicionar verificação:
 
-Remover o filtro por `tecnico_id` na query (linha 85):
-
-**Antes:**
 ```typescript
-const { data, error } = await supabase
-  .from('servicos_nacional_gas')
-  .select(`...`)
-  .eq('tecnico_id', operadorId)  // ← Filtro a ser removido
-  .in('status_atendimento', ['pendente', 'agendado'])
-```
+// Verificar se o usuário já existe no Auth
+const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+const existingUser = existingUsers?.users.find(u => u.email === email)
 
-**Depois:**
-```typescript
-const { data, error } = await supabase
-  .from('servicos_nacional_gas')
-  .select(`...`)
-  // Sem filtro por tecnico_id - mostra todos
-  .in('status_atendimento', ['pendente', 'agendado'])
-```
+let userId: string
 
-#### 3. Atualizar textos da interface
+if (existingUser) {
+  // Verificar se já existe um operador com esse user_id
+  const { data: existingOperador } = await supabaseAdmin
+    .from('operadores')
+    .select('id')
+    .eq('user_id', existingUser.id)
+    .single()
 
-Atualizar a descrição na tela para refletir que são todos os serviços:
+  if (existingOperador) {
+    return new Response(
+      JSON.stringify({ error: 'Já existe um operador cadastrado com este email' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
 
-**Antes (linha 188-189):**
-```tsx
-<p className="text-sm text-gray-600">
-  Serviços da Nacional Gás agendados para você
-</p>
-```
+  // Atualizar senha do usuário existente
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+    existingUser.id,
+    { password, user_metadata: { nome } }
+  )
 
-**Depois:**
-```tsx
-<p className="text-sm text-gray-600">
-  Todos os serviços da Nacional Gás
-</p>
+  if (updateError) {
+    throw updateError
+  }
+
+  userId = existingUser.id
+  console.log(`Reutilizando usuário existente: ${userId}`)
+} else {
+  // Criar novo usuário no Auth
+  const { data: authData, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { nome }
+  })
+
+  if (createAuthError) throw createAuthError
+  if (!authData.user) throw new Error('Falha ao criar usuário')
+
+  userId = authData.user.id
+}
+
+// Criar perfil do operador
+const { error: operadorError } = await supabaseAdmin
+  .from('operadores')
+  .insert({
+    user_id: userId,
+    nome,
+    email,
+    status: status || 'ativo'
+  })
 ```
 
 ---
 
 ### Resumo das Alterações
 
-| Tipo | Arquivo/Recurso | Alteração |
-|------|-----------------|-----------|
-| Migração SQL | Banco de dados | Adicionar 2 políticas RLS para operadores (SELECT e UPDATE) |
-| Código | `ColetorServicosTerceirizados.tsx` | Remover `.eq('tecnico_id', operadorId)` da query |
-| Código | `ColetorServicosTerceirizados.tsx` | Atualizar texto descritivo |
+| Arquivo | Alteração |
+|---------|-----------|
+| `supabase/functions/create-operador/index.ts` | Adicionar verificação de usuário existente e reutilizar user_id |
 
 ### Comportamento Após Alteração
 
-- ✅ Todos os operadores verão todos os serviços pendentes/agendados
-- ✅ Qualquer operador pode marcar um serviço como executado
-- ✅ Serviços executados ou cancelados continuam ocultos da lista
+| Cenário | Comportamento |
+|---------|---------------|
+| Email não existe | Cria usuário Auth + operador (atual) |
+| Email existe sem operador | Atualiza senha, cria operador |
+| Email existe com operador | Retorna erro claro "Já existe operador com este email" |
+
+### Benefícios
+
+- Resolve o erro atual do Rafael
+- Mensagens de erro mais claras para o usuário
+- Permite "recuperar" usuários que existem no Auth mas não têm perfil de operador
