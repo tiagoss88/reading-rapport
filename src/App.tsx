@@ -7,9 +7,6 @@ import { PermissionsProvider } from '@/contexts/PermissionsContext'
 import Login from '@/pages/Login'
 import Index from '@/pages/Index'
 import Dashboard from '@/pages/Dashboard'
-import Empreendimentos from '@/pages/Empreendimentos'
-import Clientes from '@/pages/Clientes'
-import Leituras from '@/pages/Leituras'
 import Operadores from '@/pages/Operadores'
 import CriarServico from '@/pages/CriarServico'
 import CriarServicoExterno from '@/pages/CriarServicoExterno'
@@ -103,27 +100,6 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute permission="view_dashboard" redirectTo="/not-authorized">
                       <Dashboard />
-                    </PermissionRoute>
-                  </ProtectedRoute>
-                } />
-                <Route path="/empreendimentos" element={
-                  <ProtectedRoute>
-                    <PermissionRoute permission="manage_empreendimentos">
-                      <Empreendimentos />
-                    </PermissionRoute>
-                  </ProtectedRoute>
-                } />
-                <Route path="/clientes" element={
-                  <ProtectedRoute>
-                    <PermissionRoute permission="manage_clientes">
-                      <Clientes />
-                    </PermissionRoute>
-                  </ProtectedRoute>
-                } />
-                <Route path="/leituras" element={
-                  <ProtectedRoute>
-                    <PermissionRoute permission="view_leituras">
-                      <Leituras />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />

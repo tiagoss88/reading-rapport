@@ -6,8 +6,6 @@ import ProfileDialog from '@/components/ProfileDialog'
 import { 
   Home, 
   Building2, 
-  Users, 
-  FileText, 
   UserCheck,
   LogOut,
   Menu,
@@ -16,7 +14,6 @@ import {
   Settings,
   MapPin,
   BarChart3,
-  Gauge,
   Shield,
   Handshake,
   Navigation2
@@ -32,7 +29,6 @@ export default function Layout({ children, title }: LayoutProps) {
   const { signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [servicosOpen, setServicosOpen] = useState(false)
-  const [medicaoOpen, setMedicaoOpen] = useState(false)
   const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(false)
   const [configuracoesOpen, setConfiguracoesOpen] = useState(false)
 
@@ -40,12 +36,6 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Dashboard', href: '/dashboard', icon: Home, permission: 'view_dashboard' },
     { name: 'Relatórios', href: '/relatorios', icon: BarChart3, permission: 'view_relatorios' },
     { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
-  ]
-
-  const medicaoItems = [
-    { name: 'Leituras', href: '/leituras', icon: FileText, permission: 'view_leituras' },
-    { name: 'Empreendimentos', href: '/empreendimentos', icon: Building2, permission: 'manage_empreendimentos' },
-    { name: 'Clientes', href: '/clientes', icon: Users, permission: 'manage_clientes' }
   ]
 
   const medicaoTerceirizadaItems = [
@@ -112,46 +102,7 @@ export default function Layout({ children, title }: LayoutProps) {
               </ProtectedComponent>
             ))}
             
-            {/* 2. Medição Dropdown */}
-            <ProtectedComponent permissions={["view_leituras", "manage_empreendimentos", "manage_clientes"]}>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setMedicaoOpen(!medicaoOpen)}
-                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  <div className="flex items-center">
-                    <Gauge className="mr-3 h-5 w-5 flex-shrink-0" />
-                    Medição
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${medicaoOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {medicaoOpen && (
-                  <div className="ml-8 space-y-1">
-                    {medicaoItems.map((item) => (
-                      <ProtectedComponent key={item.name} permission={item.permission as any}>
-                        <NavLink
-                          to={item.href}
-                          className={({ isActive }) =>
-                            `flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
-                              isActive
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`
-                          }
-                          onClick={() => setSidebarOpen(false)}
-                        >
-                          <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
-                          {item.name}
-                        </NavLink>
-                      </ProtectedComponent>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </ProtectedComponent>
-
-            {/* 2.5 Medição Terceirizada Dropdown */}
+            {/* 2. Medição Terceirizada Dropdown */}
             <ProtectedComponent roles={["admin", "gestor_empreendimento"]}>
               <div className="space-y-1">
                 <button
