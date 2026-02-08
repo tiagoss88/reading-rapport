@@ -1,63 +1,96 @@
 
 
-## Objetivo
-Remover a seção **"Medição"** do menu lateral, mantendo apenas **"Medição Terceirizada"** para uso exclusivo com clientes da Nacional Gás.
+## Aba "Agenda" na Pagina de Servicos (Medicao Terceirizada)
+
+### Resumo
+Adicionar uma aba **Agenda** ao lado da aba **Servicos** existente, exibindo os servicos em formato de agenda semanal com drag and drop. A aba usa os mesmos dados da tabela `servicos_nacional_gas`, sem duplicar informacao.
 
 ---
 
-## Alterações Necessárias
+### Como vai funcionar
 
-### 1. Remover do Menu Lateral (Layout.tsx)
+1. A pagina de Servicos ganha duas abas: **Servicos** (tabela atual) e **Agenda** (nova visualizacao semanal)
+2. A agenda mostra 7 colunas (segunda a domingo) + uma coluna "Sem Agendamento"
+3. Cada servico aparece como um card com: Condominio, Bairro (endereco do empreendimento), Tipo de Servico e Status (com cor)
+4. O usuario pode arrastar cards entre dias para reagendar -- a data e atualizada automaticamente no banco
+5. Clicar no card abre o mesmo modal de edicao (ServicoNacionalGasDialog)
+6. Filtros: UF, Status, Tipo de Servico (Bairro nao existe como campo separado no banco, sera extraido do endereco do empreendimento vinculado)
+7. Navegacao por semana (anterior/proxima) com botao "Hoje"
 
-Remover completamente o dropdown "Medição" que contém:
-- Leituras
-- Empreendimentos  
-- Clientes
-
-Também será removido:
-- O estado `medicaoOpen` e `setMedicaoOpen`
-- O array `medicaoItems`
-- Os imports de ícones não utilizados (`Gauge`)
-
-### 2. Remover as Rotas do Sistema (App.tsx)
-
-Remover as rotas das páginas de Medição para que não sejam mais acessíveis:
-- `/leituras`
-- `/empreendimentos`
-- `/clientes`
-
-Também remover os imports não utilizados:
-- `Leituras`
-- `Empreendimentos`
-- `Clientes`
+### Cores de Status
+- Pendente: amarelo
+- Agendado: azul
+- Executado: verde
+- Cancelado: vermelho
 
 ---
 
-## Resultado Final
+### Arquivos a criar/modificar
 
-O menu lateral ficará com:
-1. Dashboard
-2. **Medição Terceirizada** (Nacional Gás)
-3. Ordem de Serviço
-4. Relatórios
-5. Rastreamento
-6. Configurações
+#### 1. Novo arquivo: `src/components/medicao-terceirizada/AgendaSemanal.tsx`
+Componente principal da agenda contendo:
+- Navegacao de semana (botoes anterior/proxima/hoje)
+- Filtros (UF, Status, Tipo de Servico, Bairro)
+- Grid de 8 colunas: "Sem Agendamento" + Seg a Dom
+- Cards arrastáveis com HTML5 Drag and Drop API nativa (sem dependencia extra)
+- Ao soltar card em outro dia: mutation para atualizar `data_agendamento` na tabela `servicos_nacional_gas`
+- Ao soltar na coluna "Sem Agendamento": define `data_agendamento` como `null`
+- Clique no card abre `ServicoNacionalGasDialog`
+
+#### 2. Modificar: `src/pages/MedicaoTerceirizada/Servicos.tsx`
+- Adicionar componente `Tabs` (do radix/shadcn) com duas abas: "Servicos" e "Agenda"
+- A aba "Servicos" contem todo o conteudo atual (sem alteracoes)
+- A aba "Agenda" renderiza o componente `AgendaSemanal`
+- Ambas as abas compartilham a mesma query `servicos-nacional-gas` via React Query, garantindo sincronizacao automatica
 
 ---
 
-## Seção Técnica
+### Secao Tecnica
 
-### Arquivo: `src/components/Layout.tsx`
+#### Estrutura do componente AgendaSemanal
 
-**Remover:**
-- Linha 19: Import do ícone `Gauge`
-- Linha 35: Estado `const [medicaoOpen, setMedicaoOpen] = useState(false)`
-- Linhas 45-49: Array `medicaoItems`
-- Linhas 115-152: Bloco JSX do dropdown "Medição"
+```text
+AgendaSemanal
+├── Navegacao de Semana (prev / "Semana de DD/MM" / next / Hoje)
+├── Filtros (UF, Status, Tipo, Bairro)
+├── Grid de Colunas
+│   ├── Coluna "Sem Agendamento" (servicos com data_agendamento = null)
+│   ├── Segunda (servicos do dia)
+│   ├── Terca
+│   ├── ...
+│   └── Domingo
+└── Cards Arrastaveis
+    ├── Nome do Condominio
+    ├── Bairro (extraido de empreendimento.endereco)
+    ├── Tipo de Servico
+    └── Badge de Status (com cor)
+```
 
-### Arquivo: `src/App.tsx`
+#### Drag and Drop
+- Implementado com HTML5 nativo (`draggable`, `onDragStart`, `onDragOver`, `onDrop`)
+- Nenhuma biblioteca adicional necessaria
+- Ao dropar, executa mutation:
+  ```
+  supabase.from('servicos_nacional_gas')
+    .update({ data_agendamento: novaData })
+    .eq('id', servicoId)
+  ```
+- Apos sucesso, invalida query `servicos-nacional-gas` para sincronizar ambas as abas
 
-**Remover:**
-- Linhas 10-12: Imports das páginas `Empreendimentos`, `Clientes`, `Leituras`
-- Linhas 109-129: Rotas `/empreendimentos`, `/clientes`, `/leituras`
+#### Modificacoes em Servicos.tsx
+- Envolver conteudo existente em `<Tabs>` / `<TabsContent value="servicos">` 
+- Adicionar `<TabsContent value="agenda">` com `<AgendaSemanal />`
+- A query de dados ja existe e sera compartilhada (React Query cache)
+- Passar `servicos` e `selectedServico`/`setSelectedServico` como props para o AgendaSemanal
+- Reutilizar os dialogs existentes (ServicoNacionalGasDialog, ServicoHistoricoDialog)
+
+#### Campo Bairro
+- A tabela `servicos_nacional_gas` nao possui campo `bairro`
+- O bairro sera extraido do endereco do empreendimento vinculado (`empreendimento.endereco`) quando disponivel
+- Se nao houver empreendimento vinculado, exibe "-"
+
+#### Performance
+- Filtragem no frontend (dados ja carregados via React Query)
+- Apenas servicos da semana visivel + sem agendamento sao renderizados
+- Cards leves com informacoes minimas
 
