@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2 } from 'lucide-react'
+import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -15,6 +15,8 @@ import { format } from 'date-fns'
 import ImportarPlanilhaDialog from '@/components/medicao-terceirizada/ImportarPlanilhaDialog'
 import ServicoNacionalGasDialog from '@/components/medicao-terceirizada/ServicoNacionalGasDialog'
 import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHistoricoDialog'
+import AgendaSemanal from '@/components/medicao-terceirizada/AgendaSemanal'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -103,7 +105,7 @@ export default function ServicosNacionalGas() {
         .from('servicos_nacional_gas')
         .select(`
           *,
-          empreendimento:empreendimentos_terceirizados(nome),
+          empreendimento:empreendimentos_terceirizados(nome, endereco),
           tecnico:operadores(nome)
         `)
         .order('created_at', { ascending: false })
@@ -179,169 +181,192 @@ export default function ServicosNacionalGas() {
           </Card>
         )}
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
+        <Tabs defaultValue="servicos">
+          <TabsList>
+            <TabsTrigger value="servicos">
+              <FileText className="mr-1.5 h-4 w-4" />
               Serviços
-            </CardTitle>
-            <div className="flex gap-2">
-              {selectedIds.size > 0 && (
-                <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir ({selectedIds.size})
-                </Button>
-              )}
-              <Button onClick={() => setImportDialogOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" />
-                Importar Planilha
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Filtros */}
-            <div className="flex flex-wrap gap-4 mb-6">
-              <div className="flex-1 min-w-[200px]">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar por condomínio, morador ou apartamento..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              <Select value={ufFilter} onValueChange={setUfFilter}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="UF" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas UFs</SelectItem>
-                  <SelectItem value="BA">BA</SelectItem>
-                  <SelectItem value="CE">CE</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos Status</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="agendado">Agendado</SelectItem>
-                  <SelectItem value="executado">Executado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={tipoFilter} onValueChange={setTipoFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Tipo de Serviço" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os Tipos</SelectItem>
-                  {tiposServico.map(tipo => (
-                    <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            </TabsTrigger>
+            <TabsTrigger value="agenda">
+              <CalendarDays className="mr-1.5 h-4 w-4" />
+              Agenda
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Tabela */}
-            {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
-            ) : (
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[50px]">
-                        <Checkbox
-                          checked={filteredServicos && filteredServicos.length > 0 && selectedIds.size === filteredServicos.length}
-                          onCheckedChange={(checked) => toggleSelectAll(!!checked)}
-                        />
-                      </TableHead>
-                      <TableHead>Condomínio</TableHead>
-                      <TableHead>Bloco/Apto</TableHead>
-                      <TableHead>Morador</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>UF</TableHead>
-                      <TableHead>Agendamento</TableHead>
-                      <TableHead>Técnico</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="w-[100px]">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredServicos?.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                          Nenhum serviço encontrado
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredServicos?.map((servico) => (
-                        <TableRow key={servico.id} className={!servico.empreendimento_id ? 'bg-yellow-50/50 dark:bg-yellow-900/5' : ''}>
-                          <TableCell>
+          <TabsContent value="servicos">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Serviços
+                </CardTitle>
+                <div className="flex gap-2">
+                  {selectedIds.size > 0 && (
+                    <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Excluir ({selectedIds.size})
+                    </Button>
+                  )}
+                  <Button onClick={() => setImportDialogOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Importar Planilha
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Filtros */}
+                <div className="flex flex-wrap gap-4 mb-6">
+                  <div className="flex-1 min-w-[200px]">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar por condomínio, morador ou apartamento..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <Select value={ufFilter} onValueChange={setUfFilter}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas UFs</SelectItem>
+                      <SelectItem value="BA">BA</SelectItem>
+                      <SelectItem value="CE">CE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos Status</SelectItem>
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="agendado">Agendado</SelectItem>
+                      <SelectItem value="executado">Executado</SelectItem>
+                      <SelectItem value="cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Tipo de Serviço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os Tipos</SelectItem>
+                      {tiposServico.map(tipo => (
+                        <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Tabela */}
+                {isLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+                ) : (
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[50px]">
                             <Checkbox
-                              checked={selectedIds.has(servico.id)}
-                              onCheckedChange={(checked) => toggleSelectOne(servico.id, !!checked)}
+                              checked={filteredServicos && filteredServicos.length > 0 && selectedIds.size === filteredServicos.length}
+                              onCheckedChange={(checked) => toggleSelectAll(!!checked)}
                             />
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{servico.condominio_nome_original}</span>
-                              {servico.empreendimento ? (
-                                <span className="text-xs text-green-600">✓ Vinculado</span>
-                              ) : (
-                                <span className="text-xs text-yellow-600">⚠ Não vinculado</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {servico.bloco && <span>Bloco {servico.bloco}</span>}
-                            {servico.bloco && servico.apartamento && ' - '}
-                            {servico.apartamento && <span>Apto {servico.apartamento}</span>}
-                          </TableCell>
-                          <TableCell>{servico.morador_nome || '-'}</TableCell>
-                          <TableCell>{servico.tipo_servico}</TableCell>
-                          <TableCell>{servico.uf}</TableCell>
-                          <TableCell>
-                            {servico.data_agendamento 
-                              ? format(new Date(servico.data_agendamento), 'dd/MM/yyyy')
-                              : '-'
-                            }
-                            {servico.turno && (
-                              <span className="text-xs text-muted-foreground ml-1">
-                                ({servico.turno === 'manha' ? 'Manhã' : 'Tarde'})
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>{servico.tecnico?.nome || '-'}</TableCell>
-                          <TableCell>
-                            <Badge className={statusColors[servico.status_atendimento]}>
-                              {statusLabels[servico.status_atendimento]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => handleEdit(servico)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleHistorico(servico)}>
-                                <History className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
+                          </TableHead>
+                          <TableHead>Condomínio</TableHead>
+                          <TableHead>Bloco/Apto</TableHead>
+                          <TableHead>Morador</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>UF</TableHead>
+                          <TableHead>Agendamento</TableHead>
+                          <TableHead>Técnico</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="w-[100px]">Ações</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredServicos?.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                              Nenhum serviço encontrado
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredServicos?.map((servico) => (
+                            <TableRow key={servico.id} className={!servico.empreendimento_id ? 'bg-yellow-50/50 dark:bg-yellow-900/5' : ''}>
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedIds.has(servico.id)}
+                                  onCheckedChange={(checked) => toggleSelectOne(servico.id, !!checked)}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{servico.condominio_nome_original}</span>
+                                  {servico.empreendimento ? (
+                                    <span className="text-xs text-green-600">✓ Vinculado</span>
+                                  ) : (
+                                    <span className="text-xs text-yellow-600">⚠ Não vinculado</span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {servico.bloco && <span>Bloco {servico.bloco}</span>}
+                                {servico.bloco && servico.apartamento && ' - '}
+                                {servico.apartamento && <span>Apto {servico.apartamento}</span>}
+                              </TableCell>
+                              <TableCell>{servico.morador_nome || '-'}</TableCell>
+                              <TableCell>{servico.tipo_servico}</TableCell>
+                              <TableCell>{servico.uf}</TableCell>
+                              <TableCell>
+                                {servico.data_agendamento 
+                                  ? format(new Date(servico.data_agendamento), 'dd/MM/yyyy')
+                                  : '-'
+                                }
+                                {servico.turno && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    ({servico.turno === 'manha' ? 'Manhã' : 'Tarde'})
+                                  </span>
+                                )}
+                              </TableCell>
+                              <TableCell>{servico.tecnico?.nome || '-'}</TableCell>
+                              <TableCell>
+                                <Badge className={statusColors[servico.status_atendimento]}>
+                                  {statusLabels[servico.status_atendimento]}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="icon" onClick={() => handleEdit(servico)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleHistorico(servico)}>
+                                    <History className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="agenda">
+            {servicos ? (
+              <AgendaSemanal servicos={servicos} onSelectServico={handleEdit} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
             )}
-          </CardContent>
-        </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <ImportarPlanilhaDialog
