@@ -24,10 +24,10 @@ import GeorreferenciamentoTerceirizado from '@/pages/MedicaoTerceirizada/Georref
 import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
-import ColetorSync from '@/pages/ColetorSync'
+import ColetorLeiturasTerceirizadas from '@/pages/ColetorLeiturasTerceirizadas'
 import ColetorUnidades from '@/pages/ColetorUnidades'
 import ColetorLeitura from '@/pages/ColetorLeitura'
-import ColetorServicos from '@/pages/ColetorServicos'
+
 import ColetorServicosTerceirizados from '@/pages/ColetorServicosTerceirizados'
 import EmpreendimentoLogin from '@/pages/EmpreendimentoLogin'
 import AreaCliente from '@/pages/AreaCliente'
@@ -59,7 +59,7 @@ const App = () => (
                 <Route path="/coletor-sync" element={
                   <ColetorProtectedRoute>
                     <PermissionRoute permission="coletor_leituras">
-                      <ColetorSync />
+                      <ColetorLeiturasTerceirizadas />
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
@@ -74,13 +74,6 @@ const App = () => (
                   <ColetorProtectedRoute>
                     <PermissionRoute permission="coletor_leituras">
                       <ColetorLeitura />
-                    </PermissionRoute>
-                  </ColetorProtectedRoute>
-                } />
-                <Route path="/coletor/servicos" element={
-                  <ColetorProtectedRoute>
-                    <PermissionRoute permission="coletor_servicos">
-                      <ColetorServicos />
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
