@@ -158,7 +158,7 @@ export default function ColetorLeiturasTerceirizadas() {
               <Card
                 key={emp.id}
                 className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
-                onClick={() => navigate(`/coletor/unidades/${emp.id}`)}
+                onClick={() => navigate(`/coletor/empreendimento/${emp.id}`)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start space-x-3">
