@@ -25,6 +25,7 @@ import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
 import ColetorLeiturasTerceirizadas from '@/pages/ColetorLeiturasTerceirizadas'
+import ColetorEmpreendimentoDetalhe from '@/pages/ColetorEmpreendimentoDetalhe'
 import ColetorUnidades from '@/pages/ColetorUnidades'
 import ColetorLeitura from '@/pages/ColetorLeitura'
 
@@ -81,6 +82,13 @@ const App = () => (
                   <ColetorProtectedRoute>
                     <PermissionRoute permission="coletor_servicos">
                       <ColetorServicosTerceirizados />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
+                } />
+                <Route path="/coletor/empreendimento/:empreendimentoId" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorEmpreendimentoDetalhe />
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
