@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ArrowLeft, Building2, MapPin, Gauge, Route } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,33 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 export default function ColetorLeiturasTerceirizadas() {
   const navigate = useNavigate()
   const [selectedUF, setSelectedUF] = useState<string>('')
+  const [selectedRota, setSelectedRota] = useState<string>('')
 
-  const { data: empreendimentos, isLoading } = useQuery({
-    queryKey: ['empreendimentos-terceirizados-coletor', selectedUF],
-    queryFn: async () => {
-      let query = supabase
-        .from('empreendimentos_terceirizados')
-        .select('*')
-        .order('rota')
-        .order('nome')
-
-      if (selectedUF) {
-        query = query.eq('uf', selectedUF)
-      }
-
-      const { data, error } = await query
-      if (error) throw error
-      return data
-    },
-  })
-
-  const ufsDisponiveis = useMemo(() => {
-    if (!empreendimentos) return []
-    const ufs = [...new Set(empreendimentos.map(e => e.uf))].sort()
-    return ufs
-  }, [empreendimentos])
-
-  // When no UF filter, get all UFs from a separate query
+  // Fetch all available UFs
   const { data: allUFs } = useQuery({
     queryKey: ['empreendimentos-ufs'],
     queryFn: async () => {
@@ -49,20 +25,50 @@ export default function ColetorLeiturasTerceirizadas() {
     },
   })
 
-  const empreendimentosPorRota = useMemo(() => {
-    if (!empreendimentos) return new Map<number, typeof empreendimentos>()
-    const map = new Map<number, typeof empreendimentos>()
-    for (const emp of empreendimentos) {
-      const rota = emp.rota
-      if (!map.has(rota)) map.set(rota, [])
-      map.get(rota)!.push(emp)
-    }
-    return map
-  }, [empreendimentos])
+  // Fetch available rotas for the selected UF
+  const { data: rotasDisponiveis } = useQuery({
+    queryKey: ['empreendimentos-rotas', selectedUF],
+    queryFn: async () => {
+      let query = supabase
+        .from('empreendimentos_terceirizados')
+        .select('rota')
+      if (selectedUF && selectedUF !== 'all') {
+        query = query.eq('uf', selectedUF)
+      }
+      const { data, error } = await query
+      if (error) throw error
+      return [...new Set(data.map(e => e.rota))].sort((a, b) => a - b)
+    },
+    enabled: !!selectedUF,
+  })
 
-  const rotasOrdenadas = useMemo(() => {
-    return [...empreendimentosPorRota.keys()].sort((a, b) => a - b)
-  }, [empreendimentosPorRota])
+  // Fetch empreendimentos only when both UF and Rota are selected
+  const { data: empreendimentos, isLoading } = useQuery({
+    queryKey: ['empreendimentos-terceirizados-coletor', selectedUF, selectedRota],
+    queryFn: async () => {
+      let query = supabase
+        .from('empreendimentos_terceirizados')
+        .select('*')
+        .order('nome')
+
+      if (selectedUF && selectedUF !== 'all') {
+        query = query.eq('uf', selectedUF)
+      }
+      if (selectedRota && selectedRota !== 'all') {
+        query = query.eq('rota', Number(selectedRota))
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      return data
+    },
+    enabled: !!selectedUF && !!selectedRota,
+  })
+
+  const handleUFChange = (value: string) => {
+    setSelectedUF(value)
+    setSelectedRota('')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -83,7 +89,7 @@ export default function ColetorLeiturasTerceirizadas() {
         </div>
 
         {/* Filtro UF */}
-        <Select value={selectedUF} onValueChange={setSelectedUF}>
+        <Select value={selectedUF} onValueChange={handleUFChange}>
           <SelectTrigger className="bg-white">
             <SelectValue placeholder="Selecione a UF" />
           </SelectTrigger>
@@ -95,8 +101,23 @@ export default function ColetorLeiturasTerceirizadas() {
           </SelectContent>
         </Select>
 
+        {/* Filtro Rota - aparece após selecionar UF */}
+        {selectedUF && (
+          <Select value={selectedRota} onValueChange={setSelectedRota}>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Selecione a Rota" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Rotas</SelectItem>
+              {(rotasDisponiveis || []).map(rota => (
+                <SelectItem key={rota} value={String(rota)}>Rota {rota}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {/* Loading */}
-        {isLoading && (
+        {isLoading && selectedRota && (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
               <Skeleton key={i} className="h-24 w-full rounded-lg" />
@@ -104,30 +125,36 @@ export default function ColetorLeiturasTerceirizadas() {
           </div>
         )}
 
-        {/* Lista por Rota */}
-        {!isLoading && rotasOrdenadas.length === 0 && selectedUF && (
+        {/* Messages */}
+        {!selectedUF && (
           <div className="text-center py-8 text-gray-500">
-            Nenhum empreendimento encontrado para esta UF.
+            Selecione uma UF para começar.
           </div>
         )}
 
-        {!isLoading && !selectedUF && (
+        {selectedUF && !selectedRota && (
           <div className="text-center py-8 text-gray-500">
-            Selecione uma UF para visualizar os empreendimentos.
+            Selecione uma Rota para visualizar os empreendimentos.
           </div>
         )}
 
-        {rotasOrdenadas.map(rota => (
-          <div key={rota} className="space-y-2">
+        {selectedUF && selectedRota && !isLoading && empreendimentos?.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Nenhum empreendimento encontrado.
+          </div>
+        )}
+
+        {/* Lista de empreendimentos */}
+        {selectedRota && empreendimentos && empreendimentos.length > 0 && (
+          <div className="space-y-2">
             <div className="flex items-center space-x-2 px-1">
               <Route className="w-4 h-4 text-primary" />
-              <h2 className="text-sm font-semibold text-gray-700">Rota {rota}</h2>
-              <span className="text-xs text-gray-400">
-                ({empreendimentosPorRota.get(rota)?.length} empreendimentos)
+              <span className="text-sm font-semibold text-gray-700">
+                {empreendimentos.length} empreendimento{empreendimentos.length !== 1 ? 's' : ''}
               </span>
             </div>
 
-            {empreendimentosPorRota.get(rota)?.map(emp => (
+            {empreendimentos.map(emp => (
               <Card
                 key={emp.id}
                 className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
@@ -154,7 +181,7 @@ export default function ColetorLeiturasTerceirizadas() {
               </Card>
             ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
