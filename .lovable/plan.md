@@ -1,37 +1,42 @@
 
 
-## Corrigir balanceamento de carga no algoritmo de rotas
+## Corrigir mapa que desaparece ao trocar de aba
 
 ### Problema
-O algoritmo k-means atual agrupa empreendimentos apenas por proximidade geografica, ignorando completamente o peso (quantidade de medidores). Isso causa rotas desbalanceadas onde algumas acumulam 2500+ medidores enquanto outras ficam com 700.
+Quando o usuario vai para a aba "Roteirizador" e volta para "Georreferenciamento", o mapa some completamente. Isso acontece porque:
+
+1. O `TabsContent` desmonta o conteudo da aba quando ela nao esta ativa, destruindo o elemento DOM do mapa
+2. Porem a referencia `map.current` continua apontando para o mapa antigo (destruido)
+3. Ao voltar para a aba, o `initializeMap` verifica `if (map.current) return` e nao recria o mapa
 
 ### Solucao
-Adicionar uma fase de **rebalanceamento pos k-means** que redistribui empreendimentos entre rotas vizinhas para manter todas dentro da faixa-alvo (700-850 medidores por rota, ajustada por leituristas).
-
-### Como funciona
-
-O k-means continua agrupando por proximidade geografica (fase 1), mas apos o agrupamento, uma segunda fase redistribui empreendimentos de rotas sobrecarregadas para rotas vizinhas com capacidade disponivel:
-
-```text
-Fase 1: k-means normal (proximidade geografica) - ja existente
-Fase 2: Rebalanceamento iterativo (novo)
-  Repetir ate 50 vezes:
-    1. Encontrar a rota com mais medidores acima da meta maxima
-    2. Encontrar o empreendimento dessa rota mais proximo de outra rota que esteja abaixo da meta maxima
-    3. Mover esse empreendimento para a rota vizinha
-    4. Parar quando todas as rotas estiverem dentro da faixa ou nao houver mais movimentos possiveis
-```
+Adicionar um efeito de cleanup que limpa `map.current` quando o componente da aba e desmontado, e tambem resetar `mapReady`. Assim, ao reentrar na aba, o mapa sera reinicializado corretamente.
 
 ### Alteracoes
 
-**Arquivo:** `src/lib/routeOptimizer.ts`
+**Arquivo:** `src/pages/MedicaoTerceirizada/Georreferenciamento.tsx`
 
-- Adicionar funcao `rebalanceClusters` que recebe os pontos, as atribuicoes do k-means, os centroides, e os limites min/max da meta
-- A funcao identifica clusters acima do limite maximo e move pontos para clusters vizinhos que ainda tenham capacidade
-- A escolha do ponto a mover prioriza o ponto mais proximo do centroide do cluster destino (mantem coerencia geografica)
-- Chamar `rebalanceClusters` dentro de `optimizeRoutes` apos o k-means convergir, antes de renumerar as rotas
-- Passar `metaMin` e `metaMax` como parametros para `optimizeRoutes` (com defaults para manter compatibilidade)
+- Adicionar um `useEffect` de cleanup que, ao desmontar, chama `map.current.remove()` e seta `map.current = null` e `setMapReady(false)`
+- Remover `map.current` da condicao de guarda do `initializeMap` useCallback deps (ja esta correto, mas o cleanup resolve o problema)
+- Isso garante que toda vez que a aba Georreferenciamento e montada novamente, o mapa e recriado do zero
 
-### Resultado esperado
-Todas as rotas ficam o mais proximo possivel da faixa 700-850 medidores (ou a faixa ajustada para 2 leituristas), sem sacrificar totalmente a proximidade geografica.
+### Detalhe tecnico
+
+Adicionar este efeito apos o `useEffect` que chama `initializeMap`:
+
+```text
+useEffect(() => {
+  return () => {
+    // Cleanup ao desmontar: destruir o mapa para permitir reinicializacao
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
+    markersRef.current = [];
+    setMapReady(false);
+  };
+}, []);
+```
+
+Isso resolve o ciclo: montar -> criar mapa -> trocar aba -> desmontar -> limpar referencia -> voltar -> montar -> criar mapa novamente.
 
