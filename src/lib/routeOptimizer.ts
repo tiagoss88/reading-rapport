@@ -42,7 +42,67 @@ function selectInitialCentroids(points: GeoPoint[], k: number): Centroid[] {
   return centroids;
 }
 
-export function optimizeRoutes(points: GeoPoint[], k: number): ClusterResult[] {
+function rebalanceClusters(
+  points: GeoPoint[],
+  assignments: number[],
+  centroids: Centroid[],
+  metaMax: number
+): void {
+  const maxIterations = 100;
+
+  for (let iter = 0; iter < maxIterations; iter++) {
+    // Calculate peso per cluster
+    const clusterPeso: Record<number, number> = {};
+    for (let c = 0; c < centroids.length; c++) clusterPeso[c] = 0;
+    for (let i = 0; i < points.length; i++) {
+      clusterPeso[assignments[i]] = (clusterPeso[assignments[i]] || 0) + points[i].peso;
+    }
+
+    // Find most overloaded cluster
+    let worstCluster = -1;
+    let worstExcess = 0;
+    for (let c = 0; c < centroids.length; c++) {
+      const excess = clusterPeso[c] - metaMax;
+      if (excess > worstExcess) {
+        worstExcess = excess;
+        worstCluster = c;
+      }
+    }
+
+    if (worstCluster === -1) break; // All within limits
+
+    // Find best point to move: from worstCluster to a neighbor with capacity
+    let bestPointIdx = -1;
+    let bestTargetCluster = -1;
+    let bestDist = Infinity;
+
+    for (let i = 0; i < points.length; i++) {
+      if (assignments[i] !== worstCluster) continue;
+
+      for (let c = 0; c < centroids.length; c++) {
+        if (c === worstCluster) continue;
+        if (clusterPeso[c] + points[i].peso > metaMax) continue;
+
+        const d = distance(points[i], centroids[c]);
+        if (d < bestDist) {
+          bestDist = d;
+          bestPointIdx = i;
+          bestTargetCluster = c;
+        }
+      }
+    }
+
+    if (bestPointIdx === -1) break; // No valid moves
+
+    assignments[bestPointIdx] = bestTargetCluster;
+  }
+}
+
+export function optimizeRoutes(
+  points: GeoPoint[],
+  k: number,
+  metaMax?: number
+): ClusterResult[] {
   if (points.length === 0 || k <= 0) return [];
   
   const effectiveK = Math.min(k, points.length);
@@ -84,6 +144,11 @@ export function optimizeRoutes(points: GeoPoint[], k: number): ClusterResult[] {
     centroids = newCentroids;
   }
 
+  // Phase 2: Rebalance by peso if metaMax is provided
+  if (metaMax && metaMax > 0) {
+    rebalanceClusters(points, assignments, centroids, metaMax);
+  }
+
   const clusterOrder = centroids
     .map((c, i) => ({ index: i, lng: c.lng }))
     .sort((a, b) => a.lng - b.lng);
@@ -111,7 +176,8 @@ export interface ConstrainedClusterResult extends ClusterResult {
 
 export function optimizeRoutesWithConstraints(
   points: GeoPoint[],
-  metaPorRota: number
+  metaPorRota: number,
+  metaMax?: number
 ): ConstrainedClusterResult[] {
   if (points.length === 0) return [];
 
@@ -133,7 +199,7 @@ export function optimizeRoutesWithConstraints(
     const totalPeso = grupoPoints.reduce((sum, p) => sum + p.peso, 0);
     const k = Math.max(1, Math.round(totalPeso / metaPorRota));
 
-    const results = optimizeRoutes(grupoPoints, k);
+    const results = optimizeRoutes(grupoPoints, k, metaMax);
 
     for (const r of results) {
       allResults.push({
