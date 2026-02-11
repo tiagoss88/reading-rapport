@@ -255,6 +255,18 @@ const GeorreferenciamentoTerceirizado = () => {
     initializeMap();
   }, [initializeMap]);
 
+  // Cleanup ao desmontar: destruir o mapa para permitir reinicialização
+  useEffect(() => {
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+      markersRef.current = [];
+      setMapReady(false);
+    };
+  }, []);
+
   // Efeito para atualizar marcadores
   useEffect(() => {
     updateMarkers();
