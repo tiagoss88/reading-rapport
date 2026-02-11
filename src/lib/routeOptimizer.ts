@@ -3,6 +3,7 @@ export interface GeoPoint {
   lat: number;
   lng: number;
   peso: number;
+  grupo?: string;
 }
 
 export interface ClusterResult {
@@ -21,19 +22,14 @@ function distance(a: { lat: number; lng: number }, b: { lat: number; lng: number
   return Math.sqrt(dlat * dlat + dlng * dlng);
 }
 
-// Select initial centroids using k-means++ style (spread out)
 function selectInitialCentroids(points: GeoPoint[], k: number): Centroid[] {
   const centroids: Centroid[] = [];
-  
-  // First centroid: random point
   const first = points[Math.floor(Math.random() * points.length)];
   centroids.push({ lat: first.lat, lng: first.lng });
 
   for (let i = 1; i < k; i++) {
-    // Pick the point farthest from all existing centroids
     let maxDist = -1;
     let bestPoint = points[0];
-
     for (const p of points) {
       const minDistToCentroid = Math.min(...centroids.map(c => distance(p, c)));
       if (minDistToCentroid > maxDist) {
@@ -41,10 +37,8 @@ function selectInitialCentroids(points: GeoPoint[], k: number): Centroid[] {
         bestPoint = p;
       }
     }
-
     centroids.push({ lat: bestPoint.lat, lng: bestPoint.lng });
   }
-
   return centroids;
 }
 
@@ -55,9 +49,7 @@ export function optimizeRoutes(points: GeoPoint[], k: number): ClusterResult[] {
   let centroids = selectInitialCentroids(points, effectiveK);
   const assignments = new Array<number>(points.length).fill(0);
 
-  // Run 20 iterations of k-means
   for (let iter = 0; iter < 20; iter++) {
-    // Assign each point to nearest centroid
     for (let i = 0; i < points.length; i++) {
       let minDist = Infinity;
       let bestCluster = 0;
@@ -71,7 +63,6 @@ export function optimizeRoutes(points: GeoPoint[], k: number): ClusterResult[] {
       assignments[i] = bestCluster;
     }
 
-    // Recalculate centroids
     const newCentroids: Centroid[] = centroids.map(() => ({ lat: 0, lng: 0 }));
     const counts = new Array<number>(effectiveK).fill(0);
 
@@ -87,14 +78,12 @@ export function optimizeRoutes(points: GeoPoint[], k: number): ClusterResult[] {
         newCentroids[c].lat /= counts[c];
         newCentroids[c].lng /= counts[c];
       } else {
-        newCentroids[c] = centroids[c]; // Keep old centroid if empty
+        newCentroids[c] = centroids[c];
       }
     }
-
     centroids = newCentroids;
   }
 
-  // Sort clusters by longitude (west to east) and renumber 1..k
   const clusterOrder = centroids
     .map((c, i) => ({ index: i, lng: c.lng }))
     .sort((a, b) => a.lng - b.lng);
@@ -108,4 +97,54 @@ export function optimizeRoutes(points: GeoPoint[], k: number): ClusterResult[] {
     id: p.id,
     rota: reindex[assignments[i]],
   }));
+}
+
+/**
+ * Optimiza rotas respeitando regras de negócio:
+ * - Separa por grupo (UF) — nunca mistura UFs
+ * - Calcula automaticamente a quantidade de rotas com base na meta de medidores
+ * - Retorna resultados com grupo preservado
+ */
+export interface ConstrainedClusterResult extends ClusterResult {
+  grupo: string;
+}
+
+export function optimizeRoutesWithConstraints(
+  points: GeoPoint[],
+  metaPorRota: number
+): ConstrainedClusterResult[] {
+  if (points.length === 0) return [];
+
+  // Agrupar por grupo (UF)
+  const grupos: Record<string, GeoPoint[]> = {};
+  for (const p of points) {
+    const g = p.grupo || 'SEM_UF';
+    if (!grupos[g]) grupos[g] = [];
+    grupos[g].push(p);
+  }
+
+  const allResults: ConstrainedClusterResult[] = [];
+  let rotaOffset = 0;
+
+  // Processar cada grupo separadamente
+  const grupoKeys = Object.keys(grupos).sort();
+  for (const grupo of grupoKeys) {
+    const grupoPoints = grupos[grupo];
+    const totalPeso = grupoPoints.reduce((sum, p) => sum + p.peso, 0);
+    const k = Math.max(1, Math.round(totalPeso / metaPorRota));
+
+    const results = optimizeRoutes(grupoPoints, k);
+
+    for (const r of results) {
+      allResults.push({
+        id: r.id,
+        rota: r.rota + rotaOffset,
+        grupo,
+      });
+    }
+
+    rotaOffset += k;
+  }
+
+  return allResults;
 }

@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Route, Play, Save, Loader2, MapPin } from 'lucide-react';
-import { optimizeRoutes, GeoPoint } from '@/lib/routeOptimizer';
+import { Route, Play, Save, Loader2, MapPin, Users, User } from 'lucide-react';
+import { optimizeRoutesWithConstraints, GeoPoint, ConstrainedClusterResult } from '@/lib/routeOptimizer';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -32,6 +32,9 @@ interface SimulationResult {
   color: string;
   empreendimentos: Empreendimento[];
   totalMedidores: number;
+  uf: string;
+  dentroMeta: 'ok' | 'baixo' | 'alto';
+  leituristas: number;
 }
 
 const ROTA_COLORS: Record<number, string> = {
@@ -41,6 +44,12 @@ const ROTA_COLORS: Record<number, string> = {
   16: '#DB2777', 17: '#FB923C', 18: '#2DD4BF', 19: '#818CF8', 20: '#A3E635',
 };
 
+function getMetaStatus(total: number, metaMin: number, metaMax: number): 'ok' | 'baixo' | 'alto' {
+  if (total >= metaMin && total <= metaMax) return 'ok';
+  if (total < metaMin) return 'baixo';
+  return 'alto';
+}
+
 const Roteirizador = () => {
   const queryClient = useQueryClient();
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -48,11 +57,16 @@ const Roteirizador = () => {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   const [selectedUf, setSelectedUf] = useState<string>('all');
-  const [numRotas, setNumRotas] = useState<number>(5);
+  const [metaPorRota, setMetaPorRota] = useState<number>(750);
+  const [leituristas, setLeituristas] = useState<number>(1);
   const [simulationResults, setSimulationResults] = useState<SimulationResult[]>([]);
   const [assignments, setAssignments] = useState<Record<string, number>>({});
   const [mapReady, setMapReady] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>('');
+
+  const metaEfetiva = metaPorRota * leituristas;
+  const metaMin = 700 * leituristas;
+  const metaMax = 850 * leituristas;
 
   // Fetch Mapbox token
   const { data: mapboxConfig } = useQuery({
@@ -102,6 +116,8 @@ const Roteirizador = () => {
     return matchUf && (e.latitude == null || e.longitude == null);
   }).length;
 
+  const totalMedidoresFiltro = filteredEmpreendimentos.reduce((s, e) => s + e.quantidade_medidores, 0);
+
   // Initialize map
   const initializeMap = useCallback(() => {
     if (!mapContainer.current || !mapboxToken || map.current) return;
@@ -120,7 +136,7 @@ const Roteirizador = () => {
 
   useEffect(() => { initializeMap(); }, [initializeMap]);
 
-  // Update markers based on simulation
+  // Update markers
   const updateMarkers = useCallback(() => {
     if (!map.current || !mapReady) return;
 
@@ -175,12 +191,17 @@ const Roteirizador = () => {
       lat: e.latitude!,
       lng: e.longitude!,
       peso: e.quantidade_medidores,
+      grupo: e.uf,
     }));
 
-    const results = optimizeRoutes(points, numRotas);
+    const results = optimizeRoutesWithConstraints(points, metaEfetiva);
 
     const newAssignments: Record<string, number> = {};
-    results.forEach(r => { newAssignments[r.id] = r.rota; });
+    const grupoByRota: Record<number, string> = {};
+    results.forEach(r => {
+      newAssignments[r.id] = r.rota;
+      grupoByRota[r.rota] = r.grupo;
+    });
     setAssignments(newAssignments);
 
     // Build summary
@@ -192,12 +213,19 @@ const Roteirizador = () => {
     });
 
     const summary: SimulationResult[] = Object.entries(grouped)
-      .map(([rota, emps]) => ({
-        rota: parseInt(rota),
-        color: ROTA_COLORS[parseInt(rota)] || '#6B7280',
-        empreendimentos: emps,
-        totalMedidores: emps.reduce((sum, e) => sum + e.quantidade_medidores, 0),
-      }))
+      .map(([rota, emps]) => {
+        const rotaNum = parseInt(rota);
+        const totalMed = emps.reduce((sum, e) => sum + e.quantidade_medidores, 0);
+        return {
+          rota: rotaNum,
+          color: ROTA_COLORS[rotaNum] || '#6B7280',
+          empreendimentos: emps,
+          totalMedidores: totalMed,
+          uf: grupoByRota[rotaNum] || '',
+          dentroMeta: getMetaStatus(totalMed, metaMin, metaMax),
+          leituristas,
+        };
+      })
       .sort((a, b) => a.rota - b.rota);
 
     setSimulationResults(summary);
@@ -234,6 +262,10 @@ const Roteirizador = () => {
     },
   });
 
+  const mediaPorRota = simulationResults.length > 0
+    ? Math.round(simulationResults.reduce((s, r) => s + r.totalMedidores, 0) / simulationResults.length)
+    : 0;
+
   return (
     <div className="h-[calc(100vh-180px)] flex gap-4">
       {/* Left Panel */}
@@ -261,20 +293,44 @@ const Roteirizador = () => {
             </div>
 
             <div>
-              <Label className="text-sm">Quantidade de Rotas</Label>
+              <Label className="text-sm">Meta de medidores por rota</Label>
               <Input
                 type="number"
-                min={2}
-                max={20}
-                value={numRotas}
-                onChange={(e) => setNumRotas(Math.max(2, Math.min(20, parseInt(e.target.value) || 2)))}
+                min={500}
+                max={1200}
+                value={metaPorRota}
+                onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
               />
+              <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
             </div>
 
-            <div className="flex gap-2 text-sm">
+            <div>
+              <Label className="text-sm">Leituristas por rota</Label>
+              <Select value={String(leituristas)} onValueChange={(v) => setLeituristas(parseInt(v))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent side="bottom" sideOffset={4} className="z-[200]">
+                  <SelectItem value="1">
+                    <span className="flex items-center gap-1"><User className="h-3 w-3" /> 1 leiturista</span>
+                  </SelectItem>
+                  <SelectItem value="2">
+                    <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 2 leituristas</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              {leituristas === 2 && (
+                <p className="text-xs text-muted-foreground mt-1">Meta efetiva: {metaEfetiva} medidores/rota</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-sm">
               <Badge variant="secondary">
                 <MapPin className="h-3 w-3 mr-1" />
                 {filteredEmpreendimentos.length} com GPS
+              </Badge>
+              <Badge variant="outline">
+                {totalMedidoresFiltro} medidores
               </Badge>
               {nonGeoCount > 0 && (
                 <Badge variant="outline" className="text-destructive">
@@ -285,7 +341,7 @@ const Roteirizador = () => {
 
             <Button onClick={handleSimulate} className="w-full">
               <Play className="h-4 w-4 mr-2" />
-              Simular Distribuição
+              Calcular Rotas
             </Button>
           </div>
         </CardHeader>
@@ -295,6 +351,18 @@ const Roteirizador = () => {
             <Separator />
             <CardContent className="flex-1 overflow-hidden p-0">
               <ScrollArea className="h-full px-4 py-3">
+                {/* Resumo geral */}
+                <div className="mb-3 p-2 rounded-md bg-muted text-sm space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total de rotas</span>
+                    <span className="font-medium">{simulationResults.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Média por rota</span>
+                    <span className="font-medium">{mediaPorRota} med.</span>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   {simulationResults.map(result => (
                     <div
@@ -303,10 +371,29 @@ const Roteirizador = () => {
                       style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">Rota {result.rota}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {result.empreendimentos.length} emprend. · {result.totalMedidores} medidores
+                        <div className="font-medium text-sm flex items-center gap-1">
+                          Rota {result.rota}
+                          <span className="text-xs text-muted-foreground">({result.uf})</span>
                         </div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                          <span>{result.empreendimentos.length} emprend.</span>
+                          <span>·</span>
+                          <Badge
+                            variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
+                            className={
+                              result.dentroMeta === 'ok'
+                                ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
+                                : result.dentroMeta === 'baixo'
+                                ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
+                                : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
+                            }
+                          >
+                            {result.totalMedidores} med.
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 text-muted-foreground" title={`${result.leituristas} leiturista(s)`}>
+                        {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
                       </div>
                     </div>
                   ))}
