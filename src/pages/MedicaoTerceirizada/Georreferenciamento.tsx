@@ -52,6 +52,7 @@ const GeorreferenciamentoTerceirizado = () => {
   const [tokenInput, setTokenInput] = useState('');
   const [mapReady, setMapReady] = useState(false);
   const [currentZoom, setCurrentZoom] = useState(10);
+  const [activeTab, setActiveTab] = useState<string>('geo');
 
   // Função para calcular tamanho do marcador baseado no zoom
   const getMarkerSize = (zoom: number, isSelected: boolean) => {
@@ -255,17 +256,34 @@ const GeorreferenciamentoTerceirizado = () => {
     initializeMap();
   }, [initializeMap]);
 
-  // Cleanup ao desmontar: destruir o mapa para permitir reinicialização
-  useEffect(() => {
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-      markersRef.current = [];
-      setMapReady(false);
-    };
+  // Cleanup + re-init based on active tab
+  const destroyGeoMap = useCallback(() => {
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
+    setMapReady(false);
   }, []);
+
+  const handleTabChange = useCallback((nextTab: string) => {
+    if (activeTab === 'geo' && nextTab !== 'geo') {
+      destroyGeoMap();
+    }
+    setActiveTab(nextTab);
+  }, [activeTab, destroyGeoMap]);
+
+  // Re-initialize map when returning to geo tab
+  useEffect(() => {
+    if (activeTab === 'geo' && !map.current && mapboxToken) {
+      // Wait for DOM to render the tab content
+      const raf = requestAnimationFrame(() => {
+        initializeMap();
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [activeTab, mapboxToken, initializeMap]);
 
   // Efeito para atualizar marcadores
   useEffect(() => {
@@ -349,7 +367,7 @@ const GeorreferenciamentoTerceirizado = () => {
 
   return (
     <Layout title="Georreferenciamento">
-      <Tabs defaultValue="geo" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="geo">
             <MapPin className="h-4 w-4 mr-2" />
