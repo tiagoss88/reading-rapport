@@ -28,7 +28,7 @@ interface LayoutProps {
 export default function Layout({ children, title }: LayoutProps) {
   const { signOut } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [servicosOpen, setServicosOpen] = useState(false)
+  
   const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(false)
   const [configuracoesOpen, setConfiguracoesOpen] = useState(false)
 
@@ -45,11 +45,6 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench }
   ]
 
-  const servicosItems = [
-    { name: 'Criar Serviço', href: '/servicos/criar', permission: 'create_servicos' },
-    { name: 'Criar Serviço Externo', href: '/servicos/criar-externo', permission: 'create_servicos' },
-    { name: 'Agendamentos', href: '/servicos/agendamentos', permission: 'manage_agendamentos' }
-  ]
 
   const configuracoesItems = [
     { name: 'Sistema', href: '/configuracoes/sistema', icon: Settings, role: 'admin' },
@@ -140,43 +135,6 @@ export default function Layout({ children, title }: LayoutProps) {
               </div>
             </ProtectedComponent>
             
-            {/* 3. Ordem de Serviço Dropdown */}
-            <ProtectedComponent permissions={["create_servicos", "manage_agendamentos"]}>
-              <div className="space-y-1">
-                <button
-                  onClick={() => setServicosOpen(!servicosOpen)}
-                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  <div className="flex items-center">
-                    <Wrench className="mr-3 h-5 w-5 flex-shrink-0" />
-                    Ordem de Serviço
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${servicosOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {servicosOpen && (
-                  <div className="ml-8 space-y-1">
-                    {servicosItems.map((item) => (
-                      <ProtectedComponent key={item.name} permission={item.permission as any}>
-                        <NavLink
-                          to={item.href}
-                          className={({ isActive }) =>
-                            `block px-3 py-2 text-sm rounded-md transition-colors ${
-                              isActive
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`
-                          }
-                          onClick={() => setSidebarOpen(false)}
-                        >
-                          {item.name}
-                        </NavLink>
-                      </ProtectedComponent>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </ProtectedComponent>
             
             {/* 4-5. Relatórios, Rastreamento */}
             {navigation.slice(1).map((item) => (
