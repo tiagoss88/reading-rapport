@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/Layout';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { MapPin, Search, Navigation2, Save, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { MapPin, Search, Navigation2, Save, Loader2, CheckCircle2, XCircle, Route } from 'lucide-react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import Roteirizador from '@/components/medicao-terceirizada/Roteirizador';
 
 interface Empreendimento {
   id: string;
@@ -335,7 +337,20 @@ const GeorreferenciamentoTerceirizado = () => {
 
   return (
     <Layout title="Georreferenciamento">
-      <div className="h-[calc(100vh-120px)] flex gap-4">
+      <Tabs defaultValue="geo" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="geo">
+            <MapPin className="h-4 w-4 mr-2" />
+            Georreferenciamento
+          </TabsTrigger>
+          <TabsTrigger value="roteirizador">
+            <Route className="h-4 w-4 mr-2" />
+            Roteirizador
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="geo">
+      <div className="h-[calc(100vh-180px)] flex gap-4">
         {/* Painel Esquerdo */}
         <Card className="w-80 flex-shrink-0 flex flex-col">
           <CardHeader className="pb-3">
@@ -553,6 +568,12 @@ const GeorreferenciamentoTerceirizado = () => {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="roteirizador">
+          <Roteirizador />
+        </TabsContent>
+      </Tabs>
     </Layout>
   );
 };
