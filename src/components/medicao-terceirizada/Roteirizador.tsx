@@ -269,137 +269,135 @@ const Roteirizador = () => {
   return (
     <div className="h-[calc(100vh-180px)] flex gap-4">
       {/* Left Panel */}
-      <Card className="w-80 flex-shrink-0 flex flex-col">
-        <CardHeader className="pb-3">
+      <Card className="w-80 flex-shrink-0 flex flex-col overflow-hidden">
+        <CardHeader className="pb-2 flex-shrink-0">
           <CardTitle className="text-lg flex items-center gap-2">
             <Route className="h-5 w-5" />
             Roteirizador
           </CardTitle>
-
-          <div className="space-y-3 pt-2">
-            <div>
-              <Label className="text-sm">Filtrar por UF</Label>
-              <Select value={selectedUf} onValueChange={setSelectedUf}>
-                <SelectTrigger>
-                  <SelectValue placeholder="UF" />
-                </SelectTrigger>
-                <SelectContent side="bottom" sideOffset={4} className="z-[200]">
-                  <SelectItem value="all">Todos UFs</SelectItem>
-                  {ufsDisponiveis.map(uf => (
-                    <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label className="text-sm">Meta de medidores por rota</Label>
-              <Input
-                type="number"
-                min={500}
-                max={1200}
-                value={metaPorRota}
-                onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
-            </div>
-
-            <div>
-              <Label className="text-sm">Leituristas por rota</Label>
-              <Select value={String(leituristas)} onValueChange={(v) => setLeituristas(parseInt(v))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent side="bottom" sideOffset={4} className="z-[200]">
-                  <SelectItem value="1">
-                    <span className="flex items-center gap-1"><User className="h-3 w-3" /> 1 leiturista</span>
-                  </SelectItem>
-                  <SelectItem value="2">
-                    <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 2 leituristas</span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              {leituristas === 2 && (
-                <p className="text-xs text-muted-foreground mt-1">Meta efetiva: {metaEfetiva} medidores/rota</p>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-sm">
-              <Badge variant="secondary">
-                <MapPin className="h-3 w-3 mr-1" />
-                {filteredEmpreendimentos.length} com GPS
-              </Badge>
-              <Badge variant="outline">
-                {totalMedidoresFiltro} medidores
-              </Badge>
-              {nonGeoCount > 0 && (
-                <Badge variant="outline" className="text-destructive">
-                  {nonGeoCount} sem GPS
-                </Badge>
-              )}
-            </div>
-
-            <Button onClick={handleSimulate} className="w-full">
-              <Play className="h-4 w-4 mr-2" />
-              Calcular Rotas
-            </Button>
-          </div>
         </CardHeader>
 
-        {simulationResults.length > 0 && (
-          <>
-            <Separator />
-            <CardContent className="flex-1 overflow-hidden p-0">
-              <ScrollArea className="h-full px-4 py-3">
-                {/* Resumo geral */}
-                <div className="mb-3 p-2 rounded-md bg-muted text-sm space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total de rotas</span>
-                    <span className="font-medium">{simulationResults.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Média por rota</span>
-                    <span className="font-medium">{mediaPorRota} med.</span>
-                  </div>
-                </div>
+        <CardContent className="flex-1 overflow-hidden p-0">
+          <ScrollArea className="h-full px-4 pb-4">
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm">Filtrar por UF</Label>
+                <Select value={selectedUf} onValueChange={setSelectedUf}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="UF" />
+                  </SelectTrigger>
+                  <SelectContent side="bottom" sideOffset={4} className="z-[200]">
+                    <SelectItem value="all">Todos UFs</SelectItem>
+                    {ufsDisponiveis.map(uf => (
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  {simulationResults.map(result => (
-                    <div
-                      key={result.rota}
-                      className="flex items-center gap-3 p-2 rounded-md border"
-                      style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm flex items-center gap-1">
-                          Rota {result.rota}
-                          <span className="text-xs text-muted-foreground">({result.uf})</span>
-                        </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                          <span>{result.empreendimentos.length} emprend.</span>
-                          <span>·</span>
-                          <Badge
-                            variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
-                            className={
-                              result.dentroMeta === 'ok'
-                                ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
-                                : result.dentroMeta === 'baixo'
-                                ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
-                                : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
-                            }
-                          >
-                            {result.totalMedidores} med.
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex-shrink-0 text-muted-foreground" title={`${result.leituristas} leiturista(s)`}>
-                        {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                      </div>
+              <div>
+                <Label className="text-sm">Meta de medidores por rota</Label>
+                <Input
+                  type="number"
+                  min={500}
+                  max={1200}
+                  value={metaPorRota}
+                  onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
+              </div>
+
+              <div>
+                <Label className="text-sm">Leituristas por rota</Label>
+                <Select value={String(leituristas)} onValueChange={(v) => setLeituristas(parseInt(v))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent side="bottom" sideOffset={4} className="z-[200]">
+                    <SelectItem value="1">
+                      <span className="flex items-center gap-1"><User className="h-3 w-3" /> 1 leiturista</span>
+                    </SelectItem>
+                    <SelectItem value="2">
+                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 2 leituristas</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {leituristas === 2 && (
+                  <p className="text-xs text-muted-foreground mt-1">Meta efetiva: {metaEfetiva} medidores/rota</p>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-sm">
+                <Badge variant="secondary">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  {filteredEmpreendimentos.length} com GPS
+                </Badge>
+                <Badge variant="outline">
+                  {totalMedidoresFiltro} medidores
+                </Badge>
+                {nonGeoCount > 0 && (
+                  <Badge variant="outline" className="text-destructive">
+                    {nonGeoCount} sem GPS
+                  </Badge>
+                )}
+              </div>
+
+              <Button onClick={handleSimulate} className="w-full">
+                <Play className="h-4 w-4 mr-2" />
+                Calcular Rotas
+              </Button>
+
+              {simulationResults.length > 0 && (
+                <>
+                  <Separator />
+
+                  <div className="p-2 rounded-md bg-muted text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Total de rotas</span>
+                      <span className="font-medium">{simulationResults.length}</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Média por rota</span>
+                      <span className="font-medium">{mediaPorRota} med.</span>
+                    </div>
+                  </div>
 
-                <div className="pt-4">
+                  <div className="space-y-2">
+                    {simulationResults.map(result => (
+                      <div
+                        key={result.rota}
+                        className="flex items-center gap-3 p-2 rounded-md border"
+                        style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm flex items-center gap-1">
+                            Rota {result.rota}
+                            <span className="text-xs text-muted-foreground">({result.uf})</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            <span>{result.empreendimentos.length} emprend.</span>
+                            <span>·</span>
+                            <Badge
+                              variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
+                              className={
+                                result.dentroMeta === 'ok'
+                                  ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
+                                  : result.dentroMeta === 'baixo'
+                                  ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
+                                  : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
+                              }
+                            >
+                              {result.totalMedidores} med.
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 text-muted-foreground" title={`${result.leituristas} leiturista(s)`}>
+                          {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button className="w-full" variant="default" disabled={applyMutation.isPending}>
@@ -427,11 +425,11 @@ const Roteirizador = () => {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </>
-        )}
+                </>
+              )}
+            </div>
+          </ScrollArea>
+        </CardContent>
       </Card>
 
       {/* Map */}
