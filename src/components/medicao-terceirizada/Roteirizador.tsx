@@ -136,6 +136,18 @@ const Roteirizador = () => {
 
   useEffect(() => { initializeMap(); }, [initializeMap]);
 
+  // Cleanup on unmount to prevent WebGL leaks
+  useEffect(() => {
+    return () => {
+      markersRef.current.forEach(m => m.remove());
+      markersRef.current = [];
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, []);
+
   // Update markers
   const updateMarkers = useCallback(() => {
     if (!map.current || !mapReady) return;
