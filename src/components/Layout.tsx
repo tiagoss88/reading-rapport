@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
@@ -18,7 +18,7 @@ import {
   Handshake,
   Navigation2
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -27,10 +27,16 @@ interface LayoutProps {
 
 export default function Layout({ children, title }: LayoutProps) {
   const { signOut } = useAuth()
+  const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   
-  const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(false)
-  const [configuracoesOpen, setConfiguracoesOpen] = useState(false)
+  const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
+  const [configuracoesOpen, setConfiguracoesOpen] = useState(() => ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))
+
+  useEffect(() => {
+    if (pathname.startsWith('/medicao-terceirizada')) setMedicaoTerceirizadaOpen(true)
+    if (['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p))) setConfiguracoesOpen(true)
+  }, [pathname])
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home, permission: 'view_dashboard' },
