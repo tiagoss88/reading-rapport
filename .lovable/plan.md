@@ -1,26 +1,37 @@
 
 
-## Corrigir visibilidade dos resultados do Roteirizador
+## Corrigir balanceamento de carga no algoritmo de rotas
 
 ### Problema
-O painel lateral esquerdo (w-80) tem altura fixa (`h-[calc(100vh-180px)]`). Os controles (filtro UF, meta, leituristas, badges, botao) ja ocupam a maior parte dessa altura. Quando os resultados da simulacao aparecem abaixo do Separator, o ScrollArea nao tem espaco visivel restante para exibi-los.
+O algoritmo k-means atual agrupa empreendimentos apenas por proximidade geografica, ignorando completamente o peso (quantidade de medidores). Isso causa rotas desbalanceadas onde algumas acumulam 2500+ medidores enquanto outras ficam com 700.
 
 ### Solucao
-Reorganizar o layout do painel lateral para que **todo o conteudo** (controles + resultados) fique dentro de uma unica area com scroll, garantindo que o usuario possa rolar para ver os resultados apos clicar em "Calcular Rotas".
+Adicionar uma fase de **rebalanceamento pos k-means** que redistribui empreendimentos entre rotas vizinhas para manter todas dentro da faixa-alvo (700-850 medidores por rota, ajustada por leituristas).
+
+### Como funciona
+
+O k-means continua agrupando por proximidade geografica (fase 1), mas apos o agrupamento, uma segunda fase redistribui empreendimentos de rotas sobrecarregadas para rotas vizinhas com capacidade disponivel:
+
+```text
+Fase 1: k-means normal (proximidade geografica) - ja existente
+Fase 2: Rebalanceamento iterativo (novo)
+  Repetir ate 50 vezes:
+    1. Encontrar a rota com mais medidores acima da meta maxima
+    2. Encontrar o empreendimento dessa rota mais proximo de outra rota que esteja abaixo da meta maxima
+    3. Mover esse empreendimento para a rota vizinha
+    4. Parar quando todas as rotas estiverem dentro da faixa ou nao houver mais movimentos possiveis
+```
 
 ### Alteracoes
 
-**Arquivo:** `src/components/medicao-terceirizada/Roteirizador.tsx`
+**Arquivo:** `src/lib/routeOptimizer.ts`
 
-- Mover a estrutura do Card para usar um unico ScrollArea que engloba tanto os controles quanto os resultados
-- O CardHeader tera apenas o titulo "Roteirizador"
-- O CardContent contera um ScrollArea com:
-  - Controles (filtro UF, meta, leituristas, badges, botao Calcular)
-  - Separator (quando ha resultados)
-  - Lista de resultados da simulacao
-  - Botao "Aplicar Rotas"
-- Isso garante que todo o conteudo e acessivel via scroll
+- Adicionar funcao `rebalanceClusters` que recebe os pontos, as atribuicoes do k-means, os centroides, e os limites min/max da meta
+- A funcao identifica clusters acima do limite maximo e move pontos para clusters vizinhos que ainda tenham capacidade
+- A escolha do ponto a mover prioriza o ponto mais proximo do centroide do cluster destino (mantem coerencia geografica)
+- Chamar `rebalanceClusters` dentro de `optimizeRoutes` apos o k-means convergir, antes de renumerar as rotas
+- Passar `metaMin` e `metaMax` como parametros para `optimizeRoutes` (com defaults para manter compatibilidade)
 
 ### Resultado esperado
-Apos clicar em "Calcular Rotas", o usuario podera rolar o painel lateral para ver todas as rotas geradas, o resumo e o botao "Aplicar Rotas".
+Todas as rotas ficam o mais proximo possivel da faixa 700-850 medidores (ou a faixa ajustada para 2 leituristas), sem sacrificar totalmente a proximidade geografica.
 
