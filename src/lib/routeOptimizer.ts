@@ -48,7 +48,7 @@ function rebalanceClusters(
   centroids: Centroid[],
   metaMax: number
 ): void {
-  const maxIterations = 100;
+  const maxIterations = 500;
 
   for (let iter = 0; iter < maxIterations; iter++) {
     // Calculate peso per cluster
@@ -71,30 +71,78 @@ function rebalanceClusters(
 
     if (worstCluster === -1) break; // All within limits
 
-    // Find best point to move: from worstCluster to a neighbor with capacity
-    let bestPointIdx = -1;
-    let bestTargetCluster = -1;
-    let bestDist = Infinity;
+    // Collect points from overloaded cluster, sorted by peso ascending (smallest first)
+    const candidateIndices = points
+      .map((p, i) => ({ idx: i, peso: p.peso }))
+      .filter(item => assignments[item.idx] === worstCluster)
+      .sort((a, b) => a.peso - b.peso);
 
-    for (let i = 0; i < points.length; i++) {
-      if (assignments[i] !== worstCluster) continue;
+    let moved = false;
+    for (const candidate of candidateIndices) {
+      // Sort target clusters by distance (closest first)
+      const targets = centroids
+        .map((c, ci) => ({ ci, dist: distance(points[candidate.idx], c) }))
+        .filter(t => t.ci !== worstCluster)
+        .sort((a, b) => a.dist - b.dist);
 
-      for (let c = 0; c < centroids.length; c++) {
-        if (c === worstCluster) continue;
-        if (clusterPeso[c] + points[i].peso > metaMax) continue;
-
-        const d = distance(points[i], centroids[c]);
-        if (d < bestDist) {
-          bestDist = d;
-          bestPointIdx = i;
-          bestTargetCluster = c;
+      for (const target of targets) {
+        if (clusterPeso[target.ci] + candidate.peso <= metaMax) {
+          assignments[candidate.idx] = target.ci;
+          moved = true;
+          break; // Move one point per iteration cycle
         }
+      }
+      if (moved) break;
+    }
+
+    if (!moved) break; // No valid moves possible
+  }
+
+  // Second pass: aggressive rebalance ignoring geography if clusters still exceed metaMax
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const clusterPeso: Record<number, number> = {};
+    for (let c = 0; c < centroids.length; c++) clusterPeso[c] = 0;
+    for (let i = 0; i < points.length; i++) {
+      clusterPeso[assignments[i]] = (clusterPeso[assignments[i]] || 0) + points[i].peso;
+    }
+
+    let worstCluster = -1;
+    let worstExcess = 0;
+    for (let c = 0; c < centroids.length; c++) {
+      const excess = clusterPeso[c] - metaMax;
+      if (excess > worstExcess) {
+        worstExcess = excess;
+        worstCluster = c;
       }
     }
 
-    if (bestPointIdx === -1) break; // No valid moves
+    if (worstCluster === -1) break;
 
-    assignments[bestPointIdx] = bestTargetCluster;
+    // Aggressive: find ANY point that fits in ANY cluster (ignore distance)
+    const candidateIndices = points
+      .map((p, i) => ({ idx: i, peso: p.peso }))
+      .filter(item => assignments[item.idx] === worstCluster)
+      .sort((a, b) => a.peso - b.peso);
+
+    // Sort targets by available capacity (most room first)
+    const targets = centroids
+      .map((_, ci) => ({ ci, room: metaMax - clusterPeso[ci] }))
+      .filter(t => t.ci !== worstCluster && t.room > 0)
+      .sort((a, b) => b.room - a.room);
+
+    let moved = false;
+    for (const candidate of candidateIndices) {
+      for (const target of targets) {
+        if (clusterPeso[target.ci] + candidate.peso <= metaMax) {
+          assignments[candidate.idx] = target.ci;
+          moved = true;
+          break;
+        }
+      }
+      if (moved) break;
+    }
+
+    if (!moved) break;
   }
 }
 
@@ -197,7 +245,7 @@ export function optimizeRoutesWithConstraints(
   for (const grupo of grupoKeys) {
     const grupoPoints = grupos[grupo];
     const totalPeso = grupoPoints.reduce((sum, p) => sum + p.peso, 0);
-    const k = Math.max(1, Math.round(totalPeso / metaPorRota));
+    const k = Math.max(1, Math.ceil(totalPeso / metaPorRota));
 
     const results = optimizeRoutes(grupoPoints, k, metaMax);
 
