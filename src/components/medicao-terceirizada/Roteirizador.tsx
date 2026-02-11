@@ -194,7 +194,7 @@ const Roteirizador = () => {
       grupo: e.uf,
     }));
 
-    const results = optimizeRoutesWithConstraints(points, metaEfetiva);
+    const results = optimizeRoutesWithConstraints(points, metaEfetiva, metaMax);
 
     const newAssignments: Record<string, number> = {};
     const grupoByRota: Record<number, string> = {};
