@@ -170,6 +170,7 @@ const Roteirizador = () => {
       el.style.border = '2px solid white';
       el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
       el.style.cursor = 'pointer';
+      el.title = emp.nome;
 
       const popup = new mapboxgl.Popup({ offset: 10 }).setHTML(`
         <div style="padding: 8px;">
