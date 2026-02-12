@@ -7,8 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Building2, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { usePermissions } from '@/contexts/PermissionsContext'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
+
+const OPERATOR_ROLES = ['operador_completo', 'operador_leitura', 'operador_servicos'] as const
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -16,8 +19,13 @@ export default function Login() {
   const [nome, setNome] = useState('')
   const [loading, setLoading] = useState(false)
   const { user, signIn, signUp, loading: authLoading } = useAuth()
+  const { roles, loading: permissionsLoading } = usePermissions()
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  const isOperatorOnly = roles.length > 0 && roles.every(r =>
+    (OPERATOR_ROLES as readonly string[]).includes(r)
+  )
 
   // Check for email verification success
   useEffect(() => {
@@ -44,7 +52,7 @@ export default function Login() {
   }, [toast, navigate])
 
   // Show loading while auth is initializing
-  if (authLoading) {
+  if (authLoading || (user && permissionsLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/50">
         <div className="text-center">
@@ -56,8 +64,8 @@ export default function Login() {
   }
 
   if (user) {
-    console.log('User is logged in, redirecting to dashboard')
-    return <Navigate to="/" replace />
+    console.log('User is logged in, redirecting...')
+    return <Navigate to={isOperatorOnly ? '/coletor' : '/'} replace />
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
