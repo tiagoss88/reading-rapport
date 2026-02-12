@@ -1,50 +1,19 @@
 
 
-## Painel de alertas para servicos urgentes (Religacao/Desligamento)
+## Mover Painel de Urgencias para uma aba "Prazos"
 
-### Objetivo
-Criar um sistema de alertas visuais que destaque servicos com prazo critico, garantindo que Religacoes (48h uteis), Desligamentos (48h uteis) e Religacoes Emergenciais (24h uteis) nunca sejam esquecidos.
+### O que muda
+Remover o painel de urgencias do topo da pagina e criar uma nova aba **"Prazos"** ao lado de "Servicos" e "Agenda", onde o conteudo de servicos com prazo critico ficara organizado.
 
-### Como vai funcionar
+### Alteracoes
 
-O sistema vai calcular automaticamente o prazo restante com base na **data de solicitacao** (`data_solicitacao`) de cada servico, considerando apenas dias uteis (segunda a sexta). Os servicos serao classificados em 3 niveis:
+**Arquivo: `src/pages/MedicaoTerceirizada/Servicos.tsx`**
 
-- **Vermelho (Vencido)**: prazo ja expirou
-- **Laranja (Critico)**: faltam menos de 8 horas uteis
-- **Amarelo (Atencao)**: dentro do prazo, mas com menos da metade restante
+1. Remover o `<PainelUrgencias>` que esta acima das tabs (linhas 175-178)
+2. Adicionar uma nova `<TabsTrigger value="prazos">` com icone `AlertTriangle` e texto "Prazos" ao lado da aba "Agenda"
+3. Adicionar um novo `<TabsContent value="prazos">` que renderiza o componente `PainelUrgencias` com os servicos e a funcao `onEditServico`
+4. Opcionalmente, adicionar um badge com a contagem de servicos urgentes na aba "Prazos" para chamar atencao mesmo sem clicar nela
 
-Apenas servicos com status **pendente** ou **agendado** (nao executados/cancelados) serao monitorados.
+### Resultado
+A pagina ficara mais limpa, com o painel de prazos acessivel pela aba dedicada, sem ocupar espaco no topo quando o usuario esta trabalhando na lista de servicos ou na agenda.
 
-### O que sera adicionado
-
-**1. Novo componente: Painel de Urgencias**
-- Arquivo: `src/components/medicao-terceirizada/PainelUrgencias.tsx`
-- Um card com icone de alerta que lista os servicos urgentes ordenados por prazo (mais urgente primeiro)
-- Cada item mostra: condominio, apartamento, tipo de servico, tempo restante (ex: "Vencido ha 3h", "Falta 12h uteis") e um badge colorido com o nivel de urgencia
-- Botao para abrir o servico diretamente para edicao/agendamento
-- Funcao utilitaria interna para calcular horas uteis entre duas datas
-
-**2. Pagina de Servicos (`src/pages/MedicaoTerceirizada/Servicos.tsx`)**
-- O painel de urgencias sera exibido no topo da pagina, acima das tabs, quando houver servicos urgentes
-- Ficara visivel junto ao alerta de servicos nao associados ja existente
-
-**3. Dashboard (`src/pages/Dashboard.tsx`)**
-- Adicionar um card resumo mostrando a quantidade de servicos vencidos e criticos, com link direto para a pagina de Servicos
-- Usar cores vermelha/laranja para chamar atencao imediata
-
-### Regras de prazo
-
-| Tipo de Servico | Prazo |
-|---|---|
-| Religacao Emergencial | 24 horas uteis |
-| Religacao | 48 horas uteis |
-| Desligamento | 48 horas uteis |
-
-A deteccao do tipo sera feita verificando se o campo `tipo_servico` contem as palavras-chave (case-insensitive): "religacao emergencial", "religacao" ou "desligamento".
-
-### Detalhes tecnicos
-
-- Criar funcao `calcularHorasUteisRestantes(dataSolicitacao: Date, prazoHoras: number): number` que calcula quantas horas uteis restam, considerando horario comercial (8h-18h, seg-sex)
-- A query de servicos ja existente sera reutilizada -- o componente recebe os servicos como prop e filtra localmente
-- Tipos de servico serao detectados por `includes` no texto, tratando acentos e case (ex: "RELIGAÇÃO EMERGENCIAL", "religacao emergencial")
-- Os servicos sem `data_solicitacao` serao tratados como urgentes (exibidos com alerta de "data nao informada")
