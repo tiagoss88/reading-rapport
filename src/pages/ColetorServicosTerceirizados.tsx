@@ -5,10 +5,20 @@ import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, User, Building2, Calendar, Clock, CheckCircle, Loader2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, User, Building2, Calendar, Clock, CheckCircle, Loader2, AlertCircle, Phone, Mail, ChevronRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface ServicoTerceirizado {
   id: string
@@ -16,6 +26,8 @@ interface ServicoTerceirizado {
   bloco: string | null
   apartamento: string | null
   morador_nome: string | null
+  telefone: string | null
+  email: string | null
   tipo_servico: string
   data_agendamento: string | null
   turno: string | null
@@ -35,6 +47,8 @@ export default function ColetorServicosTerceirizados() {
   const [loading, setLoading] = useState(true)
   const [operadorId, setOperadorId] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [selectedServico, setSelectedServico] = useState<ServicoTerceirizado | null>(null)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -75,6 +89,8 @@ export default function ColetorServicosTerceirizados() {
           bloco,
           apartamento,
           morador_nome,
+          telefone,
+          email,
           tipo_servico,
           data_agendamento,
           turno,
@@ -114,6 +130,7 @@ export default function ColetorServicosTerceirizados() {
         description: `Serviço marcado como ${novoStatus === 'executado' ? 'executado' : novoStatus}.`
       })
 
+      setSelectedServico(null)
       fetchServicos()
     } catch (error) {
       console.error('Erro ao atualizar status:', error)
@@ -153,6 +170,13 @@ export default function ColetorServicosTerceirizados() {
     }
   }
 
+  const handleConfirmExecutar = () => {
+    if (selectedServico) {
+      updateStatus(selectedServico.id, 'executado')
+    }
+    setShowConfirmDialog(false)
+  }
+
   if (!operadorId && !loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -170,6 +194,147 @@ export default function ColetorServicosTerceirizados() {
     )
   }
 
+  // Detail view
+  if (selectedServico) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-md mx-auto space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedServico(null)}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-gray-900">Detalhes do Serviço</h1>
+            </div>
+            {getStatusBadge(selectedServico.status_atendimento)}
+          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg text-primary">
+                {selectedServico.tipo_servico.toUpperCase()}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Morador */}
+              {selectedServico.morador_nome && (
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Morador</p>
+                    <p className="font-medium">{selectedServico.morador_nome}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Telefone */}
+              {selectedServico.telefone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Telefone</p>
+                    <a href={`tel:${selectedServico.telefone}`} className="font-medium text-primary">
+                      {selectedServico.telefone}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Email */}
+              {selectedServico.email && (
+                <div className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="font-medium text-sm">{selectedServico.email}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Condomínio */}
+              <div className="flex items-start gap-3">
+                <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Condomínio</p>
+                  <p className="font-medium">{selectedServico.condominio_nome_original}</p>
+                  {(selectedServico.bloco || selectedServico.apartamento) && (
+                    <p className="text-sm text-muted-foreground">
+                      {selectedServico.bloco && `Bloco ${selectedServico.bloco}`}
+                      {selectedServico.bloco && selectedServico.apartamento && ' - '}
+                      {selectedServico.apartamento && `Apto ${selectedServico.apartamento}`}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Data e Turno */}
+              {selectedServico.data_agendamento && (
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Agendamento</p>
+                    <p className="font-medium">
+                      {format(new Date(selectedServico.data_agendamento), "dd/MM/yyyy", { locale: ptBR })}
+                      {selectedServico.turno && ` - ${getTurnoLabel(selectedServico.turno)}`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Observação */}
+              {selectedServico.observacao && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-1">Observação</p>
+                  <p className="text-sm bg-muted p-3 rounded-md">{selectedServico.observacao}</p>
+                </div>
+              )}
+
+              {/* Action Button */}
+              <div className="pt-4">
+                <Button
+                  className="w-full"
+                  onClick={() => setShowConfirmDialog(true)}
+                  disabled={updatingId === selectedServico.id}
+                >
+                  {updatingId === selectedServico.id ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                  )}
+                  Marcar como Executado
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar execução</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja marcar este serviço como executado? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmExecutar}>
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    )
+  }
+
+  // List view
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="max-w-md mx-auto space-y-4">
@@ -214,78 +379,33 @@ export default function ColetorServicosTerceirizados() {
 
         {/* Services List */}
         {!loading && servicos.map((servico) => (
-          <Card key={servico.id} className="overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-base font-semibold text-primary">
-                  {servico.tipo_servico.toUpperCase()}
-                </CardTitle>
-                {getStatusBadge(servico.status_atendimento)}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {/* Morador */}
-              {servico.morador_nome && (
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <span>{servico.morador_nome}</span>
-                </div>
-              )}
-
-              {/* Local */}
-              <div className="flex items-start gap-2 text-sm">
-                <Building2 className="w-4 h-4 text-gray-400 mt-0.5" />
-                <div>
-                  <p className="font-medium">{servico.condominio_nome_original}</p>
+          <Card
+            key={servico.id}
+            className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setSelectedServico(servico)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-primary truncate">
+                      {servico.tipo_servico.toUpperCase()}
+                    </p>
+                    {getStatusBadge(servico.status_atendimento)}
+                  </div>
+                  {servico.morador_nome && (
+                    <p className="text-sm text-muted-foreground truncate">{servico.morador_nome}</p>
+                  )}
+                  <p className="text-sm truncate">{servico.condominio_nome_original}</p>
                   {(servico.bloco || servico.apartamento) && (
-                    <p className="text-gray-600">
+                    <p className="text-xs text-muted-foreground">
                       {servico.bloco && `Bloco ${servico.bloco}`}
                       {servico.bloco && servico.apartamento && ' - '}
                       {servico.apartamento && `Apto ${servico.apartamento}`}
                     </p>
                   )}
                 </div>
-              </div>
-
-              {/* Data e Turno */}
-              {servico.data_agendamento && (
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span>
-                      {format(new Date(servico.data_agendamento), "dd/MM/yyyy", { locale: ptBR })}
-                    </span>
-                  </div>
-                  {servico.turno && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span>{getTurnoLabel(servico.turno)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Observação */}
-              {servico.observacao && (
-                <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">
-                  {servico.observacao}
-                </p>
-              )}
-
-              {/* Actions */}
-              <div className="pt-2">
-                <Button
-                  className="w-full"
-                  onClick={() => updateStatus(servico.id, 'executado')}
-                  disabled={updatingId === servico.id}
-                >
-                  {updatingId === servico.id ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                  )}
-                  Marcar como Executado
-                </Button>
+                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
               </div>
             </CardContent>
           </Card>
