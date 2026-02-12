@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Plus, Pencil, Trash2 } from 'lucide-react'
+import { Search, Plus, Pencil, Trash2, KeyRound } from 'lucide-react'
 import { operadorSchema } from '@/lib/validation'
 import { z } from 'zod'
 
@@ -31,6 +31,10 @@ export default function Operadores() {
   const [searchTerm, setSearchTerm] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingOperador, setEditingOperador] = useState<Operador | null>(null)
+  const [resetPasswordOperador, setResetPasswordOperador] = useState<Operador | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [resettingPassword, setResettingPassword] = useState(false)
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -163,16 +167,12 @@ export default function Operadores() {
 
   const handleDelete = async (operador: Operador) => {
     try {
-      // Chamar edge function para deletar operador e usuário do Auth
       const { data, error } = await supabase.functions.invoke('delete-operador', {
         body: { operador_id: operador.id }
       })
 
       if (error) throw error
-
-      if (data?.error) {
-        throw new Error(data.error)
-      }
+      if (data?.error) throw new Error(data.error)
 
       toast({
         title: "Sucesso",
@@ -187,6 +187,39 @@ export default function Operadores() {
         description: error.message || "Erro ao excluir operador",
         variant: "destructive"
       })
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetPasswordOperador) return
+
+    if (newPassword.length < 8) {
+      toast({ title: "Erro", description: "Senha deve ter pelo menos 8 caracteres", variant: "destructive" })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Erro", description: "As senhas não coincidem", variant: "destructive" })
+      return
+    }
+
+    setResettingPassword(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-operador-password', {
+        body: { operador_id: resetPasswordOperador.id, new_password: newPassword }
+      })
+
+      if (error) throw error
+      if (data?.error) throw new Error(data.error)
+
+      toast({ title: "Sucesso", description: "Senha redefinida com sucesso" })
+      setResetPasswordOperador(null)
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error: any) {
+      console.error('Erro ao redefinir senha:', error)
+      toast({ title: "Erro", description: error.message || "Erro ao redefinir senha", variant: "destructive" })
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -342,8 +375,22 @@ export default function Operadores() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(operador)}
+                            title="Editar"
                           >
                             <Pencil className="w-4 h-4" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setResetPasswordOperador(operador)
+                              setNewPassword('')
+                              setConfirmPassword('')
+                            }}
+                            title="Redefinir Senha"
+                          >
+                            <KeyRound className="w-4 h-4" />
                           </Button>
                           
                           <AlertDialog>
@@ -384,6 +431,45 @@ export default function Operadores() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Dialog de Redefinir Senha */}
+        <Dialog open={!!resetPasswordOperador} onOpenChange={(open) => { if (!open) setResetPasswordOperador(null) }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Redefinir Senha - {resetPasswordOperador?.nome}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="new-password">Nova Senha *</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirm-password">Confirmar Senha *</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repita a nova senha"
+                />
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleResetPassword} className="flex-1" disabled={resettingPassword}>
+                  {resettingPassword ? 'Redefinindo...' : 'Redefinir Senha'}
+                </Button>
+                <Button variant="outline" onClick={() => setResetPasswordOperador(null)}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   )
