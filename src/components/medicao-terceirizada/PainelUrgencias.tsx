@@ -182,7 +182,17 @@ export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrge
 export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgenciasProps) {
   const urgentes = useMemo(() => getServicosUrgentes(servicos), [servicos])
 
-  if (urgentes.length === 0) return null
+  if (urgentes.length === 0) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Clock className="h-10 w-10 mb-3 opacity-50" />
+          <p className="text-sm font-medium">Nenhum serviço com prazo crítico no momento</p>
+          <p className="text-xs mt-1">Serviços de Religação e Desligamento com prazos apertados aparecerão aqui.</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const vencidos = urgentes.filter(u => u.nivel === 'vencido').length
   const criticos = urgentes.filter(u => u.nivel === 'critico').length
