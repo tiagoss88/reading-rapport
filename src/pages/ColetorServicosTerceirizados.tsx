@@ -393,9 +393,6 @@ export default function ColetorServicosTerceirizados() {
                     </p>
                     {getStatusBadge(servico.status_atendimento)}
                   </div>
-                  {servico.morador_nome && (
-                    <p className="text-sm text-muted-foreground truncate">{servico.morador_nome}</p>
-                  )}
                   <p className="text-sm truncate">{servico.condominio_nome_original}</p>
                   {(servico.bloco || servico.apartamento) && (
                     <p className="text-xs text-muted-foreground">
@@ -403,6 +400,9 @@ export default function ColetorServicosTerceirizados() {
                       {servico.bloco && servico.apartamento && ' - '}
                       {servico.apartamento && `Apto ${servico.apartamento}`}
                     </p>
+                  )}
+                  {servico.morador_nome && (
+                    <p className="text-sm text-muted-foreground truncate">{servico.morador_nome}</p>
                   )}
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
