@@ -17,6 +17,7 @@ import ServicoNacionalGasDialog from '@/components/medicao-terceirizada/ServicoN
 import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHistoricoDialog'
 import AgendaSemanal from '@/components/medicao-terceirizada/AgendaSemanal'
 import NovoServicoNacionalGasDialog from '@/components/medicao-terceirizada/NovoServicoNacionalGasDialog'
+import PainelUrgencias from '@/components/medicao-terceirizada/PainelUrgencias'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
@@ -171,6 +172,11 @@ export default function ServicosNacionalGas() {
   return (
     <Layout title="Serviços">
       <div className="space-y-6">
+        {/* Painel de urgências */}
+        {servicos && (
+          <PainelUrgencias servicos={servicos} onEditServico={handleEdit} />
+        )}
+
         {/* Alerta de serviços não associados */}
         {servicosNaoAssociados > 0 && (
           <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10">
