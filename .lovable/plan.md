@@ -1,40 +1,28 @@
 
 
-## Tela de detalhes do servico terceirizado no coletor
+## Reordenar informacoes nos cards da lista de servicos
 
 ### O que muda
-Ao clicar em um servico na lista, em vez de nao acontecer nada, abre uma tela de detalhes completa com todas as informacoes do servico. O botao "Marcar como Executado" sai da listagem e vai para dentro dessa tela, com confirmacao antes de executar.
+Alterar a ordem das informacoes nos cards da lista para:
 
-### Fluxo do usuario
-1. Operador ve a lista de servicos (cards simplificados, sem botao de executar)
-2. Clica em um card
-3. Abre tela de detalhes mostrando:
-   - Tipo de servico (titulo)
-   - Status (badge)
-   - Nome do morador
-   - Telefone
-   - Email
-   - Condominio
-   - Bloco / Apartamento
-   - Data de agendamento e turno
-   - Observacao
-4. Botao "Marcar como Executado" no final
-5. Ao clicar, aparece um dialog de confirmacao: "Tem certeza que deseja marcar este servico como executado?"
-6. Confirma -> atualiza status -> volta para a lista
+1. Tipo de servico + Status (mesma linha)
+2. Condominio
+3. Bloco / APT
+4. Cliente (nome do morador)
 
-### Alteracoes tecnicas
+### Alteracao tecnica
 
-**1. `src/pages/ColetorServicosTerceirizados.tsx`**
-- Adicionar `telefone` e `email` na query do Supabase e na interface `ServicoTerceirizado`
-- Adicionar state `selectedServico` para controlar qual servico esta aberto
-- Remover o botao "Marcar como Executado" dos cards da lista
-- Tornar os cards clicaveis (onClick -> setSelectedServico)
-- Adicionar state `showConfirmDialog` para o double-check
-- Renderizar condicionalmente: se `selectedServico` existe, mostra a tela de detalhes; senao, mostra a lista
-- Na tela de detalhes:
-  - Botao de voltar (seta) que limpa `selectedServico`
-  - Todas as informacoes do servico em layout limpo
-  - Botao "Marcar como Executado" ao final
-- Dialog de confirmacao usando `AlertDialog` antes de executar a acao
+**`src/pages/ColetorServicosTerceirizados.tsx`** (linhas 389-407)
 
-Nenhum arquivo novo precisa ser criado - todas as alteracoes ficam no mesmo componente para manter a simplicidade.
+Reordenar os elementos dentro do card, movendo o nome do morador para depois do bloco/apartamento:
+
+```text
+Antes:                          Depois:
+1. Tipo + Status                1. Tipo + Status
+2. Morador                      2. Condominio
+3. Condominio                   3. Bloco / APT
+4. Bloco / APT                  4. Morador (cliente)
+```
+
+Alteracao simples de posicao dos elementos JSX, sem mudanca de logica ou dados.
+
