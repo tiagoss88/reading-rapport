@@ -1,21 +1,28 @@
 
 
-## Corrigir deploy da Edge Function `reset-operador-password`
+## Corrigir deploy da Edge Function de reset de senha
 
 ### Problema
-A Edge Function `reset-operador-password` existe no codigo mas nao foi implantada no Supabase. O erro "Failed to send a request to the Edge Function" indica que a funcao nao esta acessivel no servidor.
+A Edge Function `reset-operador-password` nao esta sendo implantada no Supabase apesar do codigo estar correto. Ja foram feitas 3 tentativas de redeploy sem sucesso. O erro "Failed to fetch" indica que a URL da funcao nao existe no servidor.
 
 ### Solucao
-Reescrever a funcao com uma pequena simplificacao para forcar o deploy. A mudanca principal sera remover a dependencia do Zod (que pode estar causando falha no deploy) e fazer a validacao manualmente, alinhando o estilo com as outras Edge Functions que ja funcionam.
+Recriar a funcao com um nome diferente (`reset-password`) para contornar possiveis problemas de cache de deploy. Tambem atualizar a chamada no frontend para usar o novo nome.
 
 ### Alteracoes
 
-**Arquivo: `supabase/functions/reset-operador-password/index.ts`**
-- Remover import do Zod (possivel causa de falha no deploy)
-- Fazer validacao manual dos campos `operador_id` e `new_password`
-- Manter toda a logica de autenticacao, permissoes e reset de senha
-- Manter os CORS headers completos
+**1. Criar `supabase/functions/reset-password/index.ts`**
+- Mesmo codigo da funcao atual, mas em uma pasta com nome novo
+- Manter os mesmos imports, CORS, logica de autenticacao e reset
 
-### Detalhes tecnicos
-As outras Edge Functions (`create-operador`, `delete-operador`) usam Zod sem problemas, porem o import `https://deno.land/x/zod@v3.22.4/mod.ts` pode estar falhando no ambiente de deploy. Simplificar a funcao removendo essa dependencia elimina esse ponto de falha. Se o problema for outro (como cache de deploy), a reescrita completa do arquivo tambem forca um novo deploy limpo.
+**2. Atualizar `supabase/config.toml`**
+- Substituir a entrada `[functions.reset-operador-password]` por `[functions.reset-password]`
+- Manter `verify_jwt = false`
 
+**3. Atualizar `src/pages/Operadores.tsx`**
+- Alterar a chamada de `supabase.functions.invoke('reset-operador-password', ...)` para `supabase.functions.invoke('reset-password', ...)`
+
+**4. Remover `supabase/functions/reset-operador-password/index.ts`**
+- Limpar a funcao antiga que nao esta deployando
+
+### Por que essa abordagem
+Renomear a funcao forca o Lovable a criar um deploy completamente novo, evitando qualquer cache ou estado corrompido do deploy anterior. As outras funcoes (`create-operador`, `delete-operador`) funcionam normalmente, entao o problema e especifico desta funcao.
