@@ -1,39 +1,31 @@
 
+## Redirecionar operadores automaticamente para o coletor
 
-## Reordenar detalhes e adicionar botao de copiar
+### Problema atual
+Quando um operador faz login (seja pela tela `/coletor/login` ou pela tela `/login`), ele pode acessar rotas administrativas como `/dashboard`. O sistema nao diferencia o destino com base no papel do usuario.
 
 ### O que muda
-
-**1. Reordenar campos na tela de detalhes** para a seguinte ordem:
-1. Tipo de servico (titulo, ja esta no topo)
-2. Condominio
-3. Bloco / APT
-4. Morador
-5. Telefone
-6. E-mail
-7. Agendamento
-8. Observacao
-
-**2. Adicionar botao de copiar** ao lado de cada informacao, permitindo que o operador copie rapidamente o dado com um toque. Ao copiar, exibe um feedback visual (toast ou icone temporario de "copiado").
+1. **Login do operador redireciona para o coletor** - Ao fazer login, se o usuario tiver papel de operador (operador_completo, operador_leitura, operador_servicos), ele sera redirecionado automaticamente para `/coletor` em vez de `/dashboard`.
+2. **Rotas administrativas bloqueiam operadores** - O `ProtectedRoute` (usado nas rotas admin) passa a verificar se o usuario e operador e, nesse caso, redireciona para `/coletor`.
+3. **Login administrativo (`/login`) tambem redireciona operadores** - Se um operador entrar pela tela admin, ele sera levado ao coletor.
 
 ### Alteracoes tecnicas
 
-**`src/pages/ColetorServicosTerceirizados.tsx`**
+**1. `src/components/ProtectedRoute.tsx`**
+- Importar `usePermissions` do contexto de permissoes
+- Verificar se o usuario possui apenas papeis de operador (sem `admin` nem `gestor_empreendimento`)
+- Se for operador puro, redirecionar para `/coletor` com `<Navigate to="/coletor" replace />`
 
-- Importar icone `Copy` e `Check` do lucide-react
-- Criar funcao auxiliar `copyToClipboard(text)` que usa `navigator.clipboard.writeText` e mostra toast de confirmacao
-- Criar componente inline `CopyButton` que renderiza um botao pequeno com icone de copiar, e ao clicar muda para icone de check por 2 segundos
-- Reordenar os blocos JSX na tela de detalhes (linhas 224-295):
-  - Mover Condominio + Bloco/APT para logo apos o titulo
-  - Morador vem depois
-  - Telefone depois
-  - Email depois
-  - Agendamento e Observacao por ultimo
-- Adicionar `CopyButton` ao lado do valor em cada campo (morador, telefone, email, condominio)
+**2. `src/pages/Login.tsx`**
+- Apos o login bem-sucedido, consultar os papeis do usuario
+- Se for operador, redirecionar para `/coletor` em vez de `/`
+- No redirect automatico (quando `user` ja existe), tambem verificar o papel
 
-Layout de cada campo ficara assim:
-```text
-[icone]  Label
-         Valor    [botao copiar]
-```
+**3. `src/pages/ColetorLogin.tsx`**
+- Manter o comportamento atual (ja redireciona para `/coletor`)
+- Nenhuma alteracao necessaria
 
+**4. `src/pages/Index.tsx`**
+- Adicionar verificacao de papel: se operador, redirecionar para `/coletor` em vez de `/dashboard`
+
+Dessa forma, o operador fica restrito ao sistema do coletor independentemente de como ele faca login.
