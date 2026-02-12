@@ -1,31 +1,30 @@
 
-## Redirecionar operadores automaticamente para o coletor
-
-### Problema atual
-Quando um operador faz login (seja pela tela `/coletor/login` ou pela tela `/login`), ele pode acessar rotas administrativas como `/dashboard`. O sistema nao diferencia o destino com base no papel do usuario.
+## Transformar o app em PWA (instalavel pelo navegador)
 
 ### O que muda
-1. **Login do operador redireciona para o coletor** - Ao fazer login, se o usuario tiver papel de operador (operador_completo, operador_leitura, operador_servicos), ele sera redirecionado automaticamente para `/coletor` em vez de `/dashboard`.
-2. **Rotas administrativas bloqueiam operadores** - O `ProtectedRoute` (usado nas rotas admin) passa a verificar se o usuario e operador e, nesse caso, redireciona para `/coletor`.
-3. **Login administrativo (`/login`) tambem redireciona operadores** - Se um operador entrar pela tela admin, ele sera levado ao coletor.
+O operador podera "instalar" o app no celular diretamente pelo Chrome (opcao "Instalar app" ou "Adicionar a tela inicial"), com o icone/logo da AGASEN. O app abrira em tela cheia, sem barra do navegador, como um app nativo.
 
 ### Alteracoes tecnicas
 
-**1. `src/components/ProtectedRoute.tsx`**
-- Importar `usePermissions` do contexto de permissoes
-- Verificar se o usuario possui apenas papeis de operador (sem `admin` nem `gestor_empreendimento`)
-- Se for operador puro, redirecionar para `/coletor` com `<Navigate to="/coletor" replace />`
+**1. Instalar dependencia `vite-plugin-pwa`**
 
-**2. `src/pages/Login.tsx`**
-- Apos o login bem-sucedido, consultar os papeis do usuario
-- Se for operador, redirecionar para `/coletor` em vez de `/`
-- No redirect automatico (quando `user` ja existe), tambem verificar o papel
+**2. Configurar `vite.config.ts`**
+- Adicionar o plugin `VitePWA` com:
+  - Manifest com nome "AGASEN - Coletor", cores da marca, icones (192px e 512px)
+  - `display: 'standalone'` para abrir sem barra do navegador
+  - `navigateFallbackDenylist: [/^\/~oauth/]` para nao interferir com autenticacao
+  - Registro automatico do service worker
 
-**3. `src/pages/ColetorLogin.tsx`**
-- Manter o comportamento atual (ja redireciona para `/coletor`)
-- Nenhuma alteracao necessaria
+**3. Copiar logo da AGASEN para icones PWA**
+- Copiar a imagem do favicon atual para `public/icon-192.png` e `public/icon-512.png` (substituindo os existentes)
+- Atualizar `index.html` com meta tags para PWA:
+  - `<meta name="theme-color">` com a cor da marca
+  - `<link rel="apple-touch-icon">` para iOS
+  - `<link rel="manifest">` (gerado automaticamente pelo plugin)
 
-**4. `src/pages/Index.tsx`**
-- Adicionar verificacao de papel: se operador, redirecionar para `/coletor` em vez de `/dashboard`
+**4. Atualizar `index.html`**
+- Adicionar meta tags de tema e apple-touch-icon
+- Atualizar titulo para "AGASEN - Coletor"
+- Manter o favicon atual
 
-Dessa forma, o operador fica restrito ao sistema do coletor independentemente de como ele faca login.
+Apos essas alteracoes, quando o operador acessar o app pelo Chrome no celular, o navegador exibira automaticamente a opcao "Instalar app" ou o operador pode ir em Menu > "Instalar app" / "Adicionar a tela inicial".
