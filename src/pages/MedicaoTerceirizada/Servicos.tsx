@@ -197,7 +197,7 @@ export default function ServicosNacionalGas() {
             </TabsTrigger>
             <TabsTrigger value="prazos" className="relative">
               <AlertTriangle className="mr-1.5 h-4 w-4" />
-              Prazos
+              Urgências
               {urgentesCount > 0 && (
                 <Badge className="ml-1.5 h-5 min-w-[20px] px-1.5 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
                   {urgentesCount}
