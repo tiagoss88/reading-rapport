@@ -1,35 +1,37 @@
 
 
-## Melhorar responsividade do menu lateral
+## Sidebar minimizavel no desktop
 
-### Problemas identificados
+### O que muda
+Adicionar um botao para minimizar/expandir o menu lateral no desktop. Quando minimizado, o sidebar mostra apenas os icones (sem texto), liberando mais espaco para o conteudo principal como o mapa.
 
-1. **Submenus fecham ao navegar**: Os estados `medicaoTerceirizadaOpen` e `configuracoesOpen` iniciam como `false`. Quando o usuario navega para um subitem, o menu fecha (no mobile) e ao reabrir, os dropdowns estao fechados -- o usuario perde o contexto de onde esta.
+### Comportamento
 
-2. **No mobile, o sidebar fecha ao clicar em qualquer item**: O `onClick={() => setSidebarOpen(false)}` esta em todos os NavLinks, inclusive nos subitens. Isso e correto no mobile (pois o sidebar e um overlay), mas os dropdowns deveriam reabrir automaticamente mostrando o item ativo.
+- **Expandido** (padrao): sidebar com 256px (w-64), mostrando icones + textos como hoje
+- **Minimizado**: sidebar com ~64px (w-16), mostrando apenas icones centralizados
+- **Botao de toggle**: um botao com icone de seta no rodape ou topo do sidebar para alternar entre os estados
+- **Tooltips**: no modo minimizado, ao passar o mouse sobre um icone, exibir o nome do item via atributo `title`
+- **Dropdowns**: no modo minimizado, os dropdowns (Medicao Terceirizada, Configuracoes) ficam ocultos -- ao expandir, reaparecem normalmente
+- **Transicao suave**: animacao CSS na largura do sidebar
 
-### Solucao
+### Alteracoes
 
 **Arquivo: `src/components/Layout.tsx`**
 
-1. **Auto-abrir o dropdown que contem a rota atual**: Usar `useLocation()` do React Router para detectar a rota atual e inicializar os estados dos dropdowns automaticamente.
-
-2. **Inicializar estados com base na rota**: Em vez de `useState(false)`, calcular o estado inicial verificando se a rota atual pertence ao grupo:
-   - Se a URL comeca com `/medicao-terceirizada` -> `medicaoTerceirizadaOpen = true`
-   - Se a URL comeca com `/configuracoes`, `/operadores` ou `/permissions` -> `configuracoesOpen = true`
-
-3. **Manter dropdowns abertos no mobile**: Quando o usuario clica em um subitem no mobile, o sidebar fecha (comportamento correto), mas ao reabrir, o dropdown correto estara aberto automaticamente porque o estado e derivado da rota.
+1. Adicionar estado `collapsed` com `useState(false)`
+2. Alterar a classe do sidebar de `w-64` fixo para condicional: `collapsed ? 'w-16' : 'w-64'`
+3. Ocultar textos quando `collapsed` e true (nome dos itens, titulo "Sistema de Leituras", labels dos dropdowns)
+4. Centralizar icones no modo colapsado
+5. Ocultar subitens de dropdowns quando colapsado
+6. Adicionar botao de toggle (icone `PanelLeftClose`/`PanelLeftOpen` ou `ChevronLeft`/`ChevronRight`) no header do sidebar
+7. Ajustar o botao "Sair" para mostrar apenas o icone quando colapsado
+8. Adicionar `title` nos itens de navegacao para tooltip nativo no modo colapsado
+9. Importar icones adicionais (`PanelLeftClose`, `PanelLeftOpen`) de lucide-react
 
 ### Detalhes tecnicos
 
-- Importar `useLocation` de `react-router-dom`
-- Usar `useMemo` ou logica direta para determinar qual dropdown deve estar aberto
-- Trocar `useState(false)` por `useState(() => pathname.startsWith('/medicao-terceirizada'))` para Medicao Terceirizada
-- Trocar `useState(false)` por `useState(() => ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))` para Configuracoes
-- Adicionar `useEffect` que reage a mudancas de rota para garantir que o dropdown correto abre quando o usuario navega
+- O estado `collapsed` so se aplica no desktop (lg+). No mobile, o comportamento atual com overlay permanece inalterado
+- A transicao de largura usa `transition-all duration-300` para animacao suave
+- O conteudo principal se ajusta automaticamente pois usa `flex-1`
+- O logo pode ser trocado para versao compacta (apenas icone) no modo colapsado
 
-### Resultado esperado
-
-- Ao acessar qualquer pagina dentro de "Medicao Terceirizada", o dropdown ja aparece aberto com o item ativo destacado
-- No mobile, ao reabrir o menu lateral, o dropdown correto esta expandido e o item atual esta visualmente destacado (com `bg-primary`)
-- O usuario sempre sabe em qual secao do sistema esta navegando
