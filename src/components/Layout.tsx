@@ -16,7 +16,9 @@ import {
   BarChart3,
   Shield,
   Handshake,
-  Navigation2
+  Navigation2,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -29,6 +31,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const { signOut } = useAuth()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   
   const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
   const [configuracoesOpen, setConfiguracoesOpen] = useState(() => ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))
@@ -51,7 +54,6 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench }
   ]
 
-
   const configuracoesItems = [
     { name: 'Sistema', href: '/configuracoes/sistema', icon: Settings, role: 'admin' },
     { name: 'Tipos de Serviço', href: '/configuracoes/tipos-servico', icon: Wrench, permission: 'manage_operadores' },
@@ -59,148 +61,185 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Permissões', href: '/permissions', icon: Shield, role: 'admin' }
   ]
 
+  const navLinkClass = (isActive: boolean) =>
+    `flex items-center ${collapsed ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+      isActive
+        ? 'bg-primary text-primary-foreground'
+        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+    }`
+
+  const subNavLinkClass = (isActive: boolean) =>
+    `flex items-center ${collapsed ? 'justify-center' : ''} px-3 py-2 text-sm rounded-md transition-colors ${
+      isActive
+        ? 'bg-primary text-primary-foreground'
+        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+    }`
+
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex h-16 items-center justify-between px-6 border-b">
-          <div className="flex items-center gap-3">
+      <div className={`fixed inset-y-0 left-0 z-50 ${collapsed ? 'w-16' : 'w-64'} bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex h-16 items-center justify-between px-3 border-b">
+          {!collapsed && (
+            <div className="flex items-center gap-3 overflow-hidden">
+              <img 
+                src="/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png" 
+                alt="Agasen Logo" 
+                className="h-8 w-auto object-contain flex-shrink-0"
+              />
+              <h1 className="text-lg font-semibold whitespace-nowrap">Sistema de Leituras</h1>
+            </div>
+          )}
+          {collapsed && (
             <img 
               src="/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png" 
               alt="Agasen Logo" 
-              className="h-8 w-auto object-contain"
+              className="h-8 w-8 object-contain mx-auto"
             />
-            <h1 className="text-lg font-semibold">Sistema de Leituras</h1>
-          </div>
+          )}
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden flex-shrink-0"
             onClick={() => setSidebarOpen(false)}
           >
             <Menu className="h-5 w-5" />
           </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden lg:flex flex-shrink-0"
+            onClick={() => setCollapsed(!collapsed)}
+            title={collapsed ? 'Expandir menu' : 'Minimizar menu'}
+          >
+            {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+          </Button>
         </div>
         <nav className="mt-6 flex-1">
           <div className="space-y-1 px-3">
-            {/* 1. Dashboard */}
+            {/* Dashboard */}
             {navigation.slice(0, 1).map((item) => (
               <ProtectedComponent key={item.name} permission={item.permission as any}>
                 <NavLink
                   to={item.href}
-                  className={({ isActive }) =>
-                    `flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`
-                  }
+                  title={item.name}
+                  className={({ isActive }) => navLinkClass(isActive)}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                  {item.name}
+                  <item.icon className={`h-5 w-5 flex-shrink-0 ${collapsed ? '' : 'mr-3'}`} />
+                  {!collapsed && item.name}
                 </NavLink>
               </ProtectedComponent>
             ))}
             
-            {/* 2. Medição Terceirizada Dropdown */}
+            {/* Medição Terceirizada Dropdown */}
             <ProtectedComponent roles={["admin", "gestor_empreendimento"]}>
               <div className="space-y-1">
-                <button
-                  onClick={() => setMedicaoTerceirizadaOpen(!medicaoTerceirizadaOpen)}
-                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  <div className="flex items-center">
-                    <Handshake className="mr-3 h-5 w-5 flex-shrink-0" />
-                    Medição Terceirizada
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${medicaoTerceirizadaOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {medicaoTerceirizadaOpen && (
-                  <div className="ml-8 space-y-1">
-                    {medicaoTerceirizadaItems.map((item) => (
-                      <NavLink
-                        key={item.name}
-                        to={item.href}
-                        className={({ isActive }) =>
-                          `flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
-                            isActive
-                              ? 'bg-primary text-primary-foreground'
-                              : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                          }`
-                        }
-                        onClick={() => setSidebarOpen(false)}
-                      >
-                        <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
-                        {item.name}
-                      </NavLink>
-                    ))}
-                  </div>
+                {collapsed ? (
+                  <NavLink
+                    to="/medicao-terceirizada/empreendimentos"
+                    title="Medição Terceirizada"
+                    className={({ isActive }) => navLinkClass(isActive || pathname.startsWith('/medicao-terceirizada'))}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Handshake className="h-5 w-5 flex-shrink-0" />
+                  </NavLink>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setMedicaoTerceirizadaOpen(!medicaoTerceirizadaOpen)}
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <div className="flex items-center">
+                        <Handshake className="mr-3 h-5 w-5 flex-shrink-0" />
+                        Medição Terceirizada
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${medicaoTerceirizadaOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {medicaoTerceirizadaOpen && (
+                      <div className="ml-8 space-y-1">
+                        {medicaoTerceirizadaItems.map((item) => (
+                          <NavLink
+                            key={item.name}
+                            to={item.href}
+                            title={item.name}
+                            className={({ isActive }) => subNavLinkClass(isActive)}
+                            onClick={() => setSidebarOpen(false)}
+                          >
+                            <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                            {item.name}
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </ProtectedComponent>
             
-            
-            {/* 4-5. Relatórios, Rastreamento */}
+            {/* Relatórios, Rastreamento */}
             {navigation.slice(1).map((item) => (
               <ProtectedComponent key={item.name} permission={item.permission as any}>
                 <NavLink
                   to={item.href}
-                  className={({ isActive }) =>
-                    `flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`
-                  }
+                  title={item.name}
+                  className={({ isActive }) => navLinkClass(isActive)}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                  {item.name}
+                  <item.icon className={`h-5 w-5 flex-shrink-0 ${collapsed ? '' : 'mr-3'}`} />
+                  {!collapsed && item.name}
                 </NavLink>
               </ProtectedComponent>
             ))}
             
-            {/* 6. Configurações Dropdown - Admin/Manage Operadores */}
+            {/* Configurações Dropdown */}
             <ProtectedComponent permissions={["manage_operadores"]} roles={["admin"]}>
               <div className="space-y-1">
-                <button
-                  onClick={() => setConfiguracoesOpen(!configuracoesOpen)}
-                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                  <div className="flex items-center">
-                    <Settings className="mr-3 h-5 w-5 flex-shrink-0" />
-                    Configurações
-                  </div>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${configuracoesOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {configuracoesOpen && (
-                  <div className="ml-8 space-y-1">
-                    {configuracoesItems.map((item) => (
-                      <ProtectedComponent 
-                        key={item.name} 
-                        permission={item.permission as any}
-                        role={item.role as any}
-                      >
-                        <NavLink
-                          to={item.href}
-                          className={({ isActive }) =>
-                            `flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
-                              isActive
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                            }`
-                          }
-                          onClick={() => setSidebarOpen(false)}
-                        >
-                          <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
-                          {item.name}
-                        </NavLink>
-                      </ProtectedComponent>
-                    ))}
-                  </div>
+                {collapsed ? (
+                  <NavLink
+                    to="/configuracoes/sistema"
+                    title="Configurações"
+                    className={({ isActive }) => navLinkClass(isActive || ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Settings className="h-5 w-5 flex-shrink-0" />
+                  </NavLink>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setConfiguracoesOpen(!configuracoesOpen)}
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <div className="flex items-center">
+                        <Settings className="mr-3 h-5 w-5 flex-shrink-0" />
+                        Configurações
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${configuracoesOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {configuracoesOpen && (
+                      <div className="ml-8 space-y-1">
+                        {configuracoesItems.map((item) => (
+                          <ProtectedComponent 
+                            key={item.name} 
+                            permission={item.permission as any}
+                            role={item.role as any}
+                          >
+                            <NavLink
+                              to={item.href}
+                              title={item.name}
+                              className={({ isActive }) => subNavLinkClass(isActive)}
+                              onClick={() => setSidebarOpen(false)}
+                            >
+                              <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                              {item.name}
+                            </NavLink>
+                          </ProtectedComponent>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </ProtectedComponent>
@@ -212,9 +251,10 @@ export default function Layout({ children, title }: LayoutProps) {
             size="sm"
             onClick={signOut}
             className="w-full"
+            title="Sair"
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair
+            <LogOut className={`h-4 w-4 ${collapsed ? '' : 'mr-2'}`} />
+            {!collapsed && 'Sair'}
           </Button>
         </div>
       </div>
