@@ -12,7 +12,8 @@ const resetPasswordSchema = z.object({
   new_password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(72, 'Senha muito longa'),
 })
 
-serve(async (req) => {
+serve(async (req: Request) => {
+  console.log('Reset password function called:', req.method)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
