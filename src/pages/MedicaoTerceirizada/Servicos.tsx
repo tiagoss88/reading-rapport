@@ -108,7 +108,7 @@ export default function ServicosNacionalGas() {
         .from('servicos_nacional_gas')
         .select(`
           *,
-          empreendimento:empreendimentos_terceirizados(nome, endereco),
+          empreendimento:empreendimentos_terceirizados(nome, endereco, rota),
           tecnico:operadores(nome)
         `)
         .order('created_at', { ascending: false })

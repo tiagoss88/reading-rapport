@@ -24,7 +24,7 @@ interface ServicoNacionalGas {
   observacao?: string | null
   uf: string
   empreendimento_id?: string | null
-  empreendimento?: { nome: string; endereco?: string } | null
+  empreendimento?: { nome: string; endereco?: string; rota?: number } | null
 }
 
 interface AgendaSemanalProps {
@@ -160,6 +160,8 @@ export default function AgendaSemanal({ servicos, onSelectServico }: AgendaSeman
 
   const renderCard = (servico: ServicoNacionalGas) => {
     const bairro = extrairBairro((servico.empreendimento as any)?.endereco)
+    const rota = (servico.empreendimento as any)?.rota
+    const hasBlocoApt = servico.bloco || servico.apartamento
     return (
       <div
         key={servico.id}
@@ -167,11 +169,17 @@ export default function AgendaSemanal({ servicos, onSelectServico }: AgendaSeman
         onDragStart={(e) => handleDragStart(e, servico.id)}
         onDragEnd={handleDragEnd}
         onClick={() => onSelectServico(servico)}
-        className={`p-2 rounded-md border border-l-4 ${statusCardBorder[servico.status_atendimento] || ''} bg-card cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-xs space-y-1 ${draggedId === servico.id ? 'opacity-50' : ''}`}
+        className={`p-2 rounded-md border border-l-4 ${statusCardBorder[servico.status_atendimento] || ''} bg-card cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow text-xs space-y-0.5 ${draggedId === servico.id ? 'opacity-50' : ''}`}
       >
         <p className="font-semibold text-foreground truncate">{servico.condominio_nome_original}</p>
-        <p className="text-muted-foreground truncate">{bairro}</p>
-        <p className="text-muted-foreground truncate">{servico.tipo_servico}</p>
+        {hasBlocoApt && (
+          <p className="text-muted-foreground truncate">
+            {servico.bloco ? `Bloco ${servico.bloco}` : ''}
+            {servico.bloco && servico.apartamento ? ' - ' : ''}
+            {servico.apartamento ? `Apto ${servico.apartamento}` : ''}
+          </p>
+        )}
+        <p className="text-muted-foreground truncate uppercase">{servico.tipo_servico}</p>
         <Badge className={`text-[10px] px-1.5 py-0 ${statusColors[servico.status_atendimento] || ''}`}>
           {statusLabels[servico.status_atendimento] || servico.status_atendimento}
         </Badge>
