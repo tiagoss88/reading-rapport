@@ -1,28 +1,39 @@
 
 
-## Reordenar informacoes nos cards da lista de servicos
+## Reordenar detalhes e adicionar botao de copiar
 
 ### O que muda
-Alterar a ordem das informacoes nos cards da lista para:
 
-1. Tipo de servico + Status (mesma linha)
+**1. Reordenar campos na tela de detalhes** para a seguinte ordem:
+1. Tipo de servico (titulo, ja esta no topo)
 2. Condominio
 3. Bloco / APT
-4. Cliente (nome do morador)
+4. Morador
+5. Telefone
+6. E-mail
+7. Agendamento
+8. Observacao
 
-### Alteracao tecnica
+**2. Adicionar botao de copiar** ao lado de cada informacao, permitindo que o operador copie rapidamente o dado com um toque. Ao copiar, exibe um feedback visual (toast ou icone temporario de "copiado").
 
-**`src/pages/ColetorServicosTerceirizados.tsx`** (linhas 389-407)
+### Alteracoes tecnicas
 
-Reordenar os elementos dentro do card, movendo o nome do morador para depois do bloco/apartamento:
+**`src/pages/ColetorServicosTerceirizados.tsx`**
 
+- Importar icone `Copy` e `Check` do lucide-react
+- Criar funcao auxiliar `copyToClipboard(text)` que usa `navigator.clipboard.writeText` e mostra toast de confirmacao
+- Criar componente inline `CopyButton` que renderiza um botao pequeno com icone de copiar, e ao clicar muda para icone de check por 2 segundos
+- Reordenar os blocos JSX na tela de detalhes (linhas 224-295):
+  - Mover Condominio + Bloco/APT para logo apos o titulo
+  - Morador vem depois
+  - Telefone depois
+  - Email depois
+  - Agendamento e Observacao por ultimo
+- Adicionar `CopyButton` ao lado do valor em cada campo (morador, telefone, email, condominio)
+
+Layout de cada campo ficara assim:
 ```text
-Antes:                          Depois:
-1. Tipo + Status                1. Tipo + Status
-2. Morador                      2. Condominio
-3. Condominio                   3. Bloco / APT
-4. Bloco / APT                  4. Morador (cliente)
+[icone]  Label
+         Valor    [botao copiar]
 ```
-
-Alteracao simples de posicao dos elementos JSX, sem mudanca de logica ou dados.
 
