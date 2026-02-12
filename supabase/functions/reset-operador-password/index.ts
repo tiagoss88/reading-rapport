@@ -1,21 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-const resetPasswordSchema = z.object({
-  operador_id: z.string().uuid('ID do operador inválido'),
-  new_password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(72, 'Senha muito longa'),
-})
-
 serve(async (req: Request) => {
-  console.log('Reset password function called:', req.method)
+  console.log('Reset operador password function v2 called:', req.method)
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
@@ -47,7 +42,6 @@ serve(async (req: Request) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Check permissions
     const { data: hasAdminRole } = await supabaseAdmin.rpc('has_role', {
       _user_id: user.id,
       _role: 'admin'
@@ -65,19 +59,23 @@ serve(async (req: Request) => {
       )
     }
 
-    const requestBody = await req.json()
-    const validationResult = resetPasswordSchema.safeParse(requestBody)
+    const body = await req.json()
+    const { operador_id, new_password } = body
 
-    if (!validationResult.success) {
+    if (!operador_id || typeof operador_id !== 'string') {
       return new Response(
-        JSON.stringify({ error: validationResult.error.errors.map(e => e.message).join(', ') }),
+        JSON.stringify({ error: 'ID do operador é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { operador_id, new_password } = validationResult.data
+    if (!new_password || typeof new_password !== 'string' || new_password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Senha deve ter pelo menos 8 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-    // Get operador's user_id
     const { data: operador, error: opError } = await supabaseAdmin
       .from('operadores')
       .select('user_id, nome')
@@ -91,7 +89,6 @@ serve(async (req: Request) => {
       )
     }
 
-    // Reset password
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       operador.user_id,
       { password: new_password }
