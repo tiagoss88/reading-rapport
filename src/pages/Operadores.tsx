@@ -204,7 +204,7 @@ export default function Operadores() {
 
     setResettingPassword(true)
     try {
-      const { data, error } = await supabase.functions.invoke('reset-operador-password', {
+      const { data, error } = await supabase.functions.invoke('reset-password', {
         body: { operador_id: resetPasswordOperador.id, new_password: newPassword }
       })
 

@@ -7,7 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req: Request) => {
-  console.log('Reset operador password function v2 called:', req.method)
+  console.log('Reset password function called:', req.method)
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
