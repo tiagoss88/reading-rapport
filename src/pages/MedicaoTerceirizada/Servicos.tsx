@@ -17,7 +17,7 @@ import ServicoNacionalGasDialog from '@/components/medicao-terceirizada/ServicoN
 import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHistoricoDialog'
 import AgendaSemanal from '@/components/medicao-terceirizada/AgendaSemanal'
 import NovoServicoNacionalGasDialog from '@/components/medicao-terceirizada/NovoServicoNacionalGasDialog'
-import PainelUrgencias from '@/components/medicao-terceirizada/PainelUrgencias'
+import PainelUrgencias, { getServicosUrgentes } from '@/components/medicao-terceirizada/PainelUrgencias'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
@@ -168,15 +168,11 @@ export default function ServicosNacionalGas() {
   }
 
   const servicosNaoAssociados = servicos?.filter(s => !s.empreendimento_id).length || 0
+  const urgentesCount = servicos ? getServicosUrgentes(servicos).length : 0
 
   return (
     <Layout title="Serviços">
       <div className="space-y-6">
-        {/* Painel de urgências */}
-        {servicos && (
-          <PainelUrgencias servicos={servicos} onEditServico={handleEdit} />
-        )}
-
         {/* Alerta de serviços não associados */}
         {servicosNaoAssociados > 0 && (
           <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10">
@@ -198,6 +194,15 @@ export default function ServicosNacionalGas() {
             <TabsTrigger value="agenda">
               <CalendarDays className="mr-1.5 h-4 w-4" />
               Agenda
+            </TabsTrigger>
+            <TabsTrigger value="prazos" className="relative">
+              <AlertTriangle className="mr-1.5 h-4 w-4" />
+              Prazos
+              {urgentesCount > 0 && (
+                <Badge className="ml-1.5 h-5 min-w-[20px] px-1.5 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                  {urgentesCount}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -374,6 +379,14 @@ export default function ServicosNacionalGas() {
           <TabsContent value="agenda">
             {servicos ? (
               <AgendaSemanal servicos={servicos} onSelectServico={handleEdit} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="prazos">
+            {servicos ? (
+              <PainelUrgencias servicos={servicos} onEditServico={handleEdit} />
             ) : (
               <div className="text-center py-8 text-muted-foreground">Carregando...</div>
             )}
