@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, User, Building2, Calendar, Clock, CheckCircle, Loader2, AlertCircle, Phone, Mail, ChevronRight } from 'lucide-react'
+import { ArrowLeft, User, Building2, Calendar, Clock, CheckCircle, Loader2, AlertCircle, Phone, Mail, ChevronRight, Copy, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -170,6 +170,22 @@ export default function ColetorServicosTerceirizados() {
     }
   }
 
+  const CopyButton = ({ text }: { text: string }) => {
+    const [copied, setCopied] = useState(false)
+    const handleCopy = (e: React.MouseEvent) => {
+      e.stopPropagation()
+      navigator.clipboard.writeText(text)
+      setCopied(true)
+      toast({ title: 'Copiado!', description: text })
+      setTimeout(() => setCopied(false), 2000)
+    }
+    return (
+      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleCopy}>
+        {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
+      </Button>
+    )
+  }
+
   const handleConfirmExecutar = () => {
     if (selectedServico) {
       updateStatus(selectedServico.id, 'executado')
@@ -221,62 +237,75 @@ export default function ColetorServicosTerceirizados() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Condomínio */}
+              <div className="flex items-center gap-3">
+                <Building2 className="w-5 h-5 text-muted-foreground shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground">Condomínio</p>
+                  <p className="font-medium">{selectedServico.condominio_nome_original}</p>
+                </div>
+                <CopyButton text={selectedServico.condominio_nome_original} />
+              </div>
+
+              {/* Bloco / APT */}
+              {(selectedServico.bloco || selectedServico.apartamento) && (
+                <div className="flex items-center gap-3">
+                  <Building2 className="w-5 h-5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground">Bloco / APT</p>
+                    <p className="font-medium">
+                      {selectedServico.bloco && `Bloco ${selectedServico.bloco}`}
+                      {selectedServico.bloco && selectedServico.apartamento && ' - '}
+                      {selectedServico.apartamento && `Apto ${selectedServico.apartamento}`}
+                    </p>
+                  </div>
+                  <CopyButton text={`${selectedServico.bloco ? `Bloco ${selectedServico.bloco}` : ''}${selectedServico.bloco && selectedServico.apartamento ? ' - ' : ''}${selectedServico.apartamento ? `Apto ${selectedServico.apartamento}` : ''}`} />
+                </div>
+              )}
+
               {/* Morador */}
               {selectedServico.morador_nome && (
                 <div className="flex items-center gap-3">
-                  <User className="w-5 h-5 text-muted-foreground" />
-                  <div>
+                  <User className="w-5 h-5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">Morador</p>
                     <p className="font-medium">{selectedServico.morador_nome}</p>
                   </div>
+                  <CopyButton text={selectedServico.morador_nome} />
                 </div>
               )}
 
               {/* Telefone */}
               {selectedServico.telefone && (
                 <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-muted-foreground" />
-                  <div>
+                  <Phone className="w-5 h-5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">Telefone</p>
                     <a href={`tel:${selectedServico.telefone}`} className="font-medium text-primary">
                       {selectedServico.telefone}
                     </a>
                   </div>
+                  <CopyButton text={selectedServico.telefone} />
                 </div>
               )}
 
               {/* Email */}
               {selectedServico.email && (
                 <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-muted-foreground" />
-                  <div>
+                  <Mail className="w-5 h-5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">Email</p>
                     <p className="font-medium text-sm">{selectedServico.email}</p>
                   </div>
+                  <CopyButton text={selectedServico.email} />
                 </div>
               )}
-
-              {/* Condomínio */}
-              <div className="flex items-start gap-3">
-                <Building2 className="w-5 h-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Condomínio</p>
-                  <p className="font-medium">{selectedServico.condominio_nome_original}</p>
-                  {(selectedServico.bloco || selectedServico.apartamento) && (
-                    <p className="text-sm text-muted-foreground">
-                      {selectedServico.bloco && `Bloco ${selectedServico.bloco}`}
-                      {selectedServico.bloco && selectedServico.apartamento && ' - '}
-                      {selectedServico.apartamento && `Apto ${selectedServico.apartamento}`}
-                    </p>
-                  )}
-                </div>
-              </div>
 
               {/* Data e Turno */}
               {selectedServico.data_agendamento && (
                 <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-muted-foreground" />
-                  <div>
+                  <Calendar className="w-5 h-5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">Agendamento</p>
                     <p className="font-medium">
                       {format(new Date(selectedServico.data_agendamento), "dd/MM/yyyy", { locale: ptBR })}
@@ -290,7 +319,10 @@ export default function ColetorServicosTerceirizados() {
               {selectedServico.observacao && (
                 <div className="pt-2 border-t">
                   <p className="text-xs text-muted-foreground mb-1">Observação</p>
-                  <p className="text-sm bg-muted p-3 rounded-md">{selectedServico.observacao}</p>
+                  <div className="flex items-start gap-2">
+                    <p className="text-sm bg-muted p-3 rounded-md flex-1">{selectedServico.observacao}</p>
+                    <CopyButton text={selectedServico.observacao} />
+                  </div>
                 </div>
               )}
 
