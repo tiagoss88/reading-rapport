@@ -1,37 +1,39 @@
 
-
-## Sidebar minimizavel no desktop
+## Adicionar insercao manual de servicos
 
 ### O que muda
-Adicionar um botao para minimizar/expandir o menu lateral no desktop. Quando minimizado, o sidebar mostra apenas os icones (sem texto), liberando mais espaco para o conteudo principal como o mapa.
-
-### Comportamento
-
-- **Expandido** (padrao): sidebar com 256px (w-64), mostrando icones + textos como hoje
-- **Minimizado**: sidebar com ~64px (w-16), mostrando apenas icones centralizados
-- **Botao de toggle**: um botao com icone de seta no rodape ou topo do sidebar para alternar entre os estados
-- **Tooltips**: no modo minimizado, ao passar o mouse sobre um icone, exibir o nome do item via atributo `title`
-- **Dropdowns**: no modo minimizado, os dropdowns (Medicao Terceirizada, Configuracoes) ficam ocultos -- ao expandir, reaparecem normalmente
-- **Transicao suave**: animacao CSS na largura do sidebar
+Adicionar um botao "Novo Servico" ao lado do botao "Importar Planilha" na pagina de Servicos, permitindo cadastrar um servico pontual manualmente atraves de um formulario em dialog.
 
 ### Alteracoes
 
-**Arquivo: `src/components/Layout.tsx`**
+**Arquivo 1: Novo componente `src/components/medicao-terceirizada/NovoServicoNacionalGasDialog.tsx`**
 
-1. Adicionar estado `collapsed` com `useState(false)`
-2. Alterar a classe do sidebar de `w-64` fixo para condicional: `collapsed ? 'w-16' : 'w-64'`
-3. Ocultar textos quando `collapsed` e true (nome dos itens, titulo "Sistema de Leituras", labels dos dropdowns)
-4. Centralizar icones no modo colapsado
-5. Ocultar subitens de dropdowns quando colapsado
-6. Adicionar botao de toggle (icone `PanelLeftClose`/`PanelLeftOpen` ou `ChevronLeft`/`ChevronRight`) no header do sidebar
-7. Ajustar o botao "Sair" para mostrar apenas o icone quando colapsado
-8. Adicionar `title` nos itens de navegacao para tooltip nativo no modo colapsado
-9. Importar icones adicionais (`PanelLeftClose`, `PanelLeftOpen`) de lucide-react
+Criar um dialog com formulario completo para insercao manual, contendo os campos:
+- **UF** (obrigatorio) - Select com opcoes BA e CE
+- **Condominio** (obrigatorio) - Input texto livre + Select opcional para vincular a um empreendimento cadastrado
+- **Bloco** - Input texto (opcional)
+- **Apartamento** - Input texto (opcional)
+- **Morador** - Input texto (opcional)
+- **Telefone** - Input texto (opcional)
+- **Email** - Input texto (opcional)
+- **Tipo de Servico** (obrigatorio) - Input texto
+- **Data Solicitacao** - Input date (opcional)
+- **Data Agendamento** - Input date (opcional)
+- **Turno** - Select manha/tarde (opcional)
+- **Tecnico** - Select com operadores ativos (opcional)
+- **Status** - Select (pendente, agendado, executado, cancelado), padrao "pendente"
+- **Observacao** - Textarea (opcional)
 
-### Detalhes tecnicos
+O formulario usara `react-hook-form` + `zod` para validacao, seguindo o mesmo padrao do `ServicoNacionalGasDialog` existente. Ao salvar, fara um `insert` na tabela `servicos_nacional_gas` e invalidara a query `servicos-nacional-gas`.
 
-- O estado `collapsed` so se aplica no desktop (lg+). No mobile, o comportamento atual com overlay permanece inalterado
-- A transicao de largura usa `transition-all duration-300` para animacao suave
-- O conteudo principal se ajusta automaticamente pois usa `flex-1`
-- O logo pode ser trocado para versao compacta (apenas icone) no modo colapsado
+Tambem buscara os empreendimentos cadastrados para permitir vinculacao opcional via select.
 
+**Arquivo 2: `src/pages/MedicaoTerceirizada/Servicos.tsx`**
+
+- Importar o novo componente `NovoServicoNacionalGasDialog`
+- Adicionar estado `novoDialogOpen`
+- Adicionar botao "Novo Servico" (com icone `Plus`) ao lado do botao "Importar Planilha" no header do card
+- Renderizar o dialog controlado pelo estado
+
+### Resultado esperado
+O usuario tera um botao "Novo Servico" que abre um formulario completo para cadastrar solicitacoes pontuais sem precisar importar uma planilha.
