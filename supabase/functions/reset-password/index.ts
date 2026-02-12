@@ -6,9 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
-serve(async (req: Request) => {
-  console.log('Reset password function called:', req.method)
+function generatePassword(length = 12): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  const array = new Uint8Array(length)
+  crypto.getRandomValues(array)
+  return Array.from(array, b => chars[b % chars.length]).join('')
+}
 
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -60,18 +65,11 @@ serve(async (req: Request) => {
     }
 
     const body = await req.json()
-    const { operador_id, new_password } = body
+    const { operador_id } = body
 
     if (!operador_id || typeof operador_id !== 'string') {
       return new Response(
         JSON.stringify({ error: 'ID do operador é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (!new_password || typeof new_password !== 'string' || new_password.length < 8) {
-      return new Response(
-        JSON.stringify({ error: 'Senha deve ter pelo menos 8 caracteres' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -89,9 +87,11 @@ serve(async (req: Request) => {
       )
     }
 
+    const newPassword = generatePassword(12)
+
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
       operador.user_id,
-      { password: new_password }
+      { password: newPassword }
     )
 
     if (updateError) throw updateError
@@ -99,7 +99,7 @@ serve(async (req: Request) => {
     console.log(`Senha redefinida para operador ${operador.nome} por usuário ${user.id}`)
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Senha redefinida com sucesso' }),
+      JSON.stringify({ success: true, generated_password: newPassword }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {

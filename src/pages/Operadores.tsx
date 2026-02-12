@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Plus, Pencil, Trash2, KeyRound } from 'lucide-react'
+import { Search, Plus, Pencil, Trash2, KeyRound, Copy, Check } from 'lucide-react'
 import { operadorSchema } from '@/lib/validation'
 import { z } from 'zod'
 
@@ -32,9 +32,9 @@ export default function Operadores() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingOperador, setEditingOperador] = useState<Operador | null>(null)
   const [resetPasswordOperador, setResetPasswordOperador] = useState<Operador | null>(null)
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [generatedPassword, setGeneratedPassword] = useState('')
   const [resettingPassword, setResettingPassword] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -193,34 +193,30 @@ export default function Operadores() {
   const handleResetPassword = async () => {
     if (!resetPasswordOperador) return
 
-    if (newPassword.length < 8) {
-      toast({ title: "Erro", description: "Senha deve ter pelo menos 8 caracteres", variant: "destructive" })
-      return
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ title: "Erro", description: "As senhas não coincidem", variant: "destructive" })
-      return
-    }
-
     setResettingPassword(true)
     try {
       const { data, error } = await supabase.functions.invoke('reset-password', {
-        body: { operador_id: resetPasswordOperador.id, new_password: newPassword }
+        body: { operador_id: resetPasswordOperador.id }
       })
 
       if (error) throw error
       if (data?.error) throw new Error(data.error)
 
-      toast({ title: "Sucesso", description: "Senha redefinida com sucesso" })
-      setResetPasswordOperador(null)
-      setNewPassword('')
-      setConfirmPassword('')
+      setGeneratedPassword(data.generated_password)
+      toast({ title: "Sucesso", description: "Nova senha gerada com sucesso" })
     } catch (error: any) {
       console.error('Erro ao redefinir senha:', error)
       toast({ title: "Erro", description: error.message || "Erro ao redefinir senha", variant: "destructive" })
+      setResetPasswordOperador(null)
     } finally {
       setResettingPassword(false)
     }
+  }
+
+  const handleCopyPassword = async () => {
+    await navigator.clipboard.writeText(generatedPassword)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const filteredOperadores = operadores.filter(operador =>
@@ -385,8 +381,8 @@ export default function Operadores() {
                             size="sm"
                             onClick={() => {
                               setResetPasswordOperador(operador)
-                              setNewPassword('')
-                              setConfirmPassword('')
+                              setGeneratedPassword('')
+                              setCopied(false)
                             }}
                             title="Redefinir Senha"
                           >
@@ -433,41 +429,39 @@ export default function Operadores() {
         </Card>
 
         {/* Dialog de Redefinir Senha */}
-        <Dialog open={!!resetPasswordOperador} onOpenChange={(open) => { if (!open) setResetPasswordOperador(null) }}>
+        <Dialog open={!!resetPasswordOperador} onOpenChange={(open) => { if (!open) { setResetPasswordOperador(null); setGeneratedPassword('') } }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Redefinir Senha - {resetPasswordOperador?.nome}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="new-password">Nova Senha *</Label>
-                <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                />
-              </div>
-              <div>
-                <Label htmlFor="confirm-password">Confirmar Senha *</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repita a nova senha"
-                />
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button onClick={handleResetPassword} className="flex-1" disabled={resettingPassword}>
-                  {resettingPassword ? 'Redefinindo...' : 'Redefinir Senha'}
-                </Button>
-                <Button variant="outline" onClick={() => setResetPasswordOperador(null)}>
-                  Cancelar
+            {generatedPassword ? (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">Nova senha gerada com sucesso. Copie e envie ao operador:</p>
+                <div className="flex items-center gap-2 p-3 bg-muted rounded-md font-mono text-lg tracking-wider">
+                  <span className="flex-1 select-all">{generatedPassword}</span>
+                  <Button variant="ghost" size="sm" onClick={handleCopyPassword}>
+                    {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <Button className="w-full" onClick={() => { setResetPasswordOperador(null); setGeneratedPassword('') }}>
+                  Fechar
                 </Button>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Deseja gerar uma nova senha aleatória para <strong>{resetPasswordOperador?.nome}</strong>?
+                </p>
+                <div className="flex gap-2 pt-2">
+                  <Button onClick={handleResetPassword} className="flex-1" disabled={resettingPassword}>
+                    {resettingPassword ? 'Gerando...' : 'Gerar Nova Senha'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setResetPasswordOperador(null)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
