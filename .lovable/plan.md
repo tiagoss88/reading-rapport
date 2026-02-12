@@ -1,39 +1,50 @@
 
-## Adicionar insercao manual de servicos
 
-### O que muda
-Adicionar um botao "Novo Servico" ao lado do botao "Importar Planilha" na pagina de Servicos, permitindo cadastrar um servico pontual manualmente atraves de um formulario em dialog.
+## Painel de alertas para servicos urgentes (Religacao/Desligamento)
 
-### Alteracoes
+### Objetivo
+Criar um sistema de alertas visuais que destaque servicos com prazo critico, garantindo que Religacoes (48h uteis), Desligamentos (48h uteis) e Religacoes Emergenciais (24h uteis) nunca sejam esquecidos.
 
-**Arquivo 1: Novo componente `src/components/medicao-terceirizada/NovoServicoNacionalGasDialog.tsx`**
+### Como vai funcionar
 
-Criar um dialog com formulario completo para insercao manual, contendo os campos:
-- **UF** (obrigatorio) - Select com opcoes BA e CE
-- **Condominio** (obrigatorio) - Input texto livre + Select opcional para vincular a um empreendimento cadastrado
-- **Bloco** - Input texto (opcional)
-- **Apartamento** - Input texto (opcional)
-- **Morador** - Input texto (opcional)
-- **Telefone** - Input texto (opcional)
-- **Email** - Input texto (opcional)
-- **Tipo de Servico** (obrigatorio) - Input texto
-- **Data Solicitacao** - Input date (opcional)
-- **Data Agendamento** - Input date (opcional)
-- **Turno** - Select manha/tarde (opcional)
-- **Tecnico** - Select com operadores ativos (opcional)
-- **Status** - Select (pendente, agendado, executado, cancelado), padrao "pendente"
-- **Observacao** - Textarea (opcional)
+O sistema vai calcular automaticamente o prazo restante com base na **data de solicitacao** (`data_solicitacao`) de cada servico, considerando apenas dias uteis (segunda a sexta). Os servicos serao classificados em 3 niveis:
 
-O formulario usara `react-hook-form` + `zod` para validacao, seguindo o mesmo padrao do `ServicoNacionalGasDialog` existente. Ao salvar, fara um `insert` na tabela `servicos_nacional_gas` e invalidara a query `servicos-nacional-gas`.
+- **Vermelho (Vencido)**: prazo ja expirou
+- **Laranja (Critico)**: faltam menos de 8 horas uteis
+- **Amarelo (Atencao)**: dentro do prazo, mas com menos da metade restante
 
-Tambem buscara os empreendimentos cadastrados para permitir vinculacao opcional via select.
+Apenas servicos com status **pendente** ou **agendado** (nao executados/cancelados) serao monitorados.
 
-**Arquivo 2: `src/pages/MedicaoTerceirizada/Servicos.tsx`**
+### O que sera adicionado
 
-- Importar o novo componente `NovoServicoNacionalGasDialog`
-- Adicionar estado `novoDialogOpen`
-- Adicionar botao "Novo Servico" (com icone `Plus`) ao lado do botao "Importar Planilha" no header do card
-- Renderizar o dialog controlado pelo estado
+**1. Novo componente: Painel de Urgencias**
+- Arquivo: `src/components/medicao-terceirizada/PainelUrgencias.tsx`
+- Um card com icone de alerta que lista os servicos urgentes ordenados por prazo (mais urgente primeiro)
+- Cada item mostra: condominio, apartamento, tipo de servico, tempo restante (ex: "Vencido ha 3h", "Falta 12h uteis") e um badge colorido com o nivel de urgencia
+- Botao para abrir o servico diretamente para edicao/agendamento
+- Funcao utilitaria interna para calcular horas uteis entre duas datas
 
-### Resultado esperado
-O usuario tera um botao "Novo Servico" que abre um formulario completo para cadastrar solicitacoes pontuais sem precisar importar uma planilha.
+**2. Pagina de Servicos (`src/pages/MedicaoTerceirizada/Servicos.tsx`)**
+- O painel de urgencias sera exibido no topo da pagina, acima das tabs, quando houver servicos urgentes
+- Ficara visivel junto ao alerta de servicos nao associados ja existente
+
+**3. Dashboard (`src/pages/Dashboard.tsx`)**
+- Adicionar um card resumo mostrando a quantidade de servicos vencidos e criticos, com link direto para a pagina de Servicos
+- Usar cores vermelha/laranja para chamar atencao imediata
+
+### Regras de prazo
+
+| Tipo de Servico | Prazo |
+|---|---|
+| Religacao Emergencial | 24 horas uteis |
+| Religacao | 48 horas uteis |
+| Desligamento | 48 horas uteis |
+
+A deteccao do tipo sera feita verificando se o campo `tipo_servico` contem as palavras-chave (case-insensitive): "religacao emergencial", "religacao" ou "desligamento".
+
+### Detalhes tecnicos
+
+- Criar funcao `calcularHorasUteisRestantes(dataSolicitacao: Date, prazoHoras: number): number` que calcula quantas horas uteis restam, considerando horario comercial (8h-18h, seg-sex)
+- A query de servicos ja existente sera reutilizada -- o componente recebe os servicos como prop e filtra localmente
+- Tipos de servico serao detectados por `includes` no texto, tratando acentos e case (ex: "RELIGAÇÃO EMERGENCIAL", "religacao emergencial")
+- Os servicos sem `data_solicitacao` serao tratados como urgentes (exibidos com alerta de "data nao informada")
