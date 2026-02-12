@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays } from 'lucide-react'
+import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays, Plus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -16,6 +16,7 @@ import ImportarPlanilhaDialog from '@/components/medicao-terceirizada/ImportarPl
 import ServicoNacionalGasDialog from '@/components/medicao-terceirizada/ServicoNacionalGasDialog'
 import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHistoricoDialog'
 import AgendaSemanal from '@/components/medicao-terceirizada/AgendaSemanal'
+import NovoServicoNacionalGasDialog from '@/components/medicao-terceirizada/NovoServicoNacionalGasDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
@@ -67,6 +68,7 @@ const statusLabels: Record<string, string> = {
 
 export default function ServicosNacionalGas() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [novoDialogOpen, setNovoDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -207,6 +209,10 @@ export default function ServicosNacionalGas() {
                       Excluir ({selectedIds.size})
                     </Button>
                   )}
+                  <Button variant="outline" onClick={() => setNovoDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Novo Serviço
+                  </Button>
                   <Button onClick={() => setImportDialogOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Importar Planilha
@@ -372,6 +378,11 @@ export default function ServicosNacionalGas() {
       <ImportarPlanilhaDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
+      />
+
+      <NovoServicoNacionalGasDialog
+        open={novoDialogOpen}
+        onOpenChange={setNovoDialogOpen}
       />
 
       {selectedServico && (
