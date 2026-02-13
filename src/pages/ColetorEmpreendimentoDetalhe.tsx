@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { ArrowLeft, Building2, Gauge, Camera, CheckCircle, Navigation, MapPin } from 'lucide-react'
+import { ArrowLeft, Building2, Gauge, Camera, CheckCircle, Navigation, MapPin, ImagePlus } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
 
@@ -13,7 +13,8 @@ export default function ColetorEmpreendimentoDetalhe() {
   const { empreendimentoId } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const [foto, setFoto] = useState<File | null>(null)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
@@ -215,32 +216,58 @@ export default function ColetorEmpreendimentoDetalhe() {
                   alt="Comprovante"
                   className="w-full rounded-lg border object-cover max-h-64"
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Camera className="w-4 h-4 mr-2" />
-                  Trocar Foto
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cameraInputRef.current?.click()}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Tirar Foto
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => galleryInputRef.current?.click()}
+                  >
+                    <ImagePlus className="w-4 h-4 mr-2" />
+                    Galeria
+                  </Button>
+                </div>
               </div>
             ) : (
-              <Button
-                variant="outline"
-                className="w-full h-32 border-dashed border-2 flex flex-col items-center justify-center gap-2 text-gray-500"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Camera className="w-8 h-8" />
-                <span className="text-sm">Tirar Foto / Selecionar</span>
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  className="h-32 border-dashed border-2 flex flex-col items-center justify-center gap-2 text-gray-500"
+                  onClick={() => cameraInputRef.current?.click()}
+                >
+                  <Camera className="w-8 h-8" />
+                  <span className="text-sm">Tirar Foto</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-32 border-dashed border-2 flex flex-col items-center justify-center gap-2 text-gray-500"
+                  onClick={() => galleryInputRef.current?.click()}
+                >
+                  <ImagePlus className="w-8 h-8" />
+                  <span className="text-sm">Galeria</span>
+                </Button>
+              </div>
             )}
 
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
               type="file"
               accept="image/*"
               capture="environment"
+              onChange={handleFotoCapture}
+              className="hidden"
+            />
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
               onChange={handleFotoCapture}
               className="hidden"
             />
