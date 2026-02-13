@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: 'AGASEN - Coletor',
         short_name: 'AGASEN',
+        start_url: '/',
         description: 'Sistema de coleta de leituras e serviços',
         theme_color: '#1e3a5f',
         background_color: '#ffffff',

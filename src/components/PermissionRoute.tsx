@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { usePermissions, AppPermission, AppRole } from '@/contexts/PermissionsContext'
 
+const OPERATOR_ROLES = ['operador_completo', 'operador_leitura', 'operador_servicos'] as const
+
 interface PermissionRouteProps {
   children: React.ReactNode
   permission?: AppPermission
@@ -21,7 +23,7 @@ export default function PermissionRoute({
   requireAll = false,
   redirectTo = '/not-authorized'
 }: PermissionRouteProps) {
-  const { hasPermission, hasRole, loading, refreshPermissions } = usePermissions()
+  const { hasPermission, hasRole, roles: userRoles, loading, refreshPermissions } = usePermissions()
 
   // Refresh permissions silently when component mounts
   useEffect(() => {
@@ -72,6 +74,13 @@ export default function PermissionRoute({
   const hasAccess = hasRequiredPermissions && hasRequiredRoles
 
   if (!hasAccess) {
+    // If user is operator-only, redirect to coletor instead of not-authorized
+    const isOperatorOnly = userRoles.length > 0 && userRoles.every(r =>
+      (OPERATOR_ROLES as readonly string[]).includes(r)
+    )
+    if (isOperatorOnly) {
+      return <Navigate to="/coletor" replace />
+    }
     return <Navigate to={redirectTo} replace />
   }
 
