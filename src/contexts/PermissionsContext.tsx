@@ -124,8 +124,11 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   }
 
   useEffect(() => {
+    // Reset loading state when user changes to prevent race condition
+    setInitialLoadComplete(false)
+    setLoading(true)
     fetchUserPermissions()
-  }, [user])
+  }, [user?.id])
 
   const hasPermission = (permission: AppPermission): boolean => {
     return permissions.includes(permission)
