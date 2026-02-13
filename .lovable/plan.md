@@ -1,36 +1,32 @@
 
 
-## Corrigir loading infinito no PermissionsContext
+## Corrigir redirecionamento de operadores e remover tela "Acesso nao autorizado"
 
-### Problema
-No `useEffect` (linha 126-131), fazemos:
-1. `setInitialLoadComplete(false)` - agenda atualização de estado
-2. `setLoading(true)` - agenda atualização de estado
-3. `fetchUserPermissions()` - executa imediatamente
+### Problema atual
+Operadores estao chegando na pagina `/not-authorized` ("Voce nao tem permissao para acessar esta pagina") em vez de serem redirecionados para `/coletor`. Isso acontece porque:
+- O `PermissionRoute` redireciona para `/not-authorized` quando o usuario nao tem a permissao necessaria
+- A pagina `/not-authorized` nao verifica se o usuario e operador para redireciona-lo ao coletor
+- Ao dar refresh em rotas admin, o operador pode cair nessa tela
 
-O problema e que `fetchUserPermissions` captura o valor antigo de `initialLoadComplete` (ainda `true` do render anterior). Resultado:
-- Linha 59: `if (!initialLoadComplete)` e `false` (valor antigo e `true`), entao vai para o `else` e seta `refreshing` em vez de `loading`
-- Linha 118 (finally): `if (!initialLoadComplete)` e `false` novamente, entao **nunca executa** `setLoading(false)`
-- Loading fica `true` para sempre
+### Alteracoes
 
-### Solucao
-Modificar `fetchUserPermissions` para aceitar um parametro `isReset` que indica se e um reset de usuario. Quando `isReset = true`, a funcao sempre seta `loading = true` no inicio e `loading = false` no finally, independente de `initialLoadComplete`.
+**1. `src/pages/NotAuthorized.tsx`** - Transformar em redirecionador inteligente
+- Em vez de mostrar a mensagem de erro, verificar o perfil do usuario
+- Se for operador, redirecionar para `/coletor`
+- Se for admin/gestor sem permissao para aquela pagina especifica, redirecionar para `/dashboard`
+- Remover completamente a tela de "Voce nao tem permissao"
 
-### Alteracao
+**2. `src/components/PermissionRoute.tsx`** - Ajustar redirect padrao
+- Alterar o `redirectTo` padrao de `/not-authorized` para logica condicional:
+  - Operadores sempre redirecionam para `/coletor`
+  - Outros usuarios redirecionam para `/dashboard`
+- Isso elimina a necessidade da pagina NotAuthorized
 
-**`src/contexts/PermissionsContext.tsx`**
+**3. `src/components/ProtectedRoute.tsx`** - Sem alteracoes
+- A logica atual ja redireciona operadores para `/coletor`, esta correta
 
-Alterar a funcao `fetchUserPermissions` para receber um parametro opcional `isReset`:
+### Resultado esperado
+- Admin faz login ou refresh: ve o dashboard normalmente
+- Operador faz login ou refresh em qualquer rota: sempre vai para `/coletor`
+- A tela "Voce nao tem permissao" nunca mais aparece para ninguem
 
-```text
-fetchUserPermissions(isReset?: boolean):
-  - Se isReset ou !initialLoadComplete: setar loading = true
-  - Senao: setar refreshing = true
-  - No finally: 
-    - Se isReset ou !initialLoadComplete: setar initialLoadComplete = true, loading = false
-    - Sempre: setar refreshing = false
-```
-
-E no useEffect, chamar `fetchUserPermissions(true)` para indicar que e um reset de usuario.
-
-Isso garante que o `loading` seja corretamente gerenciado independente do estado da closure.
