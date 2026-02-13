@@ -11,7 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff } from 'lucide-react'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
 const extrairFotoUrl = (observacao: string | null) => {
@@ -392,14 +392,22 @@ export default function LeiturasTerceirizadas() {
       </Tabs>
 
       <Dialog open={!!fotoSelecionada} onOpenChange={(open) => !open && setFotoSelecionada(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Foto Comprovante</DialogTitle>
+            <p className="text-sm text-muted-foreground">Clique na imagem para ampliar em nova aba</p>
+          </DialogHeader>
           {fotoSelecionada && (
             <img
               src={fotoSelecionada}
               alt="Foto comprovante da coleta"
-              className="w-full h-auto rounded-md"
+              className="w-full max-h-[60vh] object-contain rounded-md cursor-pointer"
+              onClick={() => window.open(fotoSelecionada, '_blank')}
             />
           )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFotoSelecionada(null)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </Layout>
