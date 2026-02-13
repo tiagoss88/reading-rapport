@@ -1,45 +1,44 @@
 
 
-## Nova pagina "Leituras" dentro de Medicao Terceirizada
+## Melhorias no Coletor de Leituras Terceirizadas
 
-### Objetivo
-Criar uma nova pagina acessivel em `/medicao-terceirizada/leituras` que permita ao gestor acompanhar o status das coletas: quais condominios ja foram coletados, quais estao pendentes e qual a rota planejada para o dia.
+### Alteracao 1 - Busca por nome do empreendimento
 
-### Estrutura da pagina
+Adicionar um campo de busca por texto na pagina `ColetorLeiturasTerceirizadas.tsx` que permite ao operador encontrar um empreendimento digitando o nome, sem precisar saber a UF ou Rota.
 
-A pagina tera 3 abas (Tabs):
+**Como vai funcionar:**
+- Um campo de pesquisa aparece no topo, acima dos filtros de UF/Rota
+- Ao digitar pelo menos 3 caracteres, o sistema busca diretamente no banco por empreendimentos cujo nome contenha o texto digitado (busca `ilike`)
+- Os resultados aparecem na lista, substituindo temporariamente o filtro por UF/Rota
+- Ao limpar a busca, volta ao modo de filtro normal por UF e Rota
+- Icone de busca (Search) no campo para deixar claro a funcionalidade
 
-**Aba 1 - Rota do Dia**
-- Mostra a data atual (com seletor de data para consultar outros dias)
-- Lista os empreendimentos planejados para o dia (tabela `rotas_leitura` filtrada pela data)
-- Colunas: Condominio, Rota, Medidores, Operador Atribuido, Status (pendente/em andamento/concluido)
-- Badge colorido por status
+### Alteracao 2 - Upload de imagem da galeria
 
-**Aba 2 - Coletas Realizadas**
-- Filtros: Competencia (mes/ano), UF (opcional), Rota (opcional)
-- Lista coletas confirmadas pelo coletor (tabela `servicos_nacional_gas` com `tipo_servico = 'leitura'` e `status_atendimento = 'executado'`)
-- Colunas: Condominio, UF, Rota, Medidores, Tecnico, Data da Coleta, Foto (link)
-- Ordenado por data mais recente
+Na pagina `ColetorEmpreendimentoDetalhe.tsx`, o input de foto ja aceita arquivos da galeria tecnicamente, pois usa `accept="image/*"`. Porem o atributo `capture="environment"` forca a abertura da camera em alguns dispositivos moveis.
 
-**Aba 3 - Pendentes**
-- Mostra empreendimentos que ainda NAO tiveram coleta registrada na competencia selecionada
-- Cruza `empreendimentos_terceirizados` com `servicos_nacional_gas` para identificar quem falta
-- Colunas: Condominio, UF, Rota, Medidores
-- Destaque visual para facilitar identificacao
+**Solucao:**
+- Remover o atributo `capture="environment"` do input existente
+- Substituir o botao unico por dois botoes separados:
+  - **"Tirar Foto"** - abre a camera (usa um segundo input com `capture="environment"`)
+  - **"Galeria"** - abre a galeria de imagens (usa o input sem capture)
+- Ambos os botoes alimentam o mesmo estado de foto/preview
+- Layout lado a lado para facil acesso
 
 ---
 
 ### Detalhes tecnicos
 
-**Arquivos novos:**
-1. `src/pages/MedicaoTerceirizada/Leituras.tsx` - Pagina principal com as 3 abas
+**Arquivo 1: `src/pages/ColetorLeiturasTerceirizadas.tsx`**
+- Adicionar estado `searchTerm` e input de busca com icone `Search`
+- Nova query condicional: quando `searchTerm.length >= 3`, buscar com `.ilike('nome', '%termo%')` ignorando filtros de UF/Rota
+- Quando busca esta ativa, esconder selects de UF/Rota e mostrar resultados da busca
+- Botao para limpar busca e voltar ao modo filtro
 
-**Arquivos modificados:**
-2. `src/App.tsx` - Adicionar rota `/medicao-terceirizada/leituras` com permissao admin
-3. `src/components/Layout.tsx` - Adicionar item "Leituras" no submenu de Medicao Terceirizada (com icone `BookOpen` ou `ClipboardCheck`)
-
-**Queries principais:**
-- Rota do dia: `rotas_leitura` filtrada por data, com join em `empreendimentos_terceirizados` e `operadores`
-- Coletas realizadas: `servicos_nacional_gas` filtrada por `tipo_servico = 'leitura'` e `status_atendimento = 'executado'`, com join em `empreendimentos_terceirizados` e `operadores`
-- Pendentes: todos os `empreendimentos_terceirizados` menos os que ja tem coleta na competencia selecionada
+**Arquivo 2: `src/pages/ColetorEmpreendimentoDetalhe.tsx`**
+- Adicionar segundo `ref` para o input da camera (`cameraInputRef`)
+- Input da camera: `accept="image/*" capture="environment"`
+- Input da galeria: `accept="image/*"` (sem capture)
+- Substituir o botao unico de foto por dois botoes lado a lado: "Tirar Foto" (icone Camera) e "Galeria" (icone ImagePlus/Upload)
+- Ambos chamam o mesmo `handleFotoCapture`
 
