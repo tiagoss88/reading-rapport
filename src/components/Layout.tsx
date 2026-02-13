@@ -18,7 +18,8 @@ import {
   Handshake,
   Navigation2,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  BookOpen
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -49,6 +50,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const medicaoTerceirizadaItems = [
     { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
+    { name: 'Leituras', href: '/medicao-terceirizada/leituras', icon: BookOpen },
     { name: 'Planejamento de Rotas', href: '/medicao-terceirizada/rotas', icon: MapPin },
     { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench }
