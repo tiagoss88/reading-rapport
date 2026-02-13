@@ -10,7 +10,15 @@ import { supabase } from '@/integrations/supabase/client'
 import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, CheckCircle2, Clock, Loader2 } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff } from 'lucide-react'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+
+const extrairFotoUrl = (observacao: string | null) => {
+  if (!observacao) return null
+  const match = observacao.match(/Foto comprovante: (.+)/)
+  return match ? match[1].trim() : null
+}
 
 const statusBadge = (status: string) => {
   switch (status) {
@@ -34,6 +42,7 @@ export default function LeiturasTerceirizadas() {
   const [competencia, setCompetencia] = useState(getCompetenciaAtual())
   const [filtroUF, setFiltroUF] = useState<string>('todas')
   const [filtroRota, setFiltroRota] = useState<string>('todas')
+  const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
@@ -261,12 +270,14 @@ export default function LeiturasTerceirizadas() {
                       <TableHead>Medidores</TableHead>
                       <TableHead>Técnico</TableHead>
                       <TableHead>Data da Coleta</TableHead>
+                      <TableHead>Foto</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {coletasFiltradas.map(coleta => {
                       const emp = coleta.empreendimentos_terceirizados as any
                       const tecnico = coleta.operadores as any
+                      const fotoUrl = extrairFotoUrl(coleta.observacao)
                       return (
                         <TableRow key={coleta.id}>
                           <TableCell className="font-medium">{emp?.nome || coleta.condominio_nome_original}</TableCell>
@@ -278,6 +289,20 @@ export default function LeiturasTerceirizadas() {
                             {coleta.data_agendamento
                               ? format(parseISO(coleta.data_agendamento), 'dd/MM/yyyy')
                               : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {fotoUrl ? (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setFotoSelecionada(fotoUrl)}
+                                title="Ver foto"
+                              >
+                                <Image className="h-4 w-4 text-primary" />
+                              </Button>
+                            ) : (
+                              <ImageOff className="h-4 w-4 text-muted-foreground" />
+                            )}
                           </TableCell>
                         </TableRow>
                       )
@@ -365,6 +390,18 @@ export default function LeiturasTerceirizadas() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!fotoSelecionada} onOpenChange={(open) => !open && setFotoSelecionada(null)}>
+        <DialogContent className="max-w-2xl">
+          {fotoSelecionada && (
+            <img
+              src={fotoSelecionada}
+              alt="Foto comprovante da coleta"
+              className="w-full h-auto rounded-md"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   )
 }
