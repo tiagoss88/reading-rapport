@@ -1,31 +1,26 @@
 
 
-## Visualizar foto do comprovante nas Coletas Realizadas
+## Melhorar o visualizador de fotos na pagina de Leituras
 
-### O que muda
-Na aba "Coletas Realizadas" da pagina de Leituras, sera adicionada uma nova coluna "Foto" na tabela. Cada linha mostrara um icone clicavel (miniatura ou botao) que abre a foto do comprovante em um lightbox/dialog para visualizacao ampliada.
+### Problema
+O dialog de foto ocupa toda a tela, nao tem botao de fechar visivel e nao permite zoom na imagem.
 
-### Como vai funcionar
-- Uma nova coluna "Foto" aparece na tabela de coletas realizadas
-- Se a coleta possui foto (extraida do campo `observacao` que contem "Foto comprovante: URL"), aparece um icone/miniatura clicavel
-- Ao clicar, um Dialog abre com a imagem em tamanho ampliado
-- Se nao ha foto, mostra um indicador "Sem foto"
+### Solucao
+Melhorar o componente Dialog de visualizacao de foto em `src/pages/MedicaoTerceirizada/Leituras.tsx`:
+
+1. **Limitar tamanho do dialog** - usar `max-w-lg` e `max-h-[80vh]` para que nao ocupe toda a tela
+2. **Botao de fechar visivel** - adicionar DialogHeader com titulo "Foto Comprovante" e botao X claro
+3. **Zoom na imagem** - ao clicar na imagem, abrir em uma nova aba do navegador (`window.open`) para visualizacao em tamanho real, ou implementar um toggle de zoom dentro do dialog com `object-contain` e scroll
+4. **Imagem com proporcao correta** - usar `object-contain` e limitar altura para caber na tela
 
 ### Detalhes tecnicos
 
-**Arquivo modificado: `src/pages/MedicaoTerceirizada/Leituras.tsx`**
+**Arquivo: `src/pages/MedicaoTerceirizada/Leituras.tsx`**
 
-1. Adicionar estado para controlar o dialog da foto (`fotoDialogOpen`, `fotoSelecionada`)
-2. Criar funcao auxiliar para extrair a URL da foto do campo `observacao` (regex para capturar URL apos "Foto comprovante: ")
-3. Adicionar coluna "Foto" na tabela de Coletas Realizadas com miniatura clicavel (icone `Image` ou thumbnail)
-4. Adicionar um componente `Dialog` que exibe a imagem ampliada quando clicada
-5. Importar `Dialog`, `DialogContent` e icone `Image` do lucide-react
+- Importar `DialogHeader`, `DialogTitle` do dialog
+- Ajustar o Dialog existente:
+  - Adicionar `DialogHeader` com titulo e instrucao "Clique na imagem para ampliar"
+  - Limitar a imagem com `max-h-[60vh] object-contain`
+  - Adicionar botao "Abrir em nova aba" que faz `window.open(fotoUrl, '_blank')` para zoom completo
+  - Adicionar botao "Fechar" no rodape do dialog
 
-**Logica de extracao da URL:**
-```
-const extrairFotoUrl = (observacao: string | null) => {
-  if (!observacao) return null
-  const match = observacao.match(/Foto comprovante: (.+)/)
-  return match ? match[1] : null
-}
-```
