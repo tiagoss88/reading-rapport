@@ -1,216 +1,67 @@
 import { supabase } from '@/integrations/supabase/client';
-import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
+import { FiltrosRelatorioType } from '@/pages/Relatorios';
 
 export function useRelatorioLeituras() {
-  const gerarRelatorioLeituras = async (
-    tipo: TipoRelatorio,
-    filtros: FiltrosRelatorioType
-  ): Promise<any[]> => {
-    const { dataInicio, dataFim, empreendimentoId, operadorId } = filtros;
-    
-    // Adiciona 1 dia à data fim para incluir o dia completo (até 23:59:59)
-    const addOneDay = (dateStr: string) => {
-      const date = new Date(dateStr);
-      date.setDate(date.getDate() + 1);
-      return date.toISOString().split('T')[0];
-    };
-    const fimExclusivo = addOneDay(dataFim);
+  const gerarRelatorioLeituras = async (filtros: FiltrosRelatorioType): Promise<any[]> => {
+    const { competencia } = filtros;
 
-    switch (tipo) {
-      case 'leituras_periodo': {
-        try {
-          console.log('Gerando relatório de leituras por período:', { dataInicio, dataFim, empreendimentoId, operadorId });
-          
-          let query = supabase
-            .from('leituras')
-            .select(`
-              *,
-              clientes!inner(id, identificacao_unidade, nome, empreendimento_id, empreendimentos!inner(nome)),
-              operadores!inner(nome)
-            `)
-            .gte('data_leitura', dataInicio)
-            .lt('data_leitura', fimExclusivo)
-            .order('data_leitura', { ascending: false });
+    if (!competencia) throw new Error('Selecione uma competência');
 
-          if (empreendimentoId) {
-            query = query.eq('clientes.empreendimento_id', empreendimentoId);
-          }
+    // Query leituras for the selected competencia, grouped by empreendimento
+    const { data, error } = await supabase
+      .from('leituras')
+      .select(`
+        id,
+        data_leitura,
+        competencia,
+        clientes!inner(
+          id,
+          empreendimento_id,
+          empreendimentos!inner(id, nome, endereco)
+        )
+      `)
+      .eq('competencia', competencia);
 
-          if (operadorId) {
-            query = query.eq('operador_id', operadorId);
-          }
+    if (error) throw new Error(`Erro ao buscar leituras: ${error.message}`);
+    if (!data || data.length === 0) return [];
 
-          const { data, error } = await query;
+    // Group by empreendimento
+    const agrupado = new Map<string, {
+      condominio: string;
+      uf: string;
+      qtd_medidores: Set<string>;
+      data_coleta: string;
+    }>();
 
-          if (error) {
-            console.error('Erro na query de leituras:', error);
-            throw new Error(`Erro ao buscar leituras: ${error.message}`);
-          }
+    data.forEach((leitura: any) => {
+      const emp = leitura.clientes?.empreendimentos;
+      if (!emp) return;
 
-          if (!data || data.length === 0) {
-            console.log('Nenhuma leitura encontrada para o período');
-            return [];
-          }
-
-          console.log(`${data.length} leitura(s) encontrada(s)`);
-
-          // Calcular consumo
-          const clientesLeituras = new Map<string, any[]>();
-          
-          data?.forEach((leitura: any) => {
-            const clienteId = leitura.clientes.id;
-            if (!clientesLeituras.has(clienteId)) {
-              clientesLeituras.set(clienteId, []);
-            }
-            clientesLeituras.get(clienteId)!.push(leitura);
-          });
-
-          const resultado = data?.map((leitura: any) => {
-            const leiturasPrevias = clientesLeituras
-              .get(leitura.clientes.id)
-              ?.filter((l: any) => new Date(l.data_leitura) < new Date(leitura.data_leitura))
-              .sort((a: any, b: any) => new Date(b.data_leitura).getTime() - new Date(a.data_leitura).getTime());
-
-            const leituraAnterior = leiturasPrevias?.[0]?.leitura_atual;
-            const consumo = leituraAnterior ? leitura.leitura_atual - leituraAnterior : null;
-
-            return {
-              data_leitura: leitura.data_leitura,
-              cliente_nome: leitura.clientes.nome || leitura.clientes.identificacao_unidade,
-              empreendimento: leitura.clientes.empreendimentos.nome,
-              operador: leitura.operadores.nome,
-              leitura_anterior: leituraAnterior,
-              leitura_atual: leitura.leitura_atual,
-              consumo,
-            };
-          });
-
-          return resultado || [];
-        } catch (error) {
-          console.error('Erro no relatório leituras_periodo:', error);
-          throw error;
-        }
-      }
-
-      case 'leituras_operador': {
-        let query = supabase
-          .from('leituras')
-          .select(`
-            *,
-            operadores!inner(id, nome)
-          `)
-          .gte('data_leitura', dataInicio)
-          .lt('data_leitura', fimExclusivo);
-
-        if (operadorId) {
-          query = query.eq('operador_id', operadorId);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        // Agrupar por operador
-        const agrupado = new Map<string, any>();
-
-        data?.forEach((leitura: any) => {
-          const opNome = leitura.operadores.nome;
-          if (!agrupado.has(opNome)) {
-            agrupado.set(opNome, {
-              nome: opNome,
-              total_leituras: 0,
-              dias_trabalhados: new Set<string>(),
-            });
-          }
-          const grupo = agrupado.get(opNome);
-          grupo.total_leituras++;
-          grupo.dias_trabalhados.add(new Date(leitura.data_leitura).toISOString().split('T')[0]);
+      const empId = emp.id;
+      if (!agrupado.has(empId)) {
+        agrupado.set(empId, {
+          condominio: emp.nome,
+          uf: emp.endereco || '',
+          qtd_medidores: new Set<string>(),
+          data_coleta: leitura.data_leitura,
         });
-
-        return Array.from(agrupado.values()).map((item) => ({
-          nome: item.nome,
-          total_leituras: item.total_leituras,
-          dias_trabalhados: item.dias_trabalhados.size,
-          leituras_por_dia: (item.total_leituras / item.dias_trabalhados.size).toFixed(2),
-        }));
       }
 
-      case 'leituras_empreendimento': {
-        let query = supabase
-          .from('leituras')
-          .select(`
-            *,
-            clientes!inner(empreendimento_id, empreendimentos!inner(nome))
-          `)
-          .gte('data_leitura', dataInicio)
-          .lt('data_leitura', fimExclusivo);
+      const grupo = agrupado.get(empId)!;
+      grupo.qtd_medidores.add(leitura.clientes.id);
 
-        if (empreendimentoId) {
-          query = query.eq('clientes.empreendimento_id', empreendimentoId);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        // Agrupar por empreendimento
-        const agrupado = new Map<string, any>();
-
-        data?.forEach((leitura: any) => {
-          const empNome = leitura.clientes.empreendimentos.nome;
-          if (!agrupado.has(empNome)) {
-            agrupado.set(empNome, {
-              empreendimento: empNome,
-              total_leituras: 0,
-              leituras: [],
-            });
-          }
-          const grupo = agrupado.get(empNome);
-          grupo.total_leituras++;
-          grupo.leituras.push(leitura.leitura_atual);
-        });
-
-        return Array.from(agrupado.values()).map((item) => ({
-          ...item,
-          media_leitura: (item.leituras.reduce((a: number, b: number) => a + b, 0) / item.leituras.length).toFixed(2),
-        }));
+      // Keep earliest collection date
+      if (leitura.data_leitura < grupo.data_coleta) {
+        grupo.data_coleta = leitura.data_leitura;
       }
+    });
 
-      case 'leituras_pendentes': {
-        const { data, error } = await supabase
-          .from('leituras')
-          .select(`
-            *,
-            clientes!inner(identificacao_unidade, nome, empreendimentos!inner(nome)),
-            operadores!inner(nome)
-          `)
-          .eq('status_sincronizacao', 'pendente')
-          .gte('data_leitura', dataInicio)
-          .lt('data_leitura', fimExclusivo);
-
-        if (error) throw error;
-        return data || [];
-      }
-
-      case 'leituras_observacoes': {
-        const { data, error } = await supabase
-          .from('leituras')
-          .select(`
-            *,
-            clientes!inner(identificacao_unidade, nome, empreendimentos!inner(nome)),
-            operadores!inner(nome)
-          `)
-          .not('observacao', 'is', null)
-          .gte('data_leitura', dataInicio)
-          .lt('data_leitura', fimExclusivo);
-
-        if (error) throw error;
-        return data || [];
-      }
-
-      default:
-        return [];
-    }
+    return Array.from(agrupado.values()).map((item) => ({
+      condominio: item.condominio,
+      uf: item.uf,
+      qtd_medidores: item.qtd_medidores.size,
+      data_coleta: item.data_coleta,
+    }));
   };
 
   return { gerarRelatorioLeituras };

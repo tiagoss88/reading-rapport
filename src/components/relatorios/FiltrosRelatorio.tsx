@@ -29,18 +29,6 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
 
-  const { data: empreendimentos } = useQuery({
-    queryKey: ['empreendimentos'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('empreendimentos')
-        .select('id, nome')
-        .order('nome');
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const { data: operadores } = useQuery({
     queryKey: ['operadores'],
     queryFn: async () => {
@@ -54,32 +42,39 @@ export default function FiltrosRelatorio({
     },
   });
 
+  const { data: tiposServico } = useQuery({
+    queryKey: ['tipos_servico'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tipos_servico')
+        .select('id, nome')
+        .eq('status', 'ativo')
+        .order('nome');
+      if (error) throw error;
+      return data;
+    },
+    enabled: tipoRelatorio === 'rdo_servicos',
+  });
+
   const handleGerarRelatorio = async () => {
     setIsLoading(true);
     try {
       let dados: any[] = [];
 
-      // Relatórios de Leituras
-      if (tipoRelatorio.startsWith('leituras_') || tipoRelatorio === 'consumo_medio') {
-        dados = await gerarRelatorioLeituras(tipoRelatorio, filtros);
-      }
-      // Relatórios de Serviços
-      else if (tipoRelatorio.startsWith('servicos_') || tipoRelatorio === 'tempo_medio_execucao') {
-        dados = await gerarRelatorioServicos(tipoRelatorio, filtros);
-      }
-      // Relatórios Gerenciais (implementar futuramente)
-      else {
-        dados = [];
+      if (tipoRelatorio === 'condominios_competencia') {
+        dados = await gerarRelatorioLeituras(filtros);
+      } else if (tipoRelatorio === 'rdo_servicos') {
+        dados = await gerarRelatorioServicos(filtros);
       }
 
       if (dados.length === 0) {
         toast({
-          title: "Nenhum dado encontrado",
-          description: "Não há registros para o período e filtros selecionados.",
+          title: 'Nenhum dado encontrado',
+          description: 'Não há registros para os filtros selecionados.',
         });
       } else {
         toast({
-          title: "Relatório gerado com sucesso",
+          title: 'Relatório gerado com sucesso',
           description: `${dados.length} registro(s) encontrado(s)`,
         });
       }
@@ -88,20 +83,15 @@ export default function FiltrosRelatorio({
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
       toast({
-        title: "Erro ao gerar relatório",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
+        title: 'Erro ao gerar relatório',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
       });
       onGerarRelatorio([]);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const mostrarFiltroEmpreendimento = !tipoRelatorio.includes('empreendimento');
-  const mostrarFiltroOperador = !tipoRelatorio.includes('operador');
-  const mostrarFiltroStatus = tipoRelatorio.includes('servicos');
-  const mostrarFiltroTipo = tipoRelatorio === 'servicos_tipo';
 
   return (
     <Card>
@@ -110,142 +100,109 @@ export default function FiltrosRelatorio({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Data Início */}
-          <div className="space-y-2">
-            <Label htmlFor="dataInicio">Data Início</Label>
-            <Input
-              id="dataInicio"
-              type="date"
-              value={filtros.dataInicio}
-              onChange={(e) => onFiltrosChange({ ...filtros, dataInicio: e.target.value })}
-            />
-          </div>
-
-          {/* Data Fim */}
-          <div className="space-y-2">
-            <Label htmlFor="dataFim">Data Fim</Label>
-            <Input
-              id="dataFim"
-              type="date"
-              value={filtros.dataFim}
-              onChange={(e) => onFiltrosChange({ ...filtros, dataFim: e.target.value })}
-            />
-          </div>
-
-          {/* Empreendimento */}
-          {mostrarFiltroEmpreendimento && (
+          {tipoRelatorio === 'condominios_competencia' && (
             <div className="space-y-2">
-              <Label htmlFor="empreendimento">Empreendimento</Label>
-              <Select
-                value={filtros.empreendimentoId || 'todos'}
-                onValueChange={(value) =>
-                  onFiltrosChange({
-                    ...filtros,
-                    empreendimentoId: value === 'todos' ? undefined : value,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {empreendimentos?.map((emp) => (
-                    <SelectItem key={emp.id} value={emp.id}>
-                      {emp.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="competencia">Competência (Mês/Ano)</Label>
+              <Input
+                id="competencia"
+                type="month"
+                value={filtros.competencia || ''}
+                onChange={(e) => onFiltrosChange({ ...filtros, competencia: e.target.value })}
+              />
             </div>
           )}
 
-          {/* Operador */}
-          {mostrarFiltroOperador && (
-            <div className="space-y-2">
-              <Label htmlFor="operador">Operador</Label>
-              <Select
-                value={filtros.operadorId || 'todos'}
-                onValueChange={(value) =>
-                  onFiltrosChange({
-                    ...filtros,
-                    operadorId: value === 'todos' ? undefined : value,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  {operadores?.map((op) => (
-                    <SelectItem key={op.id} value={op.id}>
-                      {op.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {tipoRelatorio === 'rdo_servicos' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="periodicidade">Periodicidade</Label>
+                <Select
+                  value={filtros.periodicidade || 'diario'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, periodicidade: value as 'diario' | 'semanal' | 'mensal' })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="diario">Diário</SelectItem>
+                    <SelectItem value="semanal">Semanal</SelectItem>
+                    <SelectItem value="mensal">Mensal</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Status (para serviços) */}
-          {mostrarFiltroStatus && (
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={filtros.status || 'todos'}
-                onValueChange={(value) =>
-                  onFiltrosChange({
-                    ...filtros,
-                    status: value === 'todos' ? undefined : value,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="agendado">Agendado</SelectItem>
-                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                  <SelectItem value="concluido">Concluído</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+              <div className="space-y-2">
+                <Label htmlFor="dataInicio">Data Início</Label>
+                <Input
+                  id="dataInicio"
+                  type="date"
+                  value={filtros.dataInicio}
+                  onChange={(e) => onFiltrosChange({ ...filtros, dataInicio: e.target.value })}
+                />
+              </div>
 
-          {/* Tipo de Serviço */}
-          {mostrarFiltroTipo && (
-            <div className="space-y-2">
-              <Label htmlFor="tipoServico">Tipo de Serviço</Label>
-              <Select
-                value={filtros.tipoServico || 'todos'}
-                onValueChange={(value) =>
-                  onFiltrosChange({
-                    ...filtros,
-                    tipoServico: value === 'todos' ? undefined : value,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="instalacao">Instalação</SelectItem>
-                  <SelectItem value="manutencao">Manutenção</SelectItem>
-                  <SelectItem value="reparo">Reparo</SelectItem>
-                  <SelectItem value="vistoria">Vistoria</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="dataFim">Data Fim</Label>
+                <Input
+                  id="dataFim"
+                  type="date"
+                  value={filtros.dataFim}
+                  onChange={(e) => onFiltrosChange({ ...filtros, dataFim: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tipoServico">Tipo de Serviço</Label>
+                <Select
+                  value={filtros.tipoServico || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, tipoServico: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {tiposServico?.map((tipo) => (
+                      <SelectItem key={tipo.id} value={tipo.nome}>
+                        {tipo.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="operador">Técnico</Label>
+                <Select
+                  value={filtros.operadorId || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, operadorId: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {operadores?.map((op) => (
+                      <SelectItem key={op.id} value={op.id}>
+                        {op.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
         </div>
 
         <div className="mt-4">
-          <Button 
-            onClick={handleGerarRelatorio} 
+          <Button
+            onClick={handleGerarRelatorio}
             className="w-full md:w-auto"
             disabled={isLoading}
           >

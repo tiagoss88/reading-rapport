@@ -1,14 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
-import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
+import { FiltrosRelatorioType } from '@/pages/Relatorios';
 
 export function useRelatorioServicos() {
-  const gerarRelatorioServicos = async (
-    tipo: TipoRelatorio,
-    filtros: FiltrosRelatorioType
-  ): Promise<any[]> => {
-    const { dataInicio, dataFim, empreendimentoId, operadorId, status, tipoServico } = filtros;
-    
-    // Adiciona 1 dia à data fim para incluir o dia completo (até 23:59:59)
+  const gerarRelatorioServicos = async (filtros: FiltrosRelatorioType): Promise<any[]> => {
+    const { dataInicio, dataFim, operadorId, tipoServico } = filtros;
+
     const addOneDay = (dateStr: string) => {
       const date = new Date(dateStr);
       date.setDate(date.getDate() + 1);
@@ -16,153 +12,91 @@ export function useRelatorioServicos() {
     };
     const fimExclusivo = addOneDay(dataFim);
 
-    switch (tipo) {
-      case 'servicos_periodo':
-      case 'servicos_agendados_executados': {
-        let query = supabase
-          .from('servicos')
-          .select(`
-            *,
-            clientes!inner(nome, identificacao_unidade),
-            operadores(nome)
-          `)
-          .gte('data_agendamento', dataInicio)
-          .lt('data_agendamento', fimExclusivo);
+    // Query servicos internos
+    let queryInternos = supabase
+      .from('servicos')
+      .select(`
+        id,
+        data_agendamento,
+        data_execucao,
+        tipo_servico,
+        status,
+        descricao_servico_realizado,
+        observacoes,
+        empreendimentos!inner(nome),
+        operadores(nome)
+      `)
+      .gte('data_agendamento', dataInicio)
+      .lt('data_agendamento', fimExclusivo);
 
-        if (empreendimentoId) {
-          query = query.eq('empreendimento_id', empreendimentoId);
-        }
-
-        if (operadorId) {
-          query = query.eq('operador_responsavel_id', operadorId);
-        }
-
-        if (status) {
-          query = query.eq('status', status);
-        }
-
-        const { data, error } = await query.order('data_agendamento', { ascending: false });
-
-        if (error) throw error;
-
-        return (
-          data?.map((servico: any) => ({
-            data_agendamento: servico.data_agendamento,
-            cliente_nome: servico.clientes?.nome || servico.clientes?.identificacao_unidade,
-            tipo_servico: servico.tipo_servico,
-            status: servico.status,
-            operador_nome: servico.operadores?.nome || 'Não atribuído',
-            data_execucao: servico.data_execucao,
-          })) || []
-        );
-      }
-
-      case 'servicos_operador': {
-        const { data, error } = await supabase
-          .from('operadores')
-          .select(`
-            id,
-            nome,
-            servicos:servicos!operador_responsavel_id(status)
-          `)
-          .gte('servicos.data_agendamento', dataInicio)
-          .lt('servicos.data_agendamento', fimExclusivo);
-
-        if (error) throw error;
-
-        return (
-          data?.map((operador: any) => {
-            const servicos = operador.servicos || [];
-            const totalAgendados = servicos.length;
-            const concluidos = servicos.filter((s: any) => s.status === 'concluido').length;
-            const emAndamento = servicos.filter((s: any) => s.status === 'em_andamento').length;
-            const taxaConclusao = totalAgendados > 0 ? ((concluidos / totalAgendados) * 100).toFixed(1) : '0';
-
-            return {
-              operador_nome: operador.nome,
-              total_agendados: totalAgendados,
-              concluidos,
-              em_andamento: emAndamento,
-              taxa_conclusao: taxaConclusao,
-            };
-          }) || []
-        );
-      }
-
-      case 'servicos_tipo': {
-        let query = supabase
-          .from('servicos')
-          .select('tipo_servico, status')
-          .gte('data_agendamento', dataInicio)
-          .lt('data_agendamento', fimExclusivo);
-
-        if (tipoServico) {
-          query = query.eq('tipo_servico', tipoServico);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-
-        // Agrupar por tipo
-        const agrupado = new Map<string, any>();
-
-        data?.forEach((servico: any) => {
-          if (!agrupado.has(servico.tipo_servico)) {
-            agrupado.set(servico.tipo_servico, {
-              tipo: servico.tipo_servico,
-              total: 0,
-              concluidos: 0,
-            });
-          }
-          const grupo = agrupado.get(servico.tipo_servico);
-          grupo.total++;
-          if (servico.status === 'concluido') {
-            grupo.concluidos++;
-          }
-        });
-
-        return Array.from(agrupado.values());
-      }
-
-      case 'servicos_externos': {
-        let query = supabase
-          .from('servicos_externos')
-          .select(`
-            *,
-            operadores(nome)
-          `)
-          .gte('data_agendamento', dataInicio)
-          .lt('data_agendamento', fimExclusivo);
-
-        if (operadorId) {
-          query = query.eq('operador_responsavel_id', operadorId);
-        }
-
-        if (status) {
-          query = query.eq('status', status);
-        }
-
-        const { data, error } = await query.order('data_agendamento', { ascending: false });
-
-        if (error) throw error;
-
-        return (
-          data?.map((servico: any) => ({
-            data_agendamento: servico.data_agendamento,
-            nome_cliente: servico.nome_cliente,
-            tipo_servico: servico.tipo_servico,
-            status: servico.status,
-            operador_nome: servico.operadores?.nome || 'Não atribuído',
-            data_execucao: servico.data_execucao,
-            endereco: servico.endereco_servico,
-          })) || []
-        );
-      }
-
-      default:
-        return [];
+    if (operadorId) {
+      queryInternos = queryInternos.eq('operador_responsavel_id', operadorId);
     }
+    if (tipoServico) {
+      queryInternos = queryInternos.eq('tipo_servico', tipoServico);
+    }
+
+    // Query servicos nacional gas
+    let queryNacionalGas = supabase
+      .from('servicos_nacional_gas')
+      .select(`
+        id,
+        data_agendamento,
+        tipo_servico,
+        status_atendimento,
+        observacao,
+        condominio_nome_original,
+        uf,
+        operadores:tecnico_id(nome)
+      `)
+      .gte('data_agendamento', dataInicio)
+      .lt('data_agendamento', fimExclusivo);
+
+    if (operadorId) {
+      queryNacionalGas = queryNacionalGas.eq('tecnico_id', operadorId);
+    }
+    if (tipoServico) {
+      queryNacionalGas = queryNacionalGas.eq('tipo_servico', tipoServico);
+    }
+
+    const [resInternos, resNacionalGas] = await Promise.all([
+      queryInternos.order('data_agendamento', { ascending: false }),
+      queryNacionalGas.order('data_agendamento', { ascending: false }),
+    ]);
+
+    if (resInternos.error) throw new Error(`Erro servicos: ${resInternos.error.message}`);
+    if (resNacionalGas.error) throw new Error(`Erro servicos_nacional_gas: ${resNacionalGas.error.message}`);
+
+    const resultados: any[] = [];
+
+    // Map servicos internos
+    resInternos.data?.forEach((s: any) => {
+      resultados.push({
+        data: s.data_execucao || s.data_agendamento,
+        condominio: s.empreendimentos?.nome || '-',
+        tipo_servico: s.tipo_servico,
+        tecnico: s.operadores?.nome || 'Não atribuído',
+        status: s.status,
+        descricao: s.descricao_servico_realizado || s.observacoes || '',
+      });
+    });
+
+    // Map servicos nacional gas
+    resNacionalGas.data?.forEach((s: any) => {
+      resultados.push({
+        data: s.data_agendamento,
+        condominio: s.condominio_nome_original || '-',
+        tipo_servico: s.tipo_servico,
+        tecnico: s.operadores?.nome || 'Não atribuído',
+        status: s.status_atendimento,
+        descricao: s.observacao || '',
+      });
+    });
+
+    // Sort by date desc
+    resultados.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+
+    return resultados;
   };
 
   return { gerarRelatorioServicos };
