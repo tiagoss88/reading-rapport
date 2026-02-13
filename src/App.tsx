@@ -21,6 +21,7 @@ import EmpreendimentosTerceirizados from '@/pages/MedicaoTerceirizada/Empreendim
 import PlanejamentoRotas from '@/pages/MedicaoTerceirizada/PlanejamentoRotas'
 import ServicosNacionalGas from '@/pages/MedicaoTerceirizada/Servicos'
 import GeorreferenciamentoTerceirizado from '@/pages/MedicaoTerceirizada/Georreferenciamento'
+import LeiturasTerceirizadas from '@/pages/MedicaoTerceirizada/Leituras'
 import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
@@ -192,6 +193,13 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
                       <GeorreferenciamentoTerceirizado />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/medicao-terceirizada/leituras" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <LeiturasTerceirizadas />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
