@@ -33,9 +33,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/coletor" replace />
   }
 
-  // Fallback: if roles are empty after loading, redirect to coletor as safety net
-  const hasAdminOrGestorRole = roles.some(r => r === 'admin' || r === 'gestor_empreendimento')
-  if (roles.length === 0 || !hasAdminOrGestorRole) {
+  // If roles loaded but none are admin/gestor, redirect to coletor
+  // Only apply when roles actually loaded (length > 0) to avoid redirecting during refetch
+  if (roles.length > 0 && !roles.some(r => r === 'admin' || r === 'gestor_empreendimento')) {
     return <Navigate to="/coletor" replace />
   }
 
