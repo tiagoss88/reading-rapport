@@ -12,47 +12,24 @@ interface TabelaRelatorioProps {
 export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatorioProps) {
   const renderColunas = () => {
     switch (tipoRelatorio) {
-      case 'leituras_periodo':
+      case 'condominios_competencia':
+        return (
+          <>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>UF</TableHead>
+            <TableHead>Qtd Medidores</TableHead>
+            <TableHead>Data da Coleta</TableHead>
+          </>
+        );
+      case 'rdo_servicos':
         return (
           <>
             <TableHead>Data</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Empreendimento</TableHead>
-            <TableHead>Operador</TableHead>
-            <TableHead>Leitura Anterior</TableHead>
-            <TableHead>Leitura Atual</TableHead>
-            <TableHead>Consumo</TableHead>
-          </>
-        );
-      case 'leituras_operador':
-        return (
-          <>
-            <TableHead>Operador</TableHead>
-            <TableHead>Total de Leituras</TableHead>
-            <TableHead>Dias Trabalhados</TableHead>
-            <TableHead>Média por Dia</TableHead>
-          </>
-        );
-      case 'servicos_periodo':
-      case 'servicos_agendados_executados':
-        return (
-          <>
-            <TableHead>Data Agendamento</TableHead>
-            <TableHead>Cliente/Local</TableHead>
-            <TableHead>Tipo</TableHead>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>Tipo Serviço</TableHead>
+            <TableHead>Técnico</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Operador</TableHead>
-            <TableHead>Data Execução</TableHead>
-          </>
-        );
-      case 'servicos_operador':
-        return (
-          <>
-            <TableHead>Operador</TableHead>
-            <TableHead>Total Agendados</TableHead>
-            <TableHead>Concluídos</TableHead>
-            <TableHead>Em Andamento</TableHead>
-            <TableHead>Taxa de Conclusão</TableHead>
+            <TableHead>Descrição</TableHead>
           </>
         );
       default:
@@ -63,38 +40,30 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
   const renderLinhas = () => {
     return dados.map((item, index) => {
       switch (tipoRelatorio) {
-        case 'leituras_periodo':
+        case 'condominios_competencia':
+          return (
+            <TableRow key={index}>
+              <TableCell className="font-medium">{item.condominio}</TableCell>
+              <TableCell>{item.uf || '-'}</TableCell>
+              <TableCell>{item.qtd_medidores}</TableCell>
+              <TableCell>
+                {item.data_coleta
+                  ? format(new Date(item.data_coleta), 'dd/MM/yyyy', { locale: ptBR })
+                  : '-'}
+              </TableCell>
+            </TableRow>
+          );
+        case 'rdo_servicos':
           return (
             <TableRow key={index}>
               <TableCell>
-                {format(new Date(item.data_leitura), 'dd/MM/yyyy', { locale: ptBR })}
+                {item.data
+                  ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR })
+                  : '-'}
               </TableCell>
-              <TableCell>{item.cliente_nome}</TableCell>
-              <TableCell>{item.empreendimento}</TableCell>
-              <TableCell>{item.operador}</TableCell>
-              <TableCell>{item.leitura_anterior?.toFixed(2) || '-'}</TableCell>
-              <TableCell>{item.leitura_atual?.toFixed(2)}</TableCell>
-              <TableCell>{item.consumo?.toFixed(2) || '-'}</TableCell>
-            </TableRow>
-          );
-        case 'leituras_operador':
-          return (
-            <TableRow key={index}>
-              <TableCell>{item.nome}</TableCell>
-              <TableCell>{item.total_leituras}</TableCell>
-              <TableCell>{item.dias_trabalhados}</TableCell>
-              <TableCell>{item.leituras_por_dia}</TableCell>
-            </TableRow>
-          );
-        case 'servicos_periodo':
-        case 'servicos_agendados_executados':
-          return (
-            <TableRow key={index}>
-              <TableCell>
-                {format(new Date(item.data_agendamento), 'dd/MM/yyyy', { locale: ptBR })}
-              </TableCell>
-              <TableCell>{item.cliente_nome || item.nome_cliente}</TableCell>
+              <TableCell>{item.condominio || '-'}</TableCell>
               <TableCell>{item.tipo_servico}</TableCell>
+              <TableCell>{item.tecnico || '-'}</TableCell>
               <TableCell>
                 <span
                   className={`px-2 py-1 rounded text-xs ${
@@ -110,22 +79,7 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                   {item.status}
                 </span>
               </TableCell>
-              <TableCell>{item.operador_nome || '-'}</TableCell>
-              <TableCell>
-                {item.data_execucao
-                  ? format(new Date(item.data_execucao), 'dd/MM/yyyy', { locale: ptBR })
-                  : '-'}
-              </TableCell>
-            </TableRow>
-          );
-        case 'servicos_operador':
-          return (
-            <TableRow key={index}>
-              <TableCell>{item.operador_nome}</TableCell>
-              <TableCell>{item.total_agendados}</TableCell>
-              <TableCell>{item.concluidos}</TableCell>
-              <TableCell>{item.em_andamento}</TableCell>
-              <TableCell>{item.taxa_conclusao}%</TableCell>
+              <TableCell className="max-w-xs truncate">{item.descricao || '-'}</TableCell>
             </TableRow>
           );
         default:

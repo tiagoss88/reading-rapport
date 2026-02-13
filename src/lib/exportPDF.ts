@@ -5,23 +5,8 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const relatorioTitulos: Record<TipoRelatorio, string> = {
-  leituras_periodo: 'Leituras por Período',
-  leituras_empreendimento: 'Leituras por Empreendimento',
-  leituras_operador: 'Leituras por Operador',
-  consumo_medio: 'Consumo Médio por Cliente',
-  leituras_pendentes: 'Leituras Pendentes de Sincronização',
-  leituras_observacoes: 'Leituras com Observações',
-  servicos_agendados_executados: 'Serviços Agendados vs Executados',
-  servicos_periodo: 'Serviços por Período',
-  servicos_operador: 'Serviços por Operador',
-  servicos_tipo: 'Serviços por Tipo',
-  tempo_medio_execucao: 'Tempo Médio de Execução de Serviços',
-  servicos_externos: 'Serviços Externos',
-  dashboard_executivo: 'Dashboard Executivo',
-  clientes_empreendimento: 'Clientes por Empreendimento',
-  produtividade_operadores: 'Produtividade de Operadores',
-  rastreamento_operadores: 'Rastreamento de Operadores',
-  consumo_empreendimento: 'Consumo por Empreendimento',
+  condominios_competencia: 'Condomínios Coletados por Competência',
+  rdo_servicos: 'RDO - Relatório Diário de Obra',
 };
 
 export function exportarPDF(
@@ -30,74 +15,47 @@ export function exportarPDF(
   filtros: FiltrosRelatorioType
 ) {
   const doc = new jsPDF();
-  const titulo = relatorioTitulos[tipoRelatorio] || 'Relatório';
+  const titulo = relatorioTitulos[tipoRelatorio];
 
-  // Cabeçalho
   doc.setFontSize(18);
   doc.text(titulo, 14, 20);
 
   doc.setFontSize(10);
-  doc.text(`Período: ${format(new Date(filtros.dataInicio), 'dd/MM/yyyy', { locale: ptBR })} até ${format(new Date(filtros.dataFim), 'dd/MM/yyyy', { locale: ptBR })}`, 14, 28);
+  if (tipoRelatorio === 'condominios_competencia' && filtros.competencia) {
+    const [ano, mes] = filtros.competencia.split('-');
+    doc.text(`Competência: ${mes}/${ano}`, 14, 28);
+  } else {
+    doc.text(`Período: ${format(new Date(filtros.dataInicio), 'dd/MM/yyyy', { locale: ptBR })} até ${format(new Date(filtros.dataFim), 'dd/MM/yyyy', { locale: ptBR })}`, 14, 28);
+  }
   doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 34);
 
-  // Configurar colunas e linhas baseado no tipo de relatório
-  let colunas: any[] = [];
-  let linhas: any[] = [];
+  let colunas: string[] = [];
+  let linhas: any[][] = [];
 
   switch (tipoRelatorio) {
-    case 'leituras_periodo':
-      colunas = ['Data', 'Cliente', 'Empreendimento', 'Operador', 'Leitura Ant.', 'Leitura Atual', 'Consumo'];
+    case 'condominios_competencia':
+      colunas = ['Condomínio', 'UF', 'Qtd Medidores', 'Data da Coleta'];
       linhas = dados.map((item) => [
-        format(new Date(item.data_leitura), 'dd/MM/yyyy', { locale: ptBR }),
-        item.cliente_nome,
-        item.empreendimento,
-        item.operador,
-        item.leitura_anterior?.toFixed(2) || '-',
-        item.leitura_atual?.toFixed(2),
-        item.consumo?.toFixed(2) || '-',
+        item.condominio,
+        item.uf || '-',
+        item.qtd_medidores,
+        item.data_coleta ? format(new Date(item.data_coleta), 'dd/MM/yyyy', { locale: ptBR }) : '-',
       ]);
       break;
 
-    case 'leituras_operador':
-      colunas = ['Operador', 'Total Leituras', 'Dias Trabalhados', 'Média/Dia'];
+    case 'rdo_servicos':
+      colunas = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status', 'Descrição'];
       linhas = dados.map((item) => [
-        item.nome,
-        item.total_leituras,
-        item.dias_trabalhados,
-        item.leituras_por_dia,
-      ]);
-      break;
-
-    case 'servicos_periodo':
-    case 'servicos_agendados_executados':
-      colunas = ['Data Agend.', 'Cliente/Local', 'Tipo', 'Status', 'Operador', 'Data Exec.'];
-      linhas = dados.map((item) => [
-        format(new Date(item.data_agendamento), 'dd/MM/yyyy', { locale: ptBR }),
-        item.cliente_nome || item.nome_cliente,
+        item.data ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+        item.condominio || '-',
         item.tipo_servico,
+        item.tecnico || '-',
         item.status,
-        item.operador_nome || '-',
-        item.data_execucao ? format(new Date(item.data_execucao), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+        (item.descricao || '').substring(0, 50),
       ]);
       break;
-
-    case 'servicos_operador':
-      colunas = ['Operador', 'Total Agendados', 'Concluídos', 'Em Andamento', 'Taxa Conclusão'];
-      linhas = dados.map((item) => [
-        item.operador_nome,
-        item.total_agendados,
-        item.concluidos,
-        item.em_andamento,
-        `${item.taxa_conclusao}%`,
-      ]);
-      break;
-
-    default:
-      colunas = ['Dados'];
-      linhas = dados.map((item) => [JSON.stringify(item)]);
   }
 
-  // Gerar tabela
   autoTable(doc, {
     head: [colunas],
     body: linhas,
@@ -106,7 +64,6 @@ export function exportarPDF(
     headStyles: { fillColor: [59, 130, 246] },
   });
 
-  // Rodapé
   const totalPages = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -119,6 +76,5 @@ export function exportarPDF(
     );
   }
 
-  // Salvar
   doc.save(`${titulo.toLowerCase().replace(/ /g, '_')}_${format(new Date(), 'yyyyMMdd_HHmmss')}.pdf`);
 }
