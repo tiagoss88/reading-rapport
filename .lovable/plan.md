@@ -1,36 +1,36 @@
 
 
-## Corrigir race condition no carregamento de permissoes apos login
+## Corrigir loading infinito no PermissionsContext
 
-### Problema raiz
-Quando o app inicia sem usuario logado, o `PermissionsContext` marca `initialLoadComplete = true` e `loading = false`. Quando o usuario faz login, as permissoes sao buscadas novamente, mas como `initialLoadComplete` ja e `true`, o sistema usa `refreshing` em vez de `loading`. Isso faz com que `loading` fique `false` enquanto os roles ainda estao sendo carregados.
+### Problema
+No `useEffect` (linha 126-131), fazemos:
+1. `setInitialLoadComplete(false)` - agenda atualização de estado
+2. `setLoading(true)` - agenda atualização de estado
+3. `fetchUserPermissions()` - executa imediatamente
 
-Resultado: a pagina de Login ve `loading = false` com `roles = []`, interpreta que o usuario nao e operador, e redireciona para `/` em vez de `/coletor`. O usuario acaba em `/not-authorized`.
+O problema e que `fetchUserPermissions` captura o valor antigo de `initialLoadComplete` (ainda `true` do render anterior). Resultado:
+- Linha 59: `if (!initialLoadComplete)` e `false` (valor antigo e `true`), entao vai para o `else` e seta `refreshing` em vez de `loading`
+- Linha 118 (finally): `if (!initialLoadComplete)` e `false` novamente, entao **nunca executa** `setLoading(false)`
+- Loading fica `true` para sempre
 
 ### Solucao
-Resetar o estado de carregamento quando o usuario muda (login/logout), garantindo que o `loading` volte a `true` ate que os novos roles sejam carregados.
+Modificar `fetchUserPermissions` para aceitar um parametro `isReset` que indica se e um reset de usuario. Quando `isReset = true`, a funcao sempre seta `loading = true` no inicio e `loading = false` no finally, independente de `initialLoadComplete`.
 
-### Alteracoes
+### Alteracao
 
-**1. `src/contexts/PermissionsContext.tsx`**
-- Quando o `user` muda (de null para um usuario logado), resetar `initialLoadComplete` para `false` e `loading` para `true`
-- Isso garante que todos os componentes que dependem de `permissionsLoading` aguardem o carregamento correto dos roles do novo usuario
+**`src/contexts/PermissionsContext.tsx`**
 
-Logica corrigida:
+Alterar a funcao `fetchUserPermissions` para receber um parametro opcional `isReset`:
+
 ```text
-useEffect quando user muda:
-  1. Se user mudou, resetar initialLoadComplete = false e loading = true
-  2. Chamar fetchUserPermissions
-  3. fetchUserPermissions ve initialLoadComplete = false, mantem loading = true
-  4. Ao terminar, seta loading = false com os roles corretos
+fetchUserPermissions(isReset?: boolean):
+  - Se isReset ou !initialLoadComplete: setar loading = true
+  - Senao: setar refreshing = true
+  - No finally: 
+    - Se isReset ou !initialLoadComplete: setar initialLoadComplete = true, loading = false
+    - Sempre: setar refreshing = false
 ```
 
-**2. `src/pages/Login.tsx`**
-- Nenhuma alteracao necessaria. A pagina ja verifica `permissionsLoading` corretamente (linha 55). O problema e que `loading` nao reflete o estado real.
+E no useEffect, chamar `fetchUserPermissions(true)` para indicar que e um reset de usuario.
 
-**3. `src/components/ProtectedRoute.tsx`**
-- Nenhuma alteracao necessaria. A logica atual esta correta, so nao funciona porque `loading` termina antes dos roles estarem disponiveis.
-
-### Resultado esperado
-- Operador faz login → loading fica true ate roles carregarem → Login detecta operador → redireciona para `/coletor`
-- Admin faz login → loading fica true ate roles carregarem → Login detecta admin → redireciona para `/`  → Index redireciona para `/dashboard`
+Isso garante que o `loading` seja corretamente gerenciado independente do estado da closure.
