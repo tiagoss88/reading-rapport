@@ -74,14 +74,11 @@ export default function PermissionRoute({
   const hasAccess = hasRequiredPermissions && hasRequiredRoles
 
   if (!hasAccess) {
-    // If user is operator-only, redirect to coletor instead of not-authorized
+    // Operators always go to /coletor, others go to /dashboard
     const isOperatorOnly = userRoles.length > 0 && userRoles.every(r =>
       (OPERATOR_ROLES as readonly string[]).includes(r)
     )
-    if (isOperatorOnly) {
-      return <Navigate to="/coletor" replace />
-    }
-    return <Navigate to={redirectTo} replace />
+    return <Navigate to={isOperatorOnly ? '/coletor' : '/dashboard'} replace />
   }
 
   return <>{children}</>

@@ -1,12 +1,28 @@
-import Layout from '@/components/Layout'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '@/contexts/AuthContext'
+import { usePermissions } from '@/contexts/PermissionsContext'
+
+const OPERATOR_ROLES = ['operador_completo', 'operador_leitura', 'operador_servicos'] as const
 
 export default function NotAuthorized() {
-  return (
-    <Layout title="Acesso não autorizado">
-      <div className="max-w-xl mx-auto text-center py-20">
-        <h1 className="text-2xl font-bold mb-2">Você não tem permissão para acessar esta página.</h1>
-        <p className="text-muted-foreground">Se você acredita que isso é um engano, entre em contato com o administrador do sistema.</p>
+  const { user, loading: authLoading } = useAuth()
+  const { roles, loading: permissionsLoading } = usePermissions()
+
+  if (authLoading || permissionsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    </Layout>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  const isOperatorOnly = roles.length > 0 && roles.every(r =>
+    (OPERATOR_ROLES as readonly string[]).includes(r)
   )
+
+  return <Navigate to={isOperatorOnly ? '/coletor' : '/dashboard'} replace />
 }
