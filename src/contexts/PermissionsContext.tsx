@@ -46,7 +46,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
-  const fetchUserPermissions = async () => {
+  const fetchUserPermissions = async (isReset?: boolean) => {
     if (!user) {
       setPermissions([])
       setRoles([])
@@ -55,8 +55,8 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       return
     }
 
-    // Only block UI on initial load, subsequent refreshes happen in background
-    if (!initialLoadComplete) {
+    const isInitial = isReset || !initialLoadComplete
+    if (isInitial) {
       setLoading(true)
     } else {
       setRefreshing(true)
@@ -115,7 +115,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
       setPermissions(['view_dashboard'])
       setRoles([])
     } finally {
-      if (!initialLoadComplete) {
+      if (isInitial) {
         setInitialLoadComplete(true)
         setLoading(false)
       }
@@ -127,7 +127,7 @@ export function PermissionsProvider({ children }: { children: React.ReactNode })
     // Reset loading state when user changes to prevent race condition
     setInitialLoadComplete(false)
     setLoading(true)
-    fetchUserPermissions()
+    fetchUserPermissions(true)
   }, [user?.id])
 
   const hasPermission = (permission: AppPermission): boolean => {
