@@ -118,9 +118,16 @@ export default function ColetorServicosTerceirizados() {
   const updateStatus = async (servicoId: string, novoStatus: string) => {
     try {
       setUpdatingId(servicoId)
+      const turnoAtual = new Date().getHours() < 12 ? 'manha' : 'tarde'
       const { error } = await supabase
         .from('servicos_nacional_gas')
-        .update({ status_atendimento: novoStatus })
+        .update({
+          status_atendimento: novoStatus,
+          ...(novoStatus === 'executado' && {
+            tecnico_id: operadorId,
+            turno: turnoAtual
+          })
+        })
         .eq('id', servicoId)
 
       if (error) throw error
