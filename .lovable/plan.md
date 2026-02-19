@@ -1,25 +1,34 @@
 
 
-## Corrigir validacao de senha na edicao de operadores
+## Corrigir validacao de senha - abordagem definitiva
 
 ### Problema
-Ao editar um operador, o campo de senha nao aparece no formulario (correto), mas o `formData.password` e enviado como string vazia `""`. O schema Zod trata `""` como string presente e aplica a regra `min(8)`, gerando o erro "Senha deve ter pelo menos 8 caracteres".
+A correcao anterior com `.optional().or(z.literal(''))` nao esta funcionando como esperado na cadeia do Zod. O erro "Senha deve ter pelo menos 8 caracteres" persiste ao editar operadores.
 
 ### Solucao
-Alterar o `operadorSchema` em `src/lib/validation.ts` para aceitar string vazia no campo password, tratando-a como ausencia de valor.
+Duas alteracoes complementares para garantir que funcione:
 
-### Detalhes tecnicos
+**1. Arquivo: `src/lib/validation.ts` (linha 29)**
 
-**Arquivo: `src/lib/validation.ts` (linha 29)**
+Substituir a cadeia atual por um `z.union` explicito que e mais confiavel:
 
-Alterar de:
 ```typescript
-password: z.string().min(8, '...').max(72, '...').optional(),
-```
-Para:
-```typescript
-password: z.string().min(8, '...').max(72, '...').optional().or(z.literal('')),
+password: z.union([
+  z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(72, 'Senha muito longa'),
+  z.literal('')
+]).optional(),
 ```
 
-Isso faz com que `""` seja aceito sem disparar a validacao de tamanho minimo, mantendo a validacao para senhas reais (novo operador).
+**2. Arquivo: `src/pages/Operadores.tsx` - funcao `handleSubmit`**
 
+Adicionar limpeza do campo password antes da validacao: se estiver vazio, remover do objeto para que o schema receba `undefined` em vez de `""`:
+
+```typescript
+const dataToValidate = { ...formData };
+if (!dataToValidate.password) {
+  delete dataToValidate.password;
+}
+const validatedData = operadorSchema.parse(dataToValidate);
+```
+
+Esta segunda alteracao e a mais segura pois garante que o schema nunca receba uma string vazia no campo senha.
