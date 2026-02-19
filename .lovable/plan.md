@@ -1,34 +1,22 @@
 
 
-## Corrigir validacao de senha - abordagem definitiva
+## Adicionar busca de condominios no campo "Condominio" do Novo Servico
 
-### Problema
-A correcao anterior com `.optional().or(z.literal(''))` nao esta funcionando como esperado na cadeia do Zod. O erro "Senha deve ter pelo menos 8 caracteres" persiste ao editar operadores.
+### O que muda
+O campo "Condominio" no dialog de Novo Servico deixara de ser um input simples e passara a ter sugestoes automaticas conforme o usuario digita. As sugestoes virao dos nomes de condominios ja cadastrados na tabela `servicos_nacional_gas` (campo `condominio_nome_original`), permitindo localizar rapidamente um condominio existente. O usuario ainda podera digitar um nome novo que nao exista nas sugestoes.
 
-### Solucao
-Duas alteracoes complementares para garantir que funcione:
+### Detalhes tecnicos
 
-**1. Arquivo: `src/lib/validation.ts` (linha 29)**
+**Arquivo: `src/components/medicao-terceirizada/NovoServicoNacionalGasDialog.tsx`**
 
-Substituir a cadeia atual por um `z.union` explicito que e mais confiavel:
+1. Adicionar uma query para buscar nomes distintos de condominios existentes:
+   - Query na tabela `servicos_nacional_gas`, selecionando `condominio_nome_original` distinto, ordenado alfabeticamente
 
-```typescript
-password: z.union([
-  z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(72, 'Senha muito longa'),
-  z.literal('')
-]).optional(),
-```
+2. Substituir o `<Input>` do campo `condominio_nome_original` (linhas 177-189) por um componente com autocomplete usando `<Popover>` + `<Command>` (cmdk), que:
+   - Permite digitacao livre (o valor digitado e mantido mesmo sem selecionar uma sugestao)
+   - Filtra as sugestoes conforme o texto digitado (minimo 2 caracteres)
+   - Ao selecionar uma sugestao, preenche o campo com o nome completo
+   - Mantem a validacao obrigatoria existente
 
-**2. Arquivo: `src/pages/Operadores.tsx` - funcao `handleSubmit`**
+3. O componente usara os mesmos padroes ja existentes no projeto (Popover/Command do shadcn, como usado em `CriarServico.tsx` para combobox de empreendimentos)
 
-Adicionar limpeza do campo password antes da validacao: se estiver vazio, remover do objeto para que o schema receba `undefined` em vez de `""`:
-
-```typescript
-const dataToValidate = { ...formData };
-if (!dataToValidate.password) {
-  delete dataToValidate.password;
-}
-const validatedData = operadorSchema.parse(dataToValidate);
-```
-
-Esta segunda alteracao e a mais segura pois garante que o schema nunca receba uma string vazia no campo senha.
