@@ -1,23 +1,30 @@
 
 
-## Remover campo "Vincular a Empreendimento" e vincular automaticamente
+## Melhorar icones dos operadores no mapa
 
-### O que muda
-O campo separado "Vincular a Empreendimento" sera removido do formulario. Quando o usuario selecionar um condominio existente no autocomplete, o sistema buscara automaticamente o `empreendimento_id` associado a esse condominio (do ultimo servico cadastrado com esse nome) e preenchera internamente. Se o condominio for novo (digitado manualmente), o `empreendimento_id` ficara como `null`.
+### Problema
+Os icones atuais usam um SVG complexo com formato de "tecnico com capacete e ferramenta" que fica pequeno e dificil de visualizar no mapa, especialmente em zoom mais distante.
 
-Isso simplifica o formulario e elimina a redundancia.
+### Solucao
+Substituir o SVG complexo por um marcador tipo "pin" maior e mais limpo, com as iniciais do operador dentro. O design sera:
+
+- Marcador estilo "drop pin" com 48x48px (maior que os 40px atuais)
+- Circulo colorido com as iniciais do nome do operador (2 letras) em branco
+- Cor do circulo baseada no status (verde = online, amarelo = ausente, vermelho/cinza = offline)
+- Borda branca grossa para destacar do mapa
+- Sombra para dar profundidade
+- Remover o circulo de precisao separado (que adiciona ruido visual) e manter apenas o marcador principal
+- Tooltip nativo com o nome completo ao passar o mouse
 
 ### Detalhes tecnicos
 
-**Arquivo: `src/components/medicao-terceirizada/NovoServicoNacionalGasDialog.tsx`**
+**Arquivo: `src/components/rastreamento/LocalizacaoOperadores.tsx`**
 
-1. **Alterar a query de condominios** (linhas 72-83): em vez de buscar apenas `condominio_nome_original`, buscar tambem `empreendimento_id` para criar um mapa `nome -> empreendimento_id`
-
-2. **Criar um mapa de vinculacao**: `useMemo` que mapeia cada nome de condominio ao seu `empreendimento_id` mais recente (caso haja)
-
-3. **Auto-vincular ao selecionar**: quando o usuario seleciona um condominio no autocomplete, alem de preencher o nome, setar automaticamente `form.setValue('empreendimento_id', ...)` com o valor do mapa
-
-4. **Limpar vinculacao ao digitar nome novo**: quando o usuario digita livremente (sem selecionar do autocomplete), limpar o `empreendimento_id` para `null`
-
-5. **Remover o campo "Vincular a Empreendimento"** (linhas 251-276): remover o `FormField` inteiro do formulario, pois a vinculacao passa a ser automatica
+1. Criar funcao `getInitials(nome: string)` que retorna as 2 primeiras iniciais do nome
+2. Substituir o SVG do tecnico por um SVG de pin circular com as iniciais dentro
+3. Aumentar tamanho para 48x48px
+4. Simplificar cores: verde (online), amarelo (ausente), cinza (offline) - sem misturar cor de precisao com cor de status
+5. Adicionar `title` no elemento para tooltip com nome
+6. Remover os circulos de precisao (refs `circles`) que poluem o mapa
+7. Manter a opacidade reduzida para operadores offline
 
