@@ -8,6 +8,12 @@ import { MapPin, Battery, Clock, X } from 'lucide-react';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
+const getInitials = (nome: string): string => {
+  const parts = nome.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return nome.substring(0, 2).toUpperCase();
+};
+
 interface OperadorLocalizacao {
   id: string;
   operador_id: string;
@@ -30,7 +36,6 @@ export default function LocalizacaoOperadores() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
-  const circles = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
   useEffect(() => {
     if (!mapboxgl.accessToken) {
@@ -79,100 +84,47 @@ export default function LocalizacaoOperadores() {
     if (!map.current) return;
 
     Object.values(markers.current).forEach(marker => marker.remove());
-    Object.values(circles.current).forEach(circle => circle.remove());
     markers.current = {};
-    circles.current = {};
 
     operadores.forEach((operador) => {
-      // Criar círculo de precisão
-      const circleEl = document.createElement('div');
-      const precisaoMetros = operador.precisao || 100;
-      
-      // Calcular o tamanho do círculo baseado no zoom e precisão
-      const circleSize = Math.max(precisaoMetros / 2, 30);
-      
-      circleEl.style.width = `${circleSize}px`;
-      circleEl.style.height = `${circleSize}px`;
-      circleEl.style.borderRadius = '50%';
-      circleEl.style.pointerEvents = 'none';
-      
-      // Cor do círculo baseado na precisão
-      if (precisaoMetros < 50) {
-        circleEl.style.backgroundColor = 'rgba(34, 197, 94, 0.15)';
-        circleEl.style.border = '2px solid rgba(34, 197, 94, 0.4)';
-      } else if (precisaoMetros < 100) {
-        circleEl.style.backgroundColor = 'rgba(234, 179, 8, 0.15)';
-        circleEl.style.border = '2px solid rgba(234, 179, 8, 0.4)';
-      } else {
-        circleEl.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-        circleEl.style.border = '2px solid rgba(239, 68, 68, 0.4)';
-      }
-
-      const circle = new mapboxgl.Marker(circleEl)
-        .setLngLat([operador.longitude, operador.latitude])
-        .addTo(map.current!);
-      
-      circles.current[operador.operador_id] = circle;
-
-      // Criar marcador do operador (técnico)
       const el = document.createElement('div');
       
-      // Cor baseada na precisão GPS
-      let fillColor = '#22c55e'; // Verde - Excelente
-      if (precisaoMetros >= 100) {
-        fillColor = '#ef4444'; // Vermelho - Ruim
-      } else if (precisaoMetros >= 50) {
-        fillColor = '#eab308'; // Amarelo - Aceitável
-      }
-      
-      // Borda e opacidade baseada no status (tempo desde última atualização)
+      // Status baseado no tempo desde última atualização
       const minutosAtras = operador.segundos_desde_atualizacao / 60;
-      let borderColor = 'white'; // Online
+      let fillColor = '#22c55e'; // Verde - Online
       let opacity = '1';
       
       if (minutosAtras > 30) {
-        borderColor = '#9ca3af'; // Cinza - Offline
+        fillColor = '#9ca3af'; // Cinza - Offline
         opacity = '0.6';
       } else if (minutosAtras > 10) {
-        borderColor = '#f59e0b'; // Laranja - Ausente
+        fillColor = '#eab308'; // Amarelo - Ausente
       }
+
+      const initials = getInitials(operador.operador_nome);
       
-      // SVG de técnico/trabalhador com capacete
       el.innerHTML = `
-        <svg width="40" height="40" viewBox="0 0 24 24" style="
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        <svg width="48" height="48" viewBox="0 0 48 48" style="
+          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
           cursor: pointer;
           opacity: ${opacity};
         ">
-          <!-- Círculo de fundo com borda -->
-          <circle cx="12" cy="12" r="11" fill="${fillColor}" stroke="${borderColor}" stroke-width="2"/>
-          
-          <!-- Ícone de técnico/trabalhador -->
-          <g transform="translate(12, 12)" fill="white">
-            <!-- Capacete -->
-            <path d="M-3,-6 Q-3,-8 0,-8 Q3,-8 3,-6 L3,-4 L-3,-4 Z"/>
-            
-            <!-- Cabeça -->
-            <circle cx="0" cy="-2" r="2.5"/>
-            
-            <!-- Corpo -->
-            <path d="M-2.5,0 L-2.5,4 L-1,6 L1,6 L2.5,4 L2.5,0 Z"/>
-            
-            <!-- Braços -->
-            <path d="M-2.5,1 L-4,3 M2.5,1 L4,3" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-            
-            <!-- Ferramenta (chave inglesa) -->
-            <path d="M3,4 L5,6 M4.5,4.5 L3.5,5.5" stroke="white" stroke-width="1" stroke-linecap="round"/>
-          </g>
+          <!-- Ponta do pin -->
+          <path d="M24 46 L18 34 Q12 34 12 24 A12 12 0 1 1 36 24 Q36 34 30 34 Z" fill="${fillColor}" stroke="white" stroke-width="2.5"/>
+          <!-- Círculo interno branco para contraste -->
+          <circle cx="24" cy="22" r="10" fill="${fillColor}" stroke="white" stroke-width="2.5"/>
+          <!-- Iniciais -->
+          <text x="24" y="26" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial, sans-serif">${initials}</text>
         </svg>
       `;
       
-      el.style.width = '40px';
-      el.style.height = '40px';
+      el.style.width = '48px';
+      el.style.height = '48px';
       el.style.position = 'relative';
       el.style.zIndex = '10';
+      el.title = operador.operador_nome;
 
-      const marker = new mapboxgl.Marker(el)
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([operador.longitude, operador.latitude])
         .addTo(map.current!);
 
