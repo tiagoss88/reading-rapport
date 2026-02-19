@@ -76,12 +76,28 @@ export default function Operadores() {
       const validatedData = operadorSchema.parse(formData)
 
       if (editingOperador) {
-        // Atualizar operador existente
+        // Check if email changed
+        const emailChanged = validatedData.email !== editingOperador.email
+
+        if (emailChanged) {
+          // Update email via edge function (Auth + table)
+          const { data, error: fnError } = await supabase.functions.invoke('update-operador-email', {
+            body: {
+              operador_id: editingOperador.id,
+              new_email: validatedData.email
+            }
+          })
+
+          if (fnError) throw fnError
+          if (data?.error) throw new Error(data.error)
+        }
+
+        // Update other fields in operadores table
         const { error } = await supabase
           .from('operadores')
           .update({
             nome: validatedData.nome,
-            email: validatedData.email,
+            ...(!emailChanged && { email: validatedData.email }),
             status: validatedData.status,
             updated_at: new Date().toISOString()
           })
@@ -91,7 +107,7 @@ export default function Operadores() {
 
         toast({
           title: "Sucesso",
-          description: "Operador atualizado com sucesso"
+          description: emailChanged ? "Operador e email atualizados com sucesso" : "Operador atualizado com sucesso"
         })
       } else {
         // Criar novo operador usando edge function
@@ -272,7 +288,7 @@ export default function Operadores() {
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                     placeholder="Digite o email do operador"
-                    disabled={!!editingOperador}
+                    disabled={false}
                   />
                 </div>
 
