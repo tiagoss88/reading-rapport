@@ -57,30 +57,32 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
     }
   })
 
-  const { data: empreendimentos } = useQuery({
-    queryKey: ['empreendimentos-terceirizados-select'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('empreendimentos_terceirizados')
-        .select('id, nome')
-        .order('nome', { ascending: true })
-      if (error) throw error
-      return data
-    }
-  })
-
   const { data: condominiosExistentes } = useQuery({
     queryKey: ['condominios-distintos'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('servicos_nacional_gas')
-        .select('condominio_nome_original')
+        .select('condominio_nome_original, empreendimento_id')
         .order('condominio_nome_original', { ascending: true })
       if (error) throw error
-      const unique = [...new Set(data?.map(d => d.condominio_nome_original).filter(Boolean))]
-      return unique as string[]
+      return data || []
     }
   })
+
+  const condominioNomes = useMemo(() => {
+    const unique = [...new Set(condominiosExistentes?.map(d => d.condominio_nome_original).filter(Boolean))]
+    return unique as string[]
+  }, [condominiosExistentes])
+
+  const condominioEmpreendimentoMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    condominiosExistentes?.forEach(d => {
+      if (d.condominio_nome_original && d.empreendimento_id) {
+        map[d.condominio_nome_original] = d.empreendimento_id
+      }
+    })
+    return map
+  }, [condominiosExistentes])
 
   const [condominioPopoverOpen, setCondominioPopoverOpen] = useState(false)
 
@@ -110,7 +112,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
   const filteredCondominios = useMemo(() => {
     if (!condominioValue || condominioValue.length < 2) return []
     const search = condominioValue.toLowerCase()
-    return (condominiosExistentes || []).filter(c => c.toLowerCase().includes(search)).slice(0, 10)
+    return (condominioNomes || []).filter(c => c.toLowerCase().includes(search)).slice(0, 10)
   }, [condominioValue, condominiosExistentes])
 
   const mutation = useMutation({
@@ -212,6 +214,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                           {...field}
                           onChange={(e) => {
                             field.onChange(e)
+                            form.setValue('empreendimento_id', null)
                             if (e.target.value.length >= 2) {
                               setCondominioPopoverOpen(true)
                             } else {
@@ -234,6 +237,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                                 onMouseDown={(e) => {
                                   e.preventDefault()
                                   field.onChange(nome)
+                                  form.setValue('empreendimento_id', condominioEmpreendimentoMap[nome] || null)
                                   setCondominioPopoverOpen(false)
                                 }}
                               >
@@ -248,32 +252,6 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                   )}
               />
 
-              <FormField
-                control={form.control}
-                name="empreendimento_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vincular a Empreendimento</FormLabel>
-                    <Select
-                      onValueChange={(val) => field.onChange(val === '_none' ? null : val)}
-                      value={field.value || '_none'}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Nenhum" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="_none">Nenhum</SelectItem>
-                        {empreendimentos?.map(e => (
-                          <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
