@@ -105,6 +105,14 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
     }
   })
 
+  const condominioValue = form.watch('condominio_nome_original')
+
+  const filteredCondominios = useMemo(() => {
+    if (!condominioValue || condominioValue.length < 2) return []
+    const search = condominioValue.toLowerCase()
+    return (condominiosExistentes || []).filter(c => c.toLowerCase().includes(search)).slice(0, 10)
+  }, [condominioValue, condominiosExistentes])
+
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
       const { error } = await supabase
@@ -195,19 +203,12 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
               <FormField
                 control={form.control}
                 name="condominio_nome_original"
-                render={({ field }) => {
-                  const filtered = useMemo(() => {
-                    if (!field.value || field.value.length < 2) return []
-                    const search = field.value.toLowerCase()
-                    return (condominiosExistentes || []).filter(c => c.toLowerCase().includes(search)).slice(0, 10)
-                  }, [field.value, condominiosExistentes])
-
-                  return (
+                render={({ field }) => (
                     <FormItem className="relative">
                       <FormLabel>Condomínio *</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Digite para buscar ou cadastrar novo..."
+                          placeholder="Nome do condomínio"
                           {...field}
                           onChange={(e) => {
                             field.onChange(e)
@@ -217,13 +218,16 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                               setCondominioPopoverOpen(false)
                             }
                           }}
+                          onBlur={() => {
+                            setTimeout(() => setCondominioPopoverOpen(false), 150)
+                          }}
                           autoComplete="off"
                         />
                       </FormControl>
-                      {condominioPopoverOpen && filtered.length > 0 && (
+                      {condominioPopoverOpen && filteredCondominios.length > 0 && (
                         <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md border bg-popover shadow-md">
                           <ul className="max-h-[200px] overflow-y-auto p-1">
-                            {filtered.map((nome) => (
+                            {filteredCondominios.map((nome) => (
                               <li
                                 key={nome}
                                 className="cursor-pointer rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
@@ -241,8 +245,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                       )}
                       <FormMessage />
                     </FormItem>
-                  )
-                }}
+                  )}
               />
 
               <FormField
