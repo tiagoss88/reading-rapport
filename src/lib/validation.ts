@@ -26,7 +26,10 @@ export const clienteSchema = z.object({
 export const operadorSchema = z.object({
   nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres').max(255, 'Nome muito longo'),
   email: z.string().email('Email inválido').max(255, 'Email muito longo'),
-  password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(72, 'Senha muito longa').optional().or(z.literal('')),
+  password: z.union([
+    z.string().min(8, 'Senha deve ter pelo menos 8 caracteres').max(72, 'Senha muito longa'),
+    z.literal('')
+  ]).optional(),
   status: z.enum(['ativo', 'inativo'], { errorMap: () => ({ message: 'Status inválido' }) })
 })
 
