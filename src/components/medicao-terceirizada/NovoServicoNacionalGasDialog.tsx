@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,6 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { useToast } from '@/hooks/use-toast'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
@@ -65,6 +68,21 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
       return data
     }
   })
+
+  const { data: condominiosExistentes } = useQuery({
+    queryKey: ['condominios-distintos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicos_nacional_gas')
+        .select('condominio_nome_original')
+        .order('condominio_nome_original', { ascending: true })
+      if (error) throw error
+      const unique = [...new Set(data?.map(d => d.condominio_nome_original).filter(Boolean))]
+      return unique as string[]
+    }
+  })
+
+  const [condominioPopoverOpen, setCondominioPopoverOpen] = useState(false)
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -177,15 +195,54 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
               <FormField
                 control={form.control}
                 name="condominio_nome_original"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Condomínio *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nome do condomínio" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const filtered = useMemo(() => {
+                    if (!field.value || field.value.length < 2) return []
+                    const search = field.value.toLowerCase()
+                    return (condominiosExistentes || []).filter(c => c.toLowerCase().includes(search)).slice(0, 10)
+                  }, [field.value, condominiosExistentes])
+
+                  return (
+                    <FormItem className="relative">
+                      <FormLabel>Condomínio *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Digite para buscar ou cadastrar novo..."
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            if (e.target.value.length >= 2) {
+                              setCondominioPopoverOpen(true)
+                            } else {
+                              setCondominioPopoverOpen(false)
+                            }
+                          }}
+                          autoComplete="off"
+                        />
+                      </FormControl>
+                      {condominioPopoverOpen && filtered.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 rounded-md border bg-popover shadow-md">
+                          <ul className="max-h-[200px] overflow-y-auto p-1">
+                            {filtered.map((nome) => (
+                              <li
+                                key={nome}
+                                className="cursor-pointer rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+                                onMouseDown={(e) => {
+                                  e.preventDefault()
+                                  field.onChange(nome)
+                                  setCondominioPopoverOpen(false)
+                                }}
+                              >
+                                {nome}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )
+                }}
               />
 
               <FormField
