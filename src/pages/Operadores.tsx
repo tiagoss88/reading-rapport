@@ -72,8 +72,12 @@ export default function Operadores() {
     e.preventDefault()
 
     try {
-      // Validate input data
-      const validatedData = operadorSchema.parse(formData)
+      // Validate input data - remove empty password to avoid min length validation on edit
+      const dataToValidate = { ...formData };
+      if (!dataToValidate.password) {
+        delete (dataToValidate as any).password;
+      }
+      const validatedData = operadorSchema.parse(dataToValidate)
 
       if (editingOperador) {
         // Check if email changed
