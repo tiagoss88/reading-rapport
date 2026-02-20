@@ -168,10 +168,8 @@ export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrge
     const horasRestantes = calcularHorasUteisRestantes(new Date(servico.data_solicitacao), prazoHoras)
     const nivel = getNivel(horasRestantes, prazoHoras)
 
-    // Only include if within attention threshold
-    if (horasRestantes <= prazoHoras / 2) {
-      urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
-    }
+    // Include all pending/scheduled services — badge indicates urgency level
+    urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
   }
 
   // Sort: most urgent first
