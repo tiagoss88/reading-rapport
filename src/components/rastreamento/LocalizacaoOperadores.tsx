@@ -43,6 +43,7 @@ export default function LocalizacaoOperadores() {
   const [operadores, setOperadores] = useState<OperadorLocalizacao[]>([]);
   const [selectedOperador, setSelectedOperador] = useState<OperadorLocalizacao | null>(null);
   const [mapboxTokenMissing, setMapboxTokenMissing] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [showEmpreendimentos, setShowEmpreendimentos] = useState(false);
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -100,6 +101,7 @@ export default function LocalizacaoOperadores() {
       });
 
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      map.current.on('load', () => setMapLoaded(true));
     } catch (error) {
       console.error('Erro ao inicializar mapa:', error);
       setMapboxTokenMissing(true);
@@ -107,12 +109,14 @@ export default function LocalizacaoOperadores() {
 
     return () => {
       map.current?.remove();
+      map.current = null;
+      setMapLoaded(false);
     };
   }, []);
 
   // Operator markers
   useEffect(() => {
-    if (!map.current) return;
+    if (!map.current || !mapLoaded) return;
 
     Object.values(markers.current).forEach(marker => marker.remove());
     markers.current = {};
@@ -169,7 +173,7 @@ export default function LocalizacaoOperadores() {
       });
       map.current.fitBounds(bounds, { padding: 50 });
     }
-  }, [operadores]);
+  }, [operadores, mapLoaded]);
 
   // Empreendimento markers
   useEffect(() => {
@@ -177,7 +181,7 @@ export default function LocalizacaoOperadores() {
     empreendimentoMarkers.current.forEach(m => m.remove());
     empreendimentoMarkers.current = [];
 
-    if (!showEmpreendimentos || !map.current) return;
+    if (!showEmpreendimentos || !map.current || !mapLoaded) return;
 
     empreendimentos.forEach((emp) => {
       if (!emp.latitude || !emp.longitude) return;
@@ -220,7 +224,7 @@ export default function LocalizacaoOperadores() {
 
       empreendimentoMarkers.current.push(marker);
     });
-  }, [showEmpreendimentos, empreendimentos]);
+  }, [showEmpreendimentos, empreendimentos, mapLoaded]);
 
   // Toggle empreendimentos fetch
   useEffect(() => {
