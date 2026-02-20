@@ -1,30 +1,18 @@
 
+## Corrigir logo da Agasen e renomear "Medição Terceirizada" para "Medição"
 
-## Melhorar icones dos operadores no mapa
+### Problemas identificados
 
-### Problema
-Os icones atuais usam um SVG complexo com formato de "tecnico com capacete e ferramenta" que fica pequeno e dificil de visualizar no mapa, especialmente em zoom mais distante.
+1. **Logo não aparece**: O arquivo existe em `public/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png`, mas a referência via caminho público pode estar falhando. A solução é mover o logo para `src/assets/` e importá-lo como módulo ES6, que é a forma correta e mais confiável em React/Vite.
 
-### Solucao
-Substituir o SVG complexo por um marcador tipo "pin" maior e mais limpo, com as iniciais do operador dentro. O design sera:
+2. **Texto "Medição Terceirizada"**: Aparece em 2 lugares no `Layout.tsx` — no botão do dropdown (linha 157) e no `title` do NavLink colapsado (linha 143).
 
-- Marcador estilo "drop pin" com 48x48px (maior que os 40px atuais)
-- Circulo colorido com as iniciais do nome do operador (2 letras) em branco
-- Cor do circulo baseada no status (verde = online, amarelo = ausente, vermelho/cinza = offline)
-- Borda branca grossa para destacar do mapa
-- Sombra para dar profundidade
-- Remover o circulo de precisao separado (que adiciona ruido visual) e manter apenas o marcador principal
-- Tooltip nativo com o nome completo ao passar o mouse
+### Alterações
 
-### Detalhes tecnicos
+**Arquivo: `src/components/Layout.tsx`**
 
-**Arquivo: `src/components/rastreamento/LocalizacaoOperadores.tsx`**
-
-1. Criar funcao `getInitials(nome: string)` que retorna as 2 primeiras iniciais do nome
-2. Substituir o SVG do tecnico por um SVG de pin circular com as iniciais dentro
-3. Aumentar tamanho para 48x48px
-4. Simplificar cores: verde (online), amarelo (ausente), cinza (offline) - sem misturar cor de precisao com cor de status
-5. Adicionar `title` no elemento para tooltip com nome
-6. Remover os circulos de precisao (refs `circles`) que poluem o mapa
-7. Manter a opacidade reduzida para operadores offline
-
+1. Copiar o logo de `public/lovable-uploads/` para `src/assets/agasen-logo.png`
+2. Adicionar `import agasenLogo from '@/assets/agasen-logo.png'` no topo do arquivo
+3. Substituir os dois `src="/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png"` por `src={agasenLogo}` (linhas 88 e 97)
+4. Alterar `title="Medição Terceirizada"` → `title="Medição"` (linha 143)
+5. Alterar o texto `Medição Terceirizada` → `Medição` (linha 157)
