@@ -3,12 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+const TRACKING_INTERVAL_MS = 600000; // 10 minutes
 
 export const useLocationTracking = (enabled: boolean = true) => {
   const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isSendingRef = useRef(false);
 
   const getAddressFromCoordinates = async (lat: number, lng: number): Promise<string | null> => {
     if (!MAPBOX_TOKEN) return null;
@@ -38,26 +40,21 @@ export const useLocationTracking = (enabled: boolean = true) => {
         async (position) => {
           const precisao = position.coords.accuracy;
           
-          // Se precisão for boa (< 50m), aceitar
           if (precisao < 50) {
             resolve(position);
-          } 
-          // Se precisão for aceitável (< 100m) e já tentou 2 vezes, aceitar
-          else if (precisao < 100 && tentativa >= 2) {
+          } else if (precisao < 100 && tentativa >= 2) {
             resolve(position);
-          }
-          // Se ainda não atingiu o máximo de tentativas, tentar novamente
-          else if (tentativa < 3) {
+          } else if (tentativa < 3) {
             setTimeout(async () => {
               try {
                 const newPosition = await getHighAccuracyLocation(tentativa + 1);
                 resolve(newPosition);
               } catch (err) {
-                resolve(position); // Se falhar, usar a posição atual
+                resolve(position);
               }
             }, 2000);
           } else {
-            resolve(position); // Última tentativa, aceitar o que vier
+            resolve(position);
           }
         },
         reject,
@@ -71,28 +68,27 @@ export const useLocationTracking = (enabled: boolean = true) => {
   };
 
   const sendLocation = async () => {
+    if (isSendingRef.current || !user) return;
+    isSendingRef.current = true;
+
     try {
-      // Buscar operador_id do usuário autenticado
       const { data: operadorData } = await supabase
         .from('operadores')
         .select('id')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
 
       if (!operadorData) return;
 
-      // Obter localização com alta precisão
       const position = await getHighAccuracyLocation();
       const precisao = position.coords.accuracy;
       
-      // Obter nível de bateria (se disponível)
       let bateriaNivel = null;
       if ('getBattery' in navigator) {
         const battery = await (navigator as any).getBattery();
         bateriaNivel = Math.round(battery.level * 100);
       }
 
-      // Obter endereço usando geocoding reverso
       const enderecoEstimado = await getAddressFromCoordinates(
         position.coords.latitude,
         position.coords.longitude
@@ -115,32 +111,52 @@ export const useLocationTracking = (enabled: boolean = true) => {
     } catch (err) {
       console.error('Erro ao enviar localização:', err);
       setError('Erro ao obter localização GPS');
+    } finally {
+      isSendingRef.current = false;
     }
+  };
+
+  const startInterval = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      sendLocation();
+    }, TRACKING_INTERVAL_MS);
   };
 
   useEffect(() => {
     if (!enabled || !user) return;
 
-    if ('geolocation' in navigator) {
-      setIsTracking(true);
-      setError(null);
-
-      // Enviar localização imediatamente
-      sendLocation();
-
-      // Configurar intervalo de 5 minutos (300.000 ms)
-      intervalRef.current = setInterval(() => {
-        sendLocation();
-      }, 300000); // 5 minutos
-
-    } else {
+    if (!('geolocation' in navigator)) {
       setError('Geolocalização não disponível neste dispositivo');
+      return;
     }
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+    setIsTracking(true);
+    setError(null);
+
+    // Send immediately and start interval
+    sendLocation();
+    startInterval();
+
+    // Page Visibility API: resume tracking when user returns to the app
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        sendLocation();
+        startInterval();
+      } else {
+        // Pause interval when app is in background to save battery
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
       }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       setIsTracking(false);
     };
   }, [enabled, user]);
