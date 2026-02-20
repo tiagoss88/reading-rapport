@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import agasenLogo from '@/assets/agasen-logo.png'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
@@ -85,7 +86,7 @@ export default function Layout({ children, title }: LayoutProps) {
           {!collapsed && (
             <div className="flex items-center gap-3 overflow-hidden">
               <img 
-                src="/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png" 
+                src={agasenLogo}
                 alt="Agasen Logo" 
                 className="h-8 w-auto object-contain flex-shrink-0"
               />
@@ -94,7 +95,7 @@ export default function Layout({ children, title }: LayoutProps) {
           )}
           {collapsed && (
             <img 
-              src="/lovable-uploads/124d1417-15e6-4436-a1b4-66550bac6e66.png" 
+              src={agasenLogo}
               alt="Agasen Logo" 
               className="h-8 w-8 object-contain mx-auto"
             />
@@ -140,7 +141,7 @@ export default function Layout({ children, title }: LayoutProps) {
                 {collapsed ? (
                   <NavLink
                     to="/medicao-terceirizada/empreendimentos"
-                    title="Medição Terceirizada"
+                    title="Medição"
                     className={({ isActive }) => navLinkClass(isActive || pathname.startsWith('/medicao-terceirizada'))}
                     onClick={() => setSidebarOpen(false)}
                   >
@@ -154,7 +155,7 @@ export default function Layout({ children, title }: LayoutProps) {
                     >
                       <div className="flex items-center">
                         <Handshake className="mr-3 h-5 w-5 flex-shrink-0" />
-                        Medição Terceirizada
+                        Medição
                       </div>
                       <ChevronDown className={`h-4 w-4 transition-transform ${medicaoTerceirizadaOpen ? 'rotate-180' : ''}`} />
                     </button>
