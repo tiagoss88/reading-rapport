@@ -1,32 +1,58 @@
 
-## Simplificar busca de empreendimentos para uma única tabela
+## Problema identificado no Painel de Urgências
 
-### Problema atual
+### Causa raiz
 
-O `fetchEmpreendimentos` em `src/components/rastreamento/LocalizacaoOperadores.tsx` (linhas 74–89) busca **apenas** da tabela `empreendimentos`, que tem somente 2 registros georreferenciados.
+Na função `getServicosUrgentes` do arquivo `src/components/medicao-terceirizada/PainelUrgencias.tsx`, há um filtro na linha 172 que descarta serviços com mais da metade do prazo restante:
+
+```typescript
+// Linha 172 — filtro restritivo que elimina serviços "folgados"
+if (horasRestantes <= prazoHoras / 2) {
+  urgentes.push(...)
+}
+```
+
+Para uma **Religação de 48h**, isso significa que o serviço só aparece quando restar **menos de 24 horas úteis**. Se o serviço foi solicitado recentemente e ainda tem mais de 24h úteis disponíveis, ele é silenciosamente ignorado mesmo sendo um serviço de prazo monitorado.
 
 ### Solução
 
-Trocar a origem dos dados para **`empreendimentos_terceirizados`**, que já possui 97+ condomínios com `latitude` e `longitude` cadastrados — uma única query, sem complexity extra.
+Remover o filtro de "metade do prazo" e incluir **todos os serviços de Religação/Desligamento pendentes ou agendados** na lista, usando apenas o nível de urgência para classificá-los visualmente.
 
-### Alteração técnica
+A lógica de `getNivel` precisa de um ajuste para cobrir o caso em que o serviço está dentro do prazo e ainda folgado — atualmente retorna `'atencao'` como fallback, o que é adequado para esse caso.
 
-**Arquivo: `src/components/rastreamento/LocalizacaoOperadores.tsx`** — somente a função `fetchEmpreendimentos`:
+### Arquivo a editar
+
+**`src/components/medicao-terceirizada/PainelUrgencias.tsx`** — função `getServicosUrgentes`:
 
 ```typescript
-// ANTES
-const { data, error } = await supabase
-  .from('empreendimentos')
-  .select('id, nome, endereco, latitude, longitude')
-  .not('latitude', 'is', null)
-  .not('longitude', 'is', null);
+// ANTES (só inclui se restam menos de 50% do prazo):
+const horasRestantes = calcularHorasUteisRestantes(...)
+const nivel = getNivel(horasRestantes, prazoHoras)
 
-// DEPOIS
-const { data, error } = await supabase
-  .from('empreendimentos_terceirizados')
-  .select('id, nome, endereco, latitude, longitude')
-  .not('latitude', 'is', null)
-  .not('longitude', 'is', null);
+if (horasRestantes <= prazoHoras / 2) {
+  urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
+}
+
+// DEPOIS (inclui todos os pendentes/agendados com prazo monitorado):
+const horasRestantes = calcularHorasUteisRestantes(...)
+const nivel = getNivel(horasRestantes, prazoHoras)
+
+// Inclui sempre — o badge de nível informa a criticidade
+urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
 ```
 
-Só essa linha muda. Nenhuma outra lógica precisa ser alterada — os marcadores, popups e toggle continuam funcionando exatamente como estão.
+### Comportamento visual resultante
+
+| Tempo restante | Badge exibido |
+|---|---|
+| Vencido (≤ 0h) | 🔴 Vencido |
+| Crítico (≤ 8h úteis) | 🟠 Crítico |
+| Atenção (qualquer outro) | 🟡 Atenção |
+
+Todos os serviços de Religação e Desligamento com status `pendente` ou `agendado` aparecerão no painel, classificados do mais urgente ao mais folgado.
+
+### Único arquivo a editar
+
+| Arquivo | Mudança |
+|---|---|
+| `src/components/medicao-terceirizada/PainelUrgencias.tsx` | Remover o condicional `if (horasRestantes <= prazoHoras / 2)` e sempre fazer o push |
