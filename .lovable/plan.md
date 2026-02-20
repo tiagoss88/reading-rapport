@@ -1,58 +1,69 @@
 
-## Problema identificado no Painel de Urgências
+## Diagnóstico: Por que o operador Miguel não aparece no rastreamento
 
-### Causa raiz
+### Causa raiz identificada
 
-Na função `getServicosUrgentes` do arquivo `src/components/medicao-terceirizada/PainelUrgencias.tsx`, há um filtro na linha 172 que descarta serviços com mais da metade do prazo restante:
+A view `operadores_ultima_localizacao` foi criada na migration `20251019194038` com a seguinte cláusula:
 
-```typescript
-// Linha 172 — filtro restritivo que elimina serviços "folgados"
-if (horasRestantes <= prazoHoras / 2) {
-  urgentes.push(...)
-}
+```sql
+WHERE o.status = 'ativo'
 ```
 
-Para uma **Religação de 48h**, isso significa que o serviço só aparece quando restar **menos de 24 horas úteis**. Se o serviço foi solicitado recentemente e ainda tem mais de 24h úteis disponíveis, ele é silenciosamente ignorado mesmo sendo um serviço de prazo monitorado.
+Se o cadastro do Miguel no banco tiver `status = 'inativo'` ou qualquer outro valor fora de `'ativo'`, ele é silenciosamente excluído da view — mesmo tendo feito login e enviado localizações.
 
-### Solução
+Além disso, a view foi criada **antes** das colunas `endereco_estimado` e `precisao_rating` serem adicionadas à tabela (migration `20251020124720`), portanto essas colunas **nunca são retornadas** pela view — sempre chegam como `null` no frontend.
 
-Remover o filtro de "metade do prazo" e incluir **todos os serviços de Religação/Desligamento pendentes ou agendados** na lista, usando apenas o nível de urgência para classificá-los visualmente.
+### Dois problemas a corrigir
 
-A lógica de `getNivel` precisa de um ajuste para cobrir o caso em que o serviço está dentro do prazo e ainda folgado — atualmente retorna `'atencao'` como fallback, o que é adequado para esse caso.
+**Problema 1 — Operador não aparece (Miguel)**
+A view filtra apenas `status = 'ativo'`. O operador Miguel pode ter sido cadastrado com status diferente, ou seu status foi alterado.
 
-### Arquivo a editar
+**Problema 2 — View desatualizada**
+A view não inclui as colunas `endereco_estimado` e `precisao_rating` adicionadas posteriormente.
 
-**`src/components/medicao-terceirizada/PainelUrgencias.tsx`** — função `getServicosUrgentes`:
+### Solução: Recriar a view com todas as colunas
 
-```typescript
-// ANTES (só inclui se restam menos de 50% do prazo):
-const horasRestantes = calcularHorasUteisRestantes(...)
-const nivel = getNivel(horasRestantes, prazoHoras)
+Criar uma nova migration que recria a view corretamente, incluindo todas as colunas existentes na tabela. O filtro de status será mantido, mas verificaremos também se o operador está como `'ativo'`.
 
-if (horasRestantes <= prazoHoras / 2) {
-  urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
-}
-
-// DEPOIS (inclui todos os pendentes/agendados com prazo monitorado):
-const horasRestantes = calcularHorasUteisRestantes(...)
-const nivel = getNivel(horasRestantes, prazoHoras)
-
-// Inclui sempre — o badge de nível informa a criticidade
-urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
+```sql
+CREATE OR REPLACE VIEW operadores_ultima_localizacao AS
+SELECT DISTINCT ON (ol.operador_id)
+  ol.id,
+  ol.operador_id,
+  o.nome AS operador_nome,
+  o.email AS operador_email,
+  o.status AS operador_status,
+  ol.latitude,
+  ol.longitude,
+  ol.precisao,
+  ol.timestamp,
+  ol.bateria_nivel,
+  ol.em_movimento,
+  ol.velocidade,
+  ol.endereco_estimado,
+  ol.precisao_rating,
+  EXTRACT(EPOCH FROM (NOW() - ol.timestamp)) AS segundos_desde_atualizacao
+FROM operador_localizacoes ol
+INNER JOIN operadores o ON o.id = ol.operador_id
+WHERE o.status = 'ativo'
+ORDER BY ol.operador_id, ol.timestamp DESC;
 ```
 
-### Comportamento visual resultante
+### Ação paralela necessária — verificar o status do Miguel
 
-| Tempo restante | Badge exibido |
+Antes de publicar a migration, o status do Miguel na tabela `operadores` precisa ser `'ativo'`. Se não estiver, a view continuará ocultando ele mesmo após a correção.
+
+A correção do status pode ser feita na tela de **Operadores** do sistema (editando o cadastro do Miguel), sem necessidade de SQL manual.
+
+### Arquivos a criar/editar
+
+| Ação | Detalhe |
 |---|---|
-| Vencido (≤ 0h) | 🔴 Vencido |
-| Crítico (≤ 8h úteis) | 🟠 Crítico |
-| Atenção (qualquer outro) | 🟡 Atenção |
+| Nova migration SQL | Recriar a view com `endereco_estimado` e `precisao_rating` |
+| Verificação manual | Confirmar que o status do Miguel na tela de Operadores está como "Ativo" |
 
-Todos os serviços de Religação e Desligamento com status `pendente` ou `agendado` aparecerão no painel, classificados do mais urgente ao mais folgado.
+### Sequência de passos
 
-### Único arquivo a editar
-
-| Arquivo | Mudança |
-|---|---|
-| `src/components/medicao-terceirizada/PainelUrgencias.tsx` | Remover o condicional `if (horasRestantes <= prazoHoras / 2)` e sempre fazer o push |
+1. Criar nova migration que redefine a view com todas as colunas
+2. Verificar (e corrigir se necessário) o status do Miguel na tela de Operadores
+3. O operador precisa abrir o app e aguardar a primeira atualização de localização (até 10 minutos) para que o novo registro apareça
