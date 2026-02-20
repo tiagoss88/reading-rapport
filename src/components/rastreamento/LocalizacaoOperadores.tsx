@@ -73,7 +73,7 @@ export default function LocalizacaoOperadores() {
 
   const fetchEmpreendimentos = async () => {
     const { data, error } = await supabase
-      .from('empreendimentos')
+      .from('empreendimentos_terceirizados')
       .select('id, nome, endereco, latitude, longitude')
       .not('latitude', 'is', null)
       .not('longitude', 'is', null);
