@@ -4,7 +4,9 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Battery, Clock, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { MapPin, Battery, Clock, X, Building2 } from 'lucide-react';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
@@ -29,13 +31,24 @@ interface OperadorLocalizacao {
   precisao_rating?: string | null;
 }
 
+interface Empreendimento {
+  id: string;
+  nome: string;
+  endereco: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
 export default function LocalizacaoOperadores() {
   const [operadores, setOperadores] = useState<OperadorLocalizacao[]>([]);
   const [selectedOperador, setSelectedOperador] = useState<OperadorLocalizacao | null>(null);
   const [mapboxTokenMissing, setMapboxTokenMissing] = useState(false);
+  const [showEmpreendimentos, setShowEmpreendimentos] = useState(false);
+  const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const empreendimentoMarkers = useRef<mapboxgl.Marker[]>([]);
 
   useEffect(() => {
     if (!mapboxgl.accessToken) {
@@ -55,6 +68,23 @@ export default function LocalizacaoOperadores() {
 
     if (data) {
       setOperadores(data as OperadorLocalizacao[]);
+    }
+  };
+
+  const fetchEmpreendimentos = async () => {
+    const { data, error } = await supabase
+      .from('empreendimentos')
+      .select('id, nome, endereco, latitude, longitude')
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null);
+
+    if (error) {
+      console.error('Erro ao buscar empreendimentos:', error);
+      return;
+    }
+
+    if (data) {
+      setEmpreendimentos(data as Empreendimento[]);
     }
   };
 
@@ -80,6 +110,7 @@ export default function LocalizacaoOperadores() {
     };
   }, []);
 
+  // Operator markers
   useEffect(() => {
     if (!map.current) return;
 
@@ -89,16 +120,15 @@ export default function LocalizacaoOperadores() {
     operadores.forEach((operador) => {
       const el = document.createElement('div');
       
-      // Status baseado no tempo desde última atualização
       const minutosAtras = operador.segundos_desde_atualizacao / 60;
-      let fillColor = '#22c55e'; // Verde - Online
+      let fillColor = '#22c55e';
       let opacity = '1';
       
       if (minutosAtras > 30) {
-        fillColor = '#9ca3af'; // Cinza - Offline
+        fillColor = '#9ca3af';
         opacity = '0.6';
       } else if (minutosAtras > 10) {
-        fillColor = '#eab308'; // Amarelo - Ausente
+        fillColor = '#eab308';
       }
 
       const initials = getInitials(operador.operador_nome);
@@ -109,11 +139,8 @@ export default function LocalizacaoOperadores() {
           cursor: pointer;
           opacity: ${opacity};
         ">
-          <!-- Ponta do pin -->
           <path d="M24 46 L18 34 Q12 34 12 24 A12 12 0 1 1 36 24 Q36 34 30 34 Z" fill="${fillColor}" stroke="white" stroke-width="2.5"/>
-          <!-- Círculo interno branco para contraste -->
           <circle cx="24" cy="22" r="10" fill="${fillColor}" stroke="white" stroke-width="2.5"/>
-          <!-- Iniciais -->
           <text x="24" y="26" text-anchor="middle" fill="white" font-size="11" font-weight="bold" font-family="Arial, sans-serif">${initials}</text>
         </svg>
       `;
@@ -143,6 +170,64 @@ export default function LocalizacaoOperadores() {
       map.current.fitBounds(bounds, { padding: 50 });
     }
   }, [operadores]);
+
+  // Empreendimento markers
+  useEffect(() => {
+    // Clear existing empreendimento markers
+    empreendimentoMarkers.current.forEach(m => m.remove());
+    empreendimentoMarkers.current = [];
+
+    if (!showEmpreendimentos || !map.current) return;
+
+    empreendimentos.forEach((emp) => {
+      if (!emp.latitude || !emp.longitude) return;
+
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <svg width="40" height="48" viewBox="0 0 40 48" style="
+          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.35));
+          cursor: pointer;
+        ">
+          <!-- Diamond/building pin shape -->
+          <path d="M20 46 L14 32 Q6 32 6 20 A14 14 0 1 1 34 20 Q34 32 26 32 Z" fill="#7c3aed" stroke="white" stroke-width="2.5"/>
+          <!-- Inner circle -->
+          <circle cx="20" cy="18" r="11" fill="#7c3aed" stroke="white" stroke-width="2.5"/>
+          <!-- Building icon (simplified) -->
+          <rect x="14" y="13" width="12" height="10" fill="white" rx="1"/>
+          <rect x="16" y="15" width="2" height="2" fill="#7c3aed"/>
+          <rect x="19" y="15" width="2" height="2" fill="#7c3aed"/>
+          <rect x="22" y="15" width="2" height="2" fill="#7c3aed"/>
+          <rect x="17" y="19" width="6" height="4" fill="#7c3aed" rx="0.5"/>
+        </svg>
+      `;
+
+      el.style.width = '40px';
+      el.style.height = '48px';
+      el.title = emp.nome;
+
+      const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
+        .setHTML(`
+          <div style="padding: 8px; min-width: 160px;">
+            <p style="font-weight: 600; font-size: 13px; margin: 0 0 4px 0;">${emp.nome}</p>
+            <p style="font-size: 11px; color: #6b7280; margin: 0;">${emp.endereco}</p>
+          </div>
+        `);
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([emp.longitude, emp.latitude])
+        .setPopup(popup)
+        .addTo(map.current!);
+
+      empreendimentoMarkers.current.push(marker);
+    });
+  }, [showEmpreendimentos, empreendimentos]);
+
+  // Toggle empreendimentos fetch
+  useEffect(() => {
+    if (showEmpreendimentos && empreendimentos.length === 0) {
+      fetchEmpreendimentos();
+    }
+  }, [showEmpreendimentos]);
 
   useEffect(() => {
     fetchLocations();
@@ -182,9 +267,31 @@ export default function LocalizacaoOperadores() {
   return (
     <div className="flex h-[calc(100vh-12rem)] gap-4">
       <div className="w-80 overflow-auto space-y-3">
-        <h2 className="text-lg font-semibold mb-4">
-          Operadores Ativos ({operadores.length})
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            Operadores Ativos ({operadores.length})
+          </h2>
+        </div>
+
+        {/* Toggle empreendimentos */}
+        <div className="flex items-center gap-2 py-2 px-3 bg-muted/50 rounded-lg border">
+          <Building2 className="w-4 h-4 text-[#7c3aed]" />
+          <Label htmlFor="toggle-empreendimentos" className="flex-1 text-sm cursor-pointer">
+            Mostrar Empreendimentos
+          </Label>
+          <Switch
+            id="toggle-empreendimentos"
+            checked={showEmpreendimentos}
+            onCheckedChange={setShowEmpreendimentos}
+          />
+        </div>
+
+        {showEmpreendimentos && (
+          <p className="text-xs text-muted-foreground px-1">
+            <span className="inline-block w-2 h-2 rounded-full bg-[#7c3aed] mr-1" />
+            {empreendimentos.length} empreendimento{empreendimentos.length !== 1 ? 's' : ''} no mapa
+          </p>
+        )}
         
         {operadores.map((operador) => {
           const minutosAtras = operador.segundos_desde_atualizacao / 60;
