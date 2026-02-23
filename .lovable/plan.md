@@ -1,14 +1,16 @@
 
 
-## Correção: Padronizar tipo_servico em caixa alta
+## Correção: tipo_servico em caixa alta no Relatório RDO
 
-A linha 339 de `src/pages/MedicaoTerceirizada/Servicos.tsx` ainda exibe `{servico.tipo_servico}` sem transformação.
+A alteração anterior foi aplicada apenas na tela de **Serviços** (`Servicos.tsx`). O **Relatório** usa componentes diferentes que também exibem `tipo_servico` sem transformação.
 
-### Mudança necessária
+### Arquivos a editar
 
 | Arquivo | Linha | De | Para |
 |---|---|---|---|
-| `src/pages/MedicaoTerceirizada/Servicos.tsx` | 339 | `<TableCell>{servico.tipo_servico}</TableCell>` | `<TableCell>{servico.tipo_servico?.toUpperCase()}</TableCell>` |
+| `src/components/relatorios/TabelaRelatorio.tsx` | 65 | `{item.tipo_servico}` | `{item.tipo_servico?.toUpperCase()}` |
+| `src/lib/exportPDF.ts` | 53 | `item.tipo_servico` | `item.tipo_servico?.toUpperCase()` |
+| `src/lib/exportCSV.ts` | 23 | `item.tipo_servico` | `item.tipo_servico?.toUpperCase()` |
 
-Essa é a única alteração necessária para que "leitura" seja exibido como "LEITURA".
+São 3 pontos onde o tipo de serviço aparece no módulo de relatórios: tabela na tela, exportação PDF e exportação CSV. Todos precisam de `.toUpperCase()`.
 
