@@ -1,24 +1,14 @@
 
 
-## Padronizar "leitura" em caixa alta na tabela de Serviços
+## Correção: Padronizar tipo_servico em caixa alta
 
-### Problema
-O campo `tipo_servico` é exibido exatamente como está no banco. Tipos como "INSTALACAO GERAL" e "DESLIGAMENTO" estão em maiúsculas, mas "leitura" está em minúsculas.
+A alteração anterior **não foi aplicada** ao arquivo. A linha 339 de `src/pages/MedicaoTerceirizada/Servicos.tsx` ainda exibe o valor sem transformação.
 
-### Solução
-Aplicar `.toUpperCase()` na exibição do `tipo_servico` na tabela, na linha 339 de `src/pages/MedicaoTerceirizada/Servicos.tsx`:
+### Mudança
 
-```
-// Antes
-<TableCell>{servico.tipo_servico}</TableCell>
+| Arquivo | Linha | De | Para |
+|---|---|---|---|
+| `src/pages/MedicaoTerceirizada/Servicos.tsx` | 339 | `{servico.tipo_servico}` | `{servico.tipo_servico?.toUpperCase()}` |
 
-// Depois
-<TableCell>{servico.tipo_servico?.toUpperCase()}</TableCell>
-```
-
-### Arquivo a editar
-
-| Arquivo | Linha | Mudança |
-|---|---|---|
-| `src/pages/MedicaoTerceirizada/Servicos.tsx` | 339 | Adicionar `.toUpperCase()` ao render de `tipo_servico` |
+Essa é a única alteração necessária.
 
