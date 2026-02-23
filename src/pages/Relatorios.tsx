@@ -16,6 +16,7 @@ export interface FiltrosRelatorioType {
   periodicidade?: 'diario' | 'semanal' | 'mensal';
   operadorId?: string;
   tipoServico?: string;
+  statusServico?: string;
 }
 
 export default function Relatorios() {

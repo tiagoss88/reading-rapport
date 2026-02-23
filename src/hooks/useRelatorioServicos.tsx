@@ -3,7 +3,7 @@ import { FiltrosRelatorioType } from '@/pages/Relatorios';
 
 export function useRelatorioServicos() {
   const gerarRelatorioServicos = async (filtros: FiltrosRelatorioType): Promise<any[]> => {
-    const { dataInicio, dataFim, operadorId, tipoServico } = filtros;
+    const { dataInicio, dataFim, operadorId, tipoServico, statusServico } = filtros;
 
     const addOneDay = (dateStr: string) => {
       const date = new Date(dateStr);
@@ -35,6 +35,9 @@ export function useRelatorioServicos() {
     if (tipoServico) {
       queryInternos = queryInternos.eq('tipo_servico', tipoServico);
     }
+    if (statusServico) {
+      queryInternos = queryInternos.eq('status', statusServico);
+    }
 
     // Query servicos nacional gas
     let queryNacionalGas = supabase
@@ -57,6 +60,9 @@ export function useRelatorioServicos() {
     }
     if (tipoServico) {
       queryNacionalGas = queryNacionalGas.eq('tipo_servico', tipoServico);
+    }
+    if (statusServico) {
+      queryNacionalGas = queryNacionalGas.eq('status_atendimento', statusServico);
     }
 
     const [resInternos, resNacionalGas] = await Promise.all([
