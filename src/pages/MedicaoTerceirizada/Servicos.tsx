@@ -336,7 +336,7 @@ export default function ServicosNacionalGas() {
                                 {servico.apartamento && <span>Apto {servico.apartamento}</span>}
                               </TableCell>
                               <TableCell>{servico.morador_nome || '-'}</TableCell>
-                              <TableCell>{servico.tipo_servico}</TableCell>
+                              <TableCell>{servico.tipo_servico?.toUpperCase()}</TableCell>
                               <TableCell>{servico.uf}</TableCell>
                               <TableCell>
                                 {servico.data_agendamento 
