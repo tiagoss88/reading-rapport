@@ -29,7 +29,6 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead>Tipo Serviço</TableHead>
             <TableHead>Técnico</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Descrição</TableHead>
           </>
         );
       default:
@@ -79,7 +78,6 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                   {item.status}
                 </span>
               </TableCell>
-              <TableCell className="max-w-xs truncate">{item.descricao || '-'}</TableCell>
             </TableRow>
           );
         default:
