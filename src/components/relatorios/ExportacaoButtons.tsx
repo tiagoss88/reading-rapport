@@ -32,14 +32,13 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
       break;
 
     case 'rdo_servicos':
-      headers = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status', 'Descrição'];
+      headers = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status'];
       rows = dados.map((item) => [
         item.data ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR }) : '',
         item.condominio || '',
         item.tipo_servico?.toUpperCase(),
         item.tecnico || '',
         item.status,
-        item.descricao || '',
       ]);
       break;
   }

@@ -44,14 +44,13 @@ export function exportarPDF(
       break;
 
     case 'rdo_servicos':
-      colunas = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status', 'Descrição'];
+      colunas = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status'];
       linhas = dados.map((item) => [
         item.data ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR }) : '-',
         item.condominio || '-',
         item.tipo_servico?.toUpperCase(),
         item.tecnico || '-',
         item.status,
-        (item.descricao || '').substring(0, 50),
       ]);
       break;
   }
