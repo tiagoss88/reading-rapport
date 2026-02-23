@@ -1,34 +1,17 @@
 
 
-## Adicionar filtro de Status ao Relatório RDO
+## Remover coluna "Descrição" do Relatório RDO
 
-O usuário quer filtrar os resultados do relatório RDO por status do serviço (agendado, em_andamento, concluido, etc.).
+O usuário quer remover a coluna "Descrição" da tabela do relatório RDO e das exportações, para que o nome do técnico caiba em uma única linha.
 
 ### Arquivos a editar
 
-**1. `src/pages/Relatorios.tsx`** — Adicionar campo `statusServico` ao tipo `FiltrosRelatorioType`:
-```typescript
-export interface FiltrosRelatorioType {
-  // ... campos existentes
-  statusServico?: string; // novo
-}
-```
+| Arquivo | Mudança |
+|---|---|
+| `src/components/relatorios/TabelaRelatorio.tsx` | Remover `<TableHead>Descrição</TableHead>` (linha 38) e `<TableCell>` da descrição (linha 78) |
+| `src/components/relatorios/ExportacaoButtons.tsx` | Remover "Descrição" do array `headers` e `item.descricao` do array `rows` no case `rdo_servicos` |
+| `src/lib/exportPDF.ts` | Remover "Descrição" das colunas e do mapeamento de dados do RDO |
+| `src/lib/exportCSV.ts` | Remover "Descrição" das colunas e do mapeamento de dados do RDO |
 
-**2. `src/components/relatorios/FiltrosRelatorio.tsx`** — Adicionar o Select de Status após o filtro de Técnico:
-- Opções: Todos, Agendado, Em Andamento, Concluído, Cancelado, Pendente, Executado
-- Valor salvo em `filtros.statusServico`
-
-**3. `src/hooks/useRelatorioServicos.tsx`** — Aplicar o filtro nas queries:
-- Na query `servicos`: `.eq('status', statusServico)` quando definido
-- Na query `servicos_nacional_gas`: `.eq('status_atendimento', statusServico)` quando definido
-
-### Detalhes técnicos
-
-As duas tabelas usam nomes de coluna diferentes (`status` vs `status_atendimento`) e valores de status ligeiramente diferentes. O filtro será aplicado em ambas as queries separadamente, garantindo que apenas os serviços com o status selecionado sejam retornados.
-
-Valores de status possíveis:
-- Serviços internos (`servicos`): agendado, em_andamento, concluido, cancelado
-- Serviços Nacional Gás (`servicos_nacional_gas`): pendente, agendado, executado, cancelado
-
-O Select mostrará todos os valores possíveis, e cada query filtrará pelo valor correspondente à sua tabela.
+São 4 arquivos, todos removendo a sexta coluna (Descrição) do relatório RDO. Nenhuma lógica nova é adicionada.
 
