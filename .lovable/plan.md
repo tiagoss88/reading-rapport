@@ -1,16 +1,34 @@
 
 
-## Correção: tipo_servico em caixa alta no Relatório RDO
+## Adicionar filtro de Status ao Relatório RDO
 
-A alteração anterior foi aplicada apenas na tela de **Serviços** (`Servicos.tsx`). O **Relatório** usa componentes diferentes que também exibem `tipo_servico` sem transformação.
+O usuário quer filtrar os resultados do relatório RDO por status do serviço (agendado, em_andamento, concluido, etc.).
 
 ### Arquivos a editar
 
-| Arquivo | Linha | De | Para |
-|---|---|---|---|
-| `src/components/relatorios/TabelaRelatorio.tsx` | 65 | `{item.tipo_servico}` | `{item.tipo_servico?.toUpperCase()}` |
-| `src/lib/exportPDF.ts` | 53 | `item.tipo_servico` | `item.tipo_servico?.toUpperCase()` |
-| `src/lib/exportCSV.ts` | 23 | `item.tipo_servico` | `item.tipo_servico?.toUpperCase()` |
+**1. `src/pages/Relatorios.tsx`** — Adicionar campo `statusServico` ao tipo `FiltrosRelatorioType`:
+```typescript
+export interface FiltrosRelatorioType {
+  // ... campos existentes
+  statusServico?: string; // novo
+}
+```
 
-São 3 pontos onde o tipo de serviço aparece no módulo de relatórios: tabela na tela, exportação PDF e exportação CSV. Todos precisam de `.toUpperCase()`.
+**2. `src/components/relatorios/FiltrosRelatorio.tsx`** — Adicionar o Select de Status após o filtro de Técnico:
+- Opções: Todos, Agendado, Em Andamento, Concluído, Cancelado, Pendente, Executado
+- Valor salvo em `filtros.statusServico`
+
+**3. `src/hooks/useRelatorioServicos.tsx`** — Aplicar o filtro nas queries:
+- Na query `servicos`: `.eq('status', statusServico)` quando definido
+- Na query `servicos_nacional_gas`: `.eq('status_atendimento', statusServico)` quando definido
+
+### Detalhes técnicos
+
+As duas tabelas usam nomes de coluna diferentes (`status` vs `status_atendimento`) e valores de status ligeiramente diferentes. O filtro será aplicado em ambas as queries separadamente, garantindo que apenas os serviços com o status selecionado sejam retornados.
+
+Valores de status possíveis:
+- Serviços internos (`servicos`): agendado, em_andamento, concluido, cancelado
+- Serviços Nacional Gás (`servicos_nacional_gas`): pendente, agendado, executado, cancelado
+
+O Select mostrará todos os valores possíveis, e cada query filtrará pelo valor correspondente à sua tabela.
 
