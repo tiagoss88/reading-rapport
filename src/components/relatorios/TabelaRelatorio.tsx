@@ -62,7 +62,7 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                   : '-'}
               </TableCell>
               <TableCell>{item.condominio || '-'}</TableCell>
-              <TableCell>{item.tipo_servico}</TableCell>
+              <TableCell>{item.tipo_servico?.toUpperCase()}</TableCell>
               <TableCell>{item.tecnico || '-'}</TableCell>
               <TableCell>
                 <span

@@ -48,7 +48,7 @@ export function exportarPDF(
       linhas = dados.map((item) => [
         item.data ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR }) : '-',
         item.condominio || '-',
-        item.tipo_servico,
+        item.tipo_servico?.toUpperCase(),
         item.tecnico || '-',
         item.status,
         (item.descricao || '').substring(0, 50),
