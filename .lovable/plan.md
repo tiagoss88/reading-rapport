@@ -1,23 +1,30 @@
 
 
-## Adicionar filtro de UF (BA/CE) na tela de Serviços Terceirizados do Coletor
+## Corrigir status da Rota do Dia após upload do comprovante
 
-O operador precisa filtrar os serviços por estado (BA ou CE) para focar nos serviços da sua região.
+### Diagnóstico
+
+A "Rota do Dia" lê da tabela `rotas_leitura`, que tem seu próprio campo `status` (inicializado como `'pendente'`). Quando o operador confirma a coleta em `ColetorEmpreendimentoDetalhe`, o código insere um registro na tabela `servicos_nacional_gas` com `status_atendimento: 'executado'`, mas **nunca atualiza o `status` da `rotas_leitura`**. Por isso, mesmo após o upload da foto, a Rota do Dia continua mostrando "Pendente".
+
+### Solução
+
+Após inserir o registro na `servicos_nacional_gas`, atualizar a linha correspondente em `rotas_leitura` para `status: 'concluido'`.
 
 ### Arquivo a editar
 
-**`src/pages/ColetorServicosTerceirizados.tsx`**
+**`src/pages/ColetorEmpreendimentoDetalhe.tsx`** (linhas 98-111)
 
-1. Adicionar `uf` à interface `ServicoTerceirizado` e ao select da query Supabase
-2. Adicionar estado `selectedUF` (valores: `'todos'`, `'BA'`, `'CE'`)
-3. Adicionar filtro de botões (BA / CE / Todos) abaixo do header, antes da lista
-4. Filtrar `servicos` pelo `selectedUF` antes de renderizar a lista
-5. Mostrar a UF como badge pequena em cada card da lista, ao lado do nome do condomínio
+Após o insert na `servicos_nacional_gas`, adicionar:
 
-### Detalhes técnicos
+```typescript
+// Atualizar status da rota_leitura para concluido
+const hoje = new Date().toISOString().split('T')[0]
+await supabase
+  .from('rotas_leitura')
+  .update({ status: 'concluido' })
+  .eq('empreendimento_id', empreendimentoId!)
+  .eq('data', hoje)
+```
 
-- O campo `uf` já existe na tabela `servicos_nacional_gas` (tipo `string`, valores `'BA'` ou `'CE'`)
-- O filtro será feito no frontend (client-side) sobre os dados já carregados, sem query adicional
-- Layout do filtro: dois botões estilo toggle (BA e CE) + opção "Todos", posicionados entre o header e a lista de serviços
-- Cada card mostrará uma badge com a UF para contexto visual rápido
+Isso garante que, se o empreendimento estiver na rota do dia, seu status será atualizado automaticamente para "Concluído" na mesma operação de confirmação da coleta.
 
