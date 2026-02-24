@@ -1,17 +1,16 @@
 
 
-## Remover coluna "Descrição" do Relatório RDO
+## Remover indicador "Rastreamento ativo" do menu do coletor
 
-O usuário quer remover a coluna "Descrição" da tabela do relatório RDO e das exportações, para que o nome do técnico caiba em uma única linha.
+Remover o bloco visual que mostra "Rastreamento ativo" e o indicador de erro de rastreamento no menu do coletor. O rastreamento continuará funcionando normalmente em segundo plano, apenas sem feedback visual para o operador.
 
-### Arquivos a editar
+### Arquivo a editar
 
-| Arquivo | Mudança |
-|---|---|
-| `src/components/relatorios/TabelaRelatorio.tsx` | Remover `<TableHead>Descrição</TableHead>` (linha 38) e `<TableCell>` da descrição (linha 78) |
-| `src/components/relatorios/ExportacaoButtons.tsx` | Remover "Descrição" do array `headers` e `item.descricao` do array `rows` no case `rdo_servicos` |
-| `src/lib/exportPDF.ts` | Remover "Descrição" das colunas e do mapeamento de dados do RDO |
-| `src/lib/exportCSV.ts` | Remover "Descrição" das colunas e do mapeamento de dados do RDO |
+**`src/pages/ColetorMenu.tsx`**
 
-São 4 arquivos, todos removendo a sexta coluna (Descrição) do relatório RDO. Nenhuma lógica nova é adicionada.
+- Remover o bloco `{isTracking && (...)}` (linhas ~119-127)
+- Remover o bloco `{error && (...)}` (linhas ~128-132)
+- Opcionalmente remover o import e a chamada de `useLocationTracking` se não for mais referenciado (manter a chamada para que o rastreamento continue ativo, apenas remover a exibição)
+
+Na prática: manter `const { } = useLocationTracking(true)` (sem desestruturar `isTracking` e `error`) ou simplesmente `useLocationTracking(true)` para que o hook continue executando.
 
