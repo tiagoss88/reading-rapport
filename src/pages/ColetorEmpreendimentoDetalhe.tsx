@@ -110,6 +110,14 @@ export default function ColetorEmpreendimentoDetalhe() {
         })
       if (error) throw error
 
+      // Atualizar status da rota_leitura para concluido
+      const hoje = new Date().toISOString().split('T')[0]
+      await supabase
+        .from('rotas_leitura')
+        .update({ status: 'concluido' })
+        .eq('empreendimento_id', empreendimentoId!)
+        .eq('data', hoje)
+
       toast({ title: "Coleta confirmada!", description: "Registro salvo com sucesso." })
       navigate(-1)
     } catch (error: any) {
