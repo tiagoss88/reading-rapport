@@ -29,6 +29,7 @@ interface ServicoTerceirizado {
   telefone: string | null
   email: string | null
   tipo_servico: string
+  uf: string | null
   data_agendamento: string | null
   turno: string | null
   status_atendimento: string
@@ -45,6 +46,7 @@ export default function ColetorServicosTerceirizados() {
   const { toast } = useToast()
   const [servicos, setServicos] = useState<ServicoTerceirizado[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedUF, setSelectedUF] = useState<'todos' | 'BA' | 'CE'>('todos')
   const [operadorId, setOperadorId] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedServico, setSelectedServico] = useState<ServicoTerceirizado | null>(null)
@@ -92,6 +94,7 @@ export default function ColetorServicosTerceirizados() {
           telefone,
           email,
           tipo_servico,
+          uf,
           data_agendamento,
           turno,
           status_atendimento,
@@ -394,6 +397,21 @@ export default function ColetorServicosTerceirizados() {
           </div>
         </div>
 
+        {/* UF Filter */}
+        <div className="flex gap-2">
+          {(['todos', 'BA', 'CE'] as const).map((uf) => (
+            <Button
+              key={uf}
+              variant={selectedUF === uf ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedUF(uf)}
+              className="flex-1"
+            >
+              {uf === 'todos' ? 'Todos' : uf}
+            </Button>
+          ))}
+        </div>
+
         {/* Loading */}
         {loading && (
           <div className="flex justify-center py-12">
@@ -402,7 +420,7 @@ export default function ColetorServicosTerceirizados() {
         )}
 
         {/* Empty State */}
-        {!loading && servicos.length === 0 && (
+        {!loading && servicos.filter(s => selectedUF === 'todos' || s.uf === selectedUF).length === 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-8 text-gray-500">
@@ -417,7 +435,7 @@ export default function ColetorServicosTerceirizados() {
         )}
 
         {/* Services List */}
-        {!loading && servicos.map((servico) => (
+        {!loading && servicos.filter(s => selectedUF === 'todos' || s.uf === selectedUF).map((servico) => (
           <Card
             key={servico.id}
             className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
@@ -432,7 +450,10 @@ export default function ColetorServicosTerceirizados() {
                     </p>
                     {getStatusBadge(servico.status_atendimento)}
                   </div>
-                  <p className="text-sm truncate">{servico.condominio_nome_original}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm truncate">{servico.condominio_nome_original}</p>
+                    {servico.uf && <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{servico.uf}</Badge>}
+                  </div>
                   {(servico.bloco || servico.apartamento) && (
                     <p className="text-xs text-muted-foreground">
                       {servico.bloco && `Bloco ${servico.bloco}`}
