@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ArrowLeft, Building2, Gauge, Camera, CheckCircle, Navigation, MapPin, ImagePlus } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
+import { format } from 'date-fns'
 
 export default function ColetorEmpreendimentoDetalhe() {
   const { empreendimentoId } = useParams()
@@ -95,6 +96,8 @@ export default function ColetorEmpreendimentoDetalhe() {
         .from('medidor-fotos')
         .getPublicUrl(filePath)
 
+      const dataHojeLocal = format(new Date(), 'yyyy-MM-dd')
+
       // Registrar coleta
       const { error } = await supabase
         .from('servicos_nacional_gas')
@@ -106,17 +109,27 @@ export default function ColetorEmpreendimentoDetalhe() {
           uf: empreendimento!.uf,
           tecnico_id: operador.id,
           observacao: `Foto comprovante: ${urlData.publicUrl}`,
-          data_agendamento: new Date().toISOString().split('T')[0],
+          data_agendamento: dataHojeLocal,
         })
       if (error) throw error
 
-      // Atualizar status da rota_leitura para concluido
-      const hoje = new Date().toISOString().split('T')[0]
-      await supabase
+      // Best effort no cliente: backend continua sendo fonte da verdade
+      const { data: rotasAtualizadas, error: rotaUpdateError } = await supabase
         .from('rotas_leitura')
         .update({ status: 'concluido' })
         .eq('empreendimento_id', empreendimentoId!)
-        .eq('data', hoje)
+        .eq('data', dataHojeLocal)
+        .neq('status', 'concluido')
+        .select('id')
+
+      if (rotaUpdateError) {
+        console.warn('Aviso ao atualizar rota_leitura no coletor:', rotaUpdateError.message)
+      } else if (!rotasAtualizadas?.length) {
+        console.warn('Nenhuma rota_leitura atualizada no coletor (possível RLS, rota inexistente ou já concluída).', {
+          empreendimentoId,
+          dataHojeLocal,
+        })
+      }
 
       toast({ title: "Coleta confirmada!", description: "Registro salvo com sucesso." })
       navigate(-1)

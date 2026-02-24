@@ -58,6 +58,29 @@ export default function LeiturasTerceirizadas() {
     }
   })
 
+  const { data: servicosExecutadosNoDia, isLoading: loadingExecutadosNoDia } = useQuery({
+    queryKey: ['servicos-executados-dia', dataSelecionada],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicos_nacional_gas')
+        .select('empreendimento_id')
+        .eq('tipo_servico', 'leitura')
+        .eq('status_atendimento', 'executado')
+        .eq('data_agendamento', dataSelecionada)
+        .not('empreendimento_id', 'is', null)
+
+      if (error) throw error
+      return (data || [])
+        .map(item => item.empreendimento_id)
+        .filter((id): id is string => !!id)
+    }
+  })
+
+  const empreendimentoIdsExecutadosNoDia = useMemo(
+    () => new Set(servicosExecutadosNoDia || []),
+    [servicosExecutadosNoDia]
+  )
+
   // Aba 2 - Coletas Realizadas
   const { data: coletasRealizadas, isLoading: loadingColetas } = useQuery({
     queryKey: ['coletas-realizadas', competencia],
@@ -179,7 +202,7 @@ export default function LeiturasTerceirizadas() {
               />
             </CardHeader>
             <CardContent>
-              {loadingRotas ? (
+              {loadingRotas || loadingExecutadosNoDia ? (
                 <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
               ) : !rotasDoDia?.length ? (
                 <p className="text-center text-muted-foreground py-8">Nenhuma rota planejada para este dia.</p>
@@ -198,13 +221,19 @@ export default function LeiturasTerceirizadas() {
                     {rotasDoDia.map(rota => {
                       const emp = rota.empreendimentos_terceirizados as any
                       const op = rota.operadores as any
+                      const empreendimentoIdRota = emp?.id || rota.empreendimento_id
+                      const statusEfetivo =
+                        rota.status === 'concluido' ||
+                        (empreendimentoIdRota && empreendimentoIdsExecutadosNoDia.has(empreendimentoIdRota))
+                          ? 'concluido'
+                          : rota.status
                       return (
                         <TableRow key={rota.id}>
                           <TableCell className="font-medium">{emp?.nome || '-'}</TableCell>
                           <TableCell>{emp?.rota || '-'}</TableCell>
                           <TableCell>{emp?.quantidade_medidores || 0}</TableCell>
                           <TableCell>{op?.nome || 'Não atribuído'}</TableCell>
-                          <TableCell>{statusBadge(rota.status)}</TableCell>
+                          <TableCell>{statusBadge(statusEfetivo)}</TableCell>
                         </TableRow>
                       )
                     })}
