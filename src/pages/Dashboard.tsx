@@ -31,7 +31,7 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     try {
       const empRes = await supabase.from('empreendimentos_terceirizados').select('id', { count: 'exact', head: true })
-      const coletasRes = await (supabase.from('servicos_nacional_gas') as any).select('id', { count: 'exact', head: true }).eq('status', 'executado')
+      const coletasRes = await supabase.from('servicos_nacional_gas').select('id', { count: 'exact', head: true }).eq('status_atendimento', 'executado')
 
       setStats({
         empreendimentosTerceirizados: empRes.count || 0,
