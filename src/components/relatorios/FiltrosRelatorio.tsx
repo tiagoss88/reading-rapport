@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
 import { useRelatorioLeituras } from '@/hooks/useRelatorioLeituras';
 import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
+import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Loader2 } from 'lucide-react';
@@ -28,6 +29,21 @@ export default function FiltrosRelatorio({
   const [isLoading, setIsLoading] = useState(false);
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
+  const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
+
+  const { data: ufsDisponiveis } = useQuery({
+    queryKey: ['ufs_disponiveis'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('empreendimentos_terceirizados')
+        .select('uf')
+        .order('uf');
+      if (error) throw error;
+      const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
+      return unique as string[];
+    },
+    enabled: tipoRelatorio === 'cadastro_condominios_uf',
+  });
 
   const { data: operadores } = useQuery({
     queryKey: ['operadores'],
@@ -65,6 +81,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioLeituras(filtros);
       } else if (tipoRelatorio === 'rdo_servicos') {
         dados = await gerarRelatorioServicos(filtros);
+      } else if (tipoRelatorio === 'cadastro_condominios_uf') {
+        dados = await gerarRelatorioCadastroCondominios(filtros);
       }
 
       if (dados.length === 0) {
@@ -109,6 +127,30 @@ export default function FiltrosRelatorio({
                 value={filtros.competencia || ''}
                 onChange={(e) => onFiltrosChange({ ...filtros, competencia: e.target.value })}
               />
+            </div>
+          )}
+
+          {tipoRelatorio === 'cadastro_condominios_uf' && (
+            <div className="space-y-2">
+              <Label htmlFor="ufFiltro">UF</Label>
+              <Select
+                value={filtros.ufFiltro || 'todos'}
+                onValueChange={(value) =>
+                  onFiltrosChange({ ...filtros, ufFiltro: value === 'todos' ? undefined : value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  {ufsDisponiveis?.map((uf) => (
+                    <SelectItem key={uf} value={uf}>
+                      {uf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
