@@ -1,48 +1,51 @@
 
 
-## Diagnóstico: Rota 18 CE aparece como "Não planejado"
+## Detalhes da Rota ao Clicar no Card do Cronograma
 
-### Causa raiz
+### Objetivo
 
-O bug esta na construção da data final da query de `rotas_leitura`. Tanto em `PlanejamentoRotas.tsx` quanto em `ColetorCronograma.tsx`, o codigo usa:
+Ao clicar em um card de rota no Cronograma de Leitura, expandir ou abrir um painel mostrando os empreendimentos (clientes) daquela rota e os operadores designados para cada um.
 
-```typescript
-const endDate = `${ano}-${mes.padStart(2, '0')}-31`
+### Alterações
+
+**Arquivo: `src/pages/ColetorCronograma.tsx`**
+
+- Adicionar estado `expandedDiaId` para controlar qual card esta expandido (accordion-style, apenas um aberto por vez).
+- Tornar cada card clicavel (cursor-pointer + indicador visual tipo chevron).
+- Ao clicar, expandir uma secao abaixo do resumo mostrando:
+  - Lista de empreendimentos da rota (nome, endereco, quantidade de medidores).
+  - Para cada empreendimento, os operadores designados (cruzando `rotasLeitura` por `empreendimento_id`).
+  - Se nenhum operador designado, exibir "Sem operador atribuido".
+- Adicionar import de `ChevronDown`/`ChevronUp` do lucide-react.
+- A query de `rotas_leitura` ja traz `empreendimento_id` e `operador.nome` -- basta filtrar por empreendimento na secao expandida.
+- Usar `Collapsible` do radix ou simplesmente renderizacao condicional com animacao CSS.
+
+### Layout expandido (dentro do card)
+
+```text
+┌─────────────────────────────────────┐
+│ Rota 18                  2 operador │
+│ 25 de fevereiro                     │
+│ 7 empreendimentos · 340 medidores   │
+│ ▼                                   │
+├─────────────────────────────────────┤
+│  🏢 Condominio Solar das Flores     │
+│     45 medidores                    │
+│     → João Silva, Maria Santos      │
+│─────────────────────────────────────│
+│  🏢 Residencial Bela Vista          │
+│     30 medidores                    │
+│     → João Silva                    │
+│─────────────────────────────────────│
+│  🏢 Edifício Monte Carlo            │
+│     55 medidores                    │
+│     → Sem operador atribuído        │
+└─────────────────────────────────────┘
 ```
 
-Isso gera datas invalidas como `2026-02-31` (fevereiro nao tem 31 dias). O Supabase/PostgreSQL retorna erro 400:
+### Detalhes tecnicos
 
-```json
-{"code":"22008","message":"date/time field value out of range: \"2026-02-31\""}
-```
-
-Como a query falha, `rotasLeitura` fica `undefined`, e o sistema interpreta todas as rotas como "Nao planejado" -- mesmo que existam registros de `rotas_leitura` com operadores atribuidos para aquela data.
-
-Os dados estao corretos no banco (a query por data exata `eq.2026-02-25` retorna os 7 empreendimentos com operadores). O problema e exclusivamente na query de listagem mensal.
-
-### Correcao
-
-Calcular o ultimo dia do mes corretamente usando `date-fns`, em vez de assumir dia 31.
-
-**Arquivos afetados:**
-
-1. **`src/pages/MedicaoTerceirizada/PlanejamentoRotas.tsx`** (linha 79)
-2. **`src/pages/ColetorCronograma.tsx`** (linha 67)
-
-Em ambos, substituir:
-```typescript
-const endDate = `${ano}-${mes.padStart(2, '0')}-31`
-```
-
-Por:
-```typescript
-import { lastDayOfMonth, format } from 'date-fns'
-
-const endDate = format(
-  lastDayOfMonth(new Date(parseInt(ano), parseInt(mes) - 1)),
-  'yyyy-MM-dd'
-)
-```
-
-Isso garante que fevereiro use dia 28 (ou 29 em anos bissextos), abril use 30, etc.
+- Sem queries adicionais: os dados de `empreendimentos_terceirizados` e `rotas_leitura` ja estao carregados.
+- Filtrar `rotasLeitura` por `empreendimento_id` para obter os operadores de cada empreendimento naquela data.
+- Usar `Collapsible` + `CollapsibleContent` do radix para animacao suave de abertura/fechamento.
 
