@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Calendar, Building2, Users, Gauge } from 'lucide-react'
-import { format, parse } from 'date-fns'
+import { format, parse, lastDayOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 const meses = [
@@ -66,7 +66,7 @@ export default function ColetorCronograma() {
     queryKey: ['rotas-leitura', uf, ano, mes],
     queryFn: async () => {
       const startDate = `${ano}-${mes.padStart(2, '0')}-01`
-      const endDate = `${ano}-${mes.padStart(2, '0')}-31`
+      const endDate = format(lastDayOfMonth(new Date(parseInt(ano), parseInt(mes) - 1)), 'yyyy-MM-dd')
       const { data, error } = await supabase
         .from('rotas_leitura')
         .select(`*, operador:operadores(nome)`)
