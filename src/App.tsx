@@ -211,7 +211,15 @@ const App = () => (
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
+                <Route path="/coletor/leituras-terceirizadas" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorLeiturasTerceirizadas />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
+                } />
                 <Route path="/not-authorized" element={<NotAuthorized />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster />
             </div>
