@@ -1,34 +1,48 @@
 
 
-## Novo Card "Cronograma de Leitura" no Menu do Coletor
+## Diagnóstico: Rota 18 CE aparece como "Não planejado"
 
-### Objetivo
+### Causa raiz
 
-Adicionar um card "Cronograma de Leitura" acima de "Confirmação de Leituras" no menu do coletor, que leva a uma nova página onde o operador visualiza o planejamento das rotas de leitura por UF (dados da tabela `dias_uteis`).
+O bug esta na construção da data final da query de `rotas_leitura`. Tanto em `PlanejamentoRotas.tsx` quanto em `ColetorCronograma.tsx`, o codigo usa:
 
-### Alterações
+```typescript
+const endDate = `${ano}-${mes.padStart(2, '0')}-31`
+```
 
-**1. Nova página: `src/pages/ColetorCronograma.tsx`**
-- Tela mobile-friendly (sem Layout admin), mesmo estilo das outras páginas do coletor.
-- Filtros: UF (select), Mês e Ano.
-- Consulta `dias_uteis` filtrando por UF/mês/ano, ordenado por `numero_rota`.
-- Consulta `empreendimentos_terceirizados` para mostrar quantidade de empreendimentos e medidores por rota.
-- Consulta `rotas_leitura` para mostrar operador designado (se houver).
-- Exibe lista de cards (um por dia útil/rota) com: número da rota, data formatada, quantidade de empreendimentos e medidores, status (planejado/não planejado).
-- Botão voltar para `/coletor`.
-- Somente visualização (sem ações de planejar/excluir).
+Isso gera datas invalidas como `2026-02-31` (fevereiro nao tem 31 dias). O Supabase/PostgreSQL retorna erro 400:
 
-**2. `src/pages/ColetorMenu.tsx`**
-- Importar `Calendar` do lucide-react.
-- Adicionar novo card "Cronograma de Leitura" antes do card de "Confirmação de Leituras", com:
-  - Ícone: `Calendar` em fundo roxo.
-  - Título: "Cronograma de Leitura".
-  - Legenda: "Planejamento das rotas por UF".
-  - Texto inferior: "Visualizar datas e rotas programadas".
-  - Permissão: `coletor_leituras` (mesma do card de leituras).
-  - Navegação para `/coletor/cronograma`.
+```json
+{"code":"22008","message":"date/time field value out of range: \"2026-02-31\""}
+```
 
-**3. `src/App.tsx`**
-- Importar `ColetorCronograma`.
-- Adicionar rota `/coletor/cronograma` protegida por `ColetorProtectedRoute` + `PermissionRoute` com permissão `coletor_leituras`.
+Como a query falha, `rotasLeitura` fica `undefined`, e o sistema interpreta todas as rotas como "Nao planejado" -- mesmo que existam registros de `rotas_leitura` com operadores atribuidos para aquela data.
+
+Os dados estao corretos no banco (a query por data exata `eq.2026-02-25` retorna os 7 empreendimentos com operadores). O problema e exclusivamente na query de listagem mensal.
+
+### Correcao
+
+Calcular o ultimo dia do mes corretamente usando `date-fns`, em vez de assumir dia 31.
+
+**Arquivos afetados:**
+
+1. **`src/pages/MedicaoTerceirizada/PlanejamentoRotas.tsx`** (linha 79)
+2. **`src/pages/ColetorCronograma.tsx`** (linha 67)
+
+Em ambos, substituir:
+```typescript
+const endDate = `${ano}-${mes.padStart(2, '0')}-31`
+```
+
+Por:
+```typescript
+import { lastDayOfMonth, format } from 'date-fns'
+
+const endDate = format(
+  lastDayOfMonth(new Date(parseInt(ano), parseInt(mes) - 1)),
+  'yyyy-MM-dd'
+)
+```
+
+Isso garante que fevereiro use dia 28 (ou 29 em anos bissextos), abril use 30, etc.
 
