@@ -227,7 +227,13 @@ export default function ColetorCronograma() {
                     <CollapsibleContent>
                       <div className="px-4 pb-4 border-t border-border">
                         <div className="divide-y divide-border">
-                          {emps.map((emp) => {
+                          {[...emps].sort((a, b) => {
+                            const opA = getOperadoresDoEmpreendimento(a.id, dia.data)
+                            const opB = getOperadoresDoEmpreendimento(b.id, dia.data)
+                            const nomeA = opA[0] || 'zzz'
+                            const nomeB = opB[0] || 'zzz'
+                            return nomeA.localeCompare(nomeB)
+                          }).map((emp) => {
                             const operadores = getOperadoresDoEmpreendimento(emp.id, dia.data)
                             return (
                               <div key={emp.id} className="py-3 space-y-1">
