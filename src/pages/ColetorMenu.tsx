@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpen, LogOut, User, Gauge, Building2, Calendar } from 'lucide-react'
+import { BookOpen, LogOut, User, Building2, Calendar, ChevronRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
 
@@ -70,84 +70,64 @@ export default function ColetorMenu() {
 
 
         {/* Menu Options */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Cronograma de Leitura */}
           <ProtectedComponent permission="coletor_leituras">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToCronograma}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-purple-600" />
+              <CardHeader className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                    <Calendar className="w-5 h-5 text-purple-600" />
                   </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">Cronograma de Leitura</CardTitle>
-                    <CardDescription>
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base font-semibold">Cronograma de Leitura</CardTitle>
+                    <CardDescription className="text-xs">
                       Planejamento das rotas por UF
                     </CardDescription>
                   </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <span>Visualizar datas e rotas programadas</span>
-                </div>
-              </CardContent>
             </Card>
           </ProtectedComponent>
 
           {/* Leituras */}
           <ProtectedComponent permission="coletor_leituras">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardHeader 
-                className="pb-3"
-                onClick={goToLeituras}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-green-600" />
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToLeituras}>
+              <CardHeader className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5 text-green-600" />
                   </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">Confirmação de Leituras</CardTitle>
-                    <CardDescription>
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base font-semibold">Confirmação de Leituras</CardTitle>
+                    <CardDescription className="text-xs">
                       Upload dos comprovantes sem pendência
                     </CardDescription>
                   </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Gauge className="w-4 h-4 mr-2" />
-                  <span>Coleta de dados dos medidores</span>
-                </div>
-              </CardContent>
             </Card>
           </ProtectedComponent>
 
           {/* Serviços Terceirizados */}
           <ProtectedComponent permission="coletor_servicos">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-              <CardHeader 
-                className="pb-3"
-                onClick={goToServicosTerceirizados}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-blue-600" />
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToServicosTerceirizados}>
+              <CardHeader className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
+                    <Building2 className="w-5 h-5 text-blue-600" />
                   </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">Serviços</CardTitle>
-                    <CardDescription>
-                      Lista de serviços
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base font-semibold">Serviços</CardTitle>
+                    <CardDescription className="text-xs">
+                      Visualizar e executar serviços
                     </CardDescription>
                   </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                 </div>
               </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center text-sm text-gray-600">
-                  <span>Visualizar e executar serviços</span>
-                </div>
-              </CardContent>
             </Card>
           </ProtectedComponent>
         </div>
