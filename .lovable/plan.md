@@ -1,17 +1,34 @@
-## Ajustes nos nomes do Menu Principal do Coletor
 
-### Arquivo: `src/pages/ColetorMenu.tsx`
 
-**Card 1 — Leituras → Coleta de Leituras**
+## Novo Card "Cronograma de Leitura" no Menu do Coletor
 
-- Título: `Leituras` → `Confirmação de Leituras`
-- Legenda (CardDescription): `Empreendimentos por UF e Rota` → `Upload dos comprovantes sem pendência`
-- Texto inferior (CardContent): manter ou remover conforme já existente
+### Objetivo
 
-**Card 2 — Serviços Terceirizados → Serviços**
+Adicionar um card "Cronograma de Leitura" acima de "Confirmação de Leituras" no menu do coletor, que leva a uma nova página onde o operador visualiza o planejamento das rotas de leitura por UF (dados da tabela `dias_uteis`).
 
-- Título: `Serviços Terceirizados` → `Serviços`
-- Legenda (CardDescription): `Serviços agendados da Nacional Gás` → `Lista de serviços`
-- Texto inferior (CardContent): `Visualizar e executar serviços de medição terceirizada` → remover ou simplificar
+### Alterações
 
-Alterações apenas textuais, sem mudança de lógica ou rotas.
+**1. Nova página: `src/pages/ColetorCronograma.tsx`**
+- Tela mobile-friendly (sem Layout admin), mesmo estilo das outras páginas do coletor.
+- Filtros: UF (select), Mês e Ano.
+- Consulta `dias_uteis` filtrando por UF/mês/ano, ordenado por `numero_rota`.
+- Consulta `empreendimentos_terceirizados` para mostrar quantidade de empreendimentos e medidores por rota.
+- Consulta `rotas_leitura` para mostrar operador designado (se houver).
+- Exibe lista de cards (um por dia útil/rota) com: número da rota, data formatada, quantidade de empreendimentos e medidores, status (planejado/não planejado).
+- Botão voltar para `/coletor`.
+- Somente visualização (sem ações de planejar/excluir).
+
+**2. `src/pages/ColetorMenu.tsx`**
+- Importar `Calendar` do lucide-react.
+- Adicionar novo card "Cronograma de Leitura" antes do card de "Confirmação de Leituras", com:
+  - Ícone: `Calendar` em fundo roxo.
+  - Título: "Cronograma de Leitura".
+  - Legenda: "Planejamento das rotas por UF".
+  - Texto inferior: "Visualizar datas e rotas programadas".
+  - Permissão: `coletor_leituras` (mesma do card de leituras).
+  - Navegação para `/coletor/cronograma`.
+
+**3. `src/App.tsx`**
+- Importar `ColetorCronograma`.
+- Adicionar rota `/coletor/cronograma` protegida por `ColetorProtectedRoute` + `PermissionRoute` com permissão `coletor_leituras`.
+
