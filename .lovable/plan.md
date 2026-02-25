@@ -1,32 +1,64 @@
 
 
-## Diagnóstico: Redirecionamento ao Dashboard
+## Novo Relatório: Cadastro de Condomínios por UF
 
-### Problema identificado
+### Objetivo
 
-O console mostra claramente o erro:
+Adicionar um terceiro tipo de relatório na categoria "Leituras" que lista todos os condomínios cadastrados na tabela `empreendimentos_terceirizados`, agrupados por UF, em ordem alfabética, mostrando a rota e o quantitativo de medidores. O relatório incluirá um totalizador por UF e geral.
+
+### Fonte de dados
+
+Tabela `empreendimentos_terceirizados` com os campos: `nome`, `uf`, `rota`, `quantidade_medidores`. Não depende de competência nem de datas -- é um retrato cadastral.
+
+### Alterações necessárias
+
+**1. `src/pages/Relatorios.tsx`**
+- Adicionar `'cadastro_condominios_uf'` ao tipo `TipoRelatorio`.
+
+**2. `src/components/relatorios/RelatorioSelector.tsx`**
+- Adicionar nova opção na categoria "Leituras": `{ value: 'cadastro_condominios_uf', label: 'Cadastro de Condomínios por UF' }`.
+
+**3. Novo hook: `src/hooks/useRelatorioCadastroCondominios.tsx`**
+- Consulta `empreendimentos_terceirizados` sem filtro de data.
+- Filtro opcional por UF (selecionável nos filtros).
+- Retorna array ordenado por UF e depois nome (alfabético), com campos: `condominio`, `uf`, `rota`, `qtd_medidores`.
+- Inclui linha de subtotal por UF (total de condomínios e total de medidores).
+
+**4. `src/components/relatorios/FiltrosRelatorio.tsx`**
+- Para `cadastro_condominios_uf`: exibir apenas filtro de UF (select com as UFs disponíveis no banco). Sem filtros de data/competência.
+
+**5. `src/components/relatorios/TabelaRelatorio.tsx`**
+- Novo case `cadastro_condominios_uf` com colunas: **Condomínio | UF | Rota | Qtd Medidores**.
+- Linhas de subtotal por UF destacadas (fundo cinza, texto em negrito).
+- Linha final com total geral de condomínios e medidores.
+
+**6. Exportações (PDF, Excel, CSV)**
+- `src/lib/exportPDF.ts`: novo case com colunas e título "Cadastro de Condomínios por UF".
+- `src/lib/exportCSV.ts`: novo case.
+- `src/components/relatorios/ExportacaoButtons.tsx`: novo case na função `exportarExcel`.
+
+### Estrutura dos dados retornados
+
+```text
+{ condominio: string, uf: string, rota: number, qtd_medidores: number, is_subtotal?: boolean }
 ```
-No routes matched location "/coletor/leituras-terceirizadas"
+
+Linhas com `is_subtotal: true` representam totais por UF e serão renderizadas com estilo diferenciado na tabela e incluídas nas exportações.
+
+### Exemplo visual da tabela
+
+```text
+Condomínio               | UF | Rota | Qtd Medidores
+─────────────────────────┼────┼──────┼──────────────
+ABOLIÇÃO                 | CE |  18  |    45
+ABARANA                  | CE |   2  |    32
+...
+Subtotal CE (185 cond.)  | CE |  --  |  4.520
+─────────────────────────┼────┼──────┼──────────────
+COND. EXEMPLO SP         | SP |   1  |    20
+...
+Subtotal SP (10 cond.)   | SP |  --  |   310
+─────────────────────────┼────┼──────┼──────────────
+TOTAL GERAL (195 cond.)  |    |  --  |  4.830
 ```
-
-A URL que o preview está tentando acessar (`/coletor/leituras-terceirizadas`) **não existe** no `App.tsx`. A rota correta para a tela de leituras terceirizadas é `/coletor-sync`, não `/coletor/leituras-terceirizadas`.
-
-Para a página de atualização de rotas CE, a rota correta é `/admin/atualizar-rotas-ce`.
-
-### Causa raiz
-
-O Lovable está direcionando o preview para uma URL que não está registrada nas rotas do aplicativo. Como não existe rota `*` (catch-all) no `App.tsx`, nada é renderizado e o sistema redireciona o usuário admin para o dashboard.
-
-### Solução
-
-**Nenhuma alteração de código necessária.** Para acessar a página de atualização de rotas CE:
-
-1. Na barra de endereço do preview, altere manualmente a URL para:
-   `https://id-preview--8ceaa74b-3fa6-4180-8171-f694f135a9b1.lovable.app/admin/atualizar-rotas-ce`
-
-2. Certifique-se de estar logado com a conta admin (`tiago@agasen.com.br`)
-
-3. Clique em "Executar Atualização" para rodar o script
-
-Se preferir acessar pela URL publicada, primeiro publique o projeto clicando em "Share" / "Publish" no canto superior direito do Lovable.
 
