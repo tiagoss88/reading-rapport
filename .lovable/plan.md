@@ -1,81 +1,36 @@
 
-Objetivo: corrigir de forma definitiva o caso em que, após upload do comprovante no coletor, a “Rota do Dia” continua como “Pendente”.
 
-Diagnóstico técnico (com base no código atual):
-1) Em `src/pages/ColetorEmpreendimentoDetalhe.tsx`, a atualização da rota foi adicionada, porém está “fire-and-forget”:
-   - não valida `error`
-   - não valida quantidade de linhas afetadas
-2) Na migração `20251214223717...sql`, `rotas_leitura` só permite `UPDATE` para admin/gestor. Operador comum tende a atualizar 0 linhas sem erro explícito (efeito silencioso de RLS).
-3) Ainda existe risco de divergência de data por uso de `toISOString().split('T')[0]` (UTC), que pode não bater com a data operacional local no fim do dia.
+## Indicar empreendimentos já coletados na competência atual (Coletor)
 
-Plano de implementação (correção robusta):
-1) Backend: sincronização automática de status via trigger (fonte da verdade no banco)
-   - Criar nova migração em `supabase/migrations/` com:
-     - função `public.sync_rota_status_from_servico()` (`SECURITY DEFINER`, `SET search_path = public`)
-     - trigger `AFTER INSERT OR UPDATE` em `public.servicos_nacional_gas`
-   - Regra da função:
-     - se `NEW.tipo_servico = 'leitura'`
-     - e `NEW.status_atendimento = 'executado'`
-     - e `NEW.empreendimento_id` + `NEW.data_agendamento` não nulos
-     - então `UPDATE rotas_leitura SET status = 'concluido'` onde:
-       - `empreendimento_id = NEW.empreendimento_id`
-       - `data = NEW.data_agendamento`
-       - `status <> 'concluido'`
-   - Vantagem: elimina dependência de permissão do cliente para fechar rota.
+### Problema
 
-2) Backfill imediato (corrigir registros já “travados” em pendente)
-   - Na mesma migração, executar `UPDATE ... FROM ...` para marcar como `concluido` as rotas já correspondentes a serviços de leitura executados:
-     - join por `empreendimento_id` + `data_agendamento = data`
-     - somente onde `rotas_leitura.status <> 'concluido'`
+A tela de listagem de empreendimentos no coletor (`ColetorLeiturasTerceirizadas.tsx`) exibe todos os empreendimentos sem distinção, mesmo que já tenham sido coletados na competência atual. O operador não tem como saber quais já foram feitos e pode re-coletar por engano.
 
-3) Frontend coletor: remover falsa sensação de sucesso e padronizar data local
-   - Arquivo: `src/pages/ColetorEmpreendimentoDetalhe.tsx`
-   - Ajustes:
-     - trocar `toISOString().split('T')[0]` por data local (`format(new Date(), 'yyyy-MM-dd')` de `date-fns`)
-     - manter apenas o insert em `servicos_nacional_gas` (a trigger cuidará da rota), ou manter update como “best effort” com checagem explícita de resultado e log de warning
-   - Resultado: menos chance de mismatch de data e fluxo mais previsível.
+### Solução
 
-4) Tela administrativa “Rota do Dia”: blindagem visual (opcional, recomendada)
-   - Arquivo: `src/pages/MedicaoTerceirizada/Leituras.tsx`
-   - Adicionar fallback de exibição:
-     - buscar IDs de empreendimentos com serviço `leitura/executado` na data selecionada
-     - se rota vier `pendente` mas empreendimento estiver nesse conjunto, exibir badge como concluído
-   - Isso protege UI durante transições/latência e evita percepção de inconsistência.
+Adicionar verificação de coletas já realizadas na competência atual e exibir indicador visual nos empreendimentos já coletados, mantendo-os na lista (para eventual re-coleta se necessário) mas com destaque claro.
 
-5) Validação E2E (critério de aceite)
-   - Cenário principal:
-     1. operador abre coletor e confirma coleta com foto
-     2. registro entra em `servicos_nacional_gas` como `executado`
-     3. `rotas_leitura` muda para `concluido` automaticamente no banco
-     4. em `/medicao-terceirizada/leituras` (aba Rota do Dia), status aparece “Concluído”
-   - Cenários adicionais:
-     - testar com usuário operador (não admin)
-     - testar próximo das 21h–23h (risco de UTC/local)
-     - validar que não regressa de `concluido` para `pendente`
+### Arquivo a editar
 
-Arquivos envolvidos:
-- `supabase/migrations/<nova_migracao_sync_status_rotas>.sql` (novo)
-- `src/pages/ColetorEmpreendimentoDetalhe.tsx`
-- `src/pages/MedicaoTerceirizada/Leituras.tsx` (fallback opcional recomendado)
+**`src/pages/ColetorLeiturasTerceirizadas.tsx`**
 
-Diagrama rápido do fluxo final:
-```text
-Coletor confirma coleta
-        |
-        v
-INSERT servicos_nacional_gas (leitura, executado, data_agendamento)
-        |
-        v
-TRIGGER DB (sync_rota_status_from_servico)
-        |
-        v
-UPDATE rotas_leitura.status = concluido
-        |
-        v
-Tela "Rota do Dia" mostra Concluído
-```
+1. **Nova query**: buscar `empreendimento_id` dos serviços com `tipo_servico = 'leitura'` e `status_atendimento = 'executado'` na competência atual (mês/ano correntes, filtrado por `data_agendamento` entre primeiro e último dia do mês)
+2. **Criar Set** com IDs já coletados para lookup O(1)
+3. **Badge visual** em cada card: se o empreendimento está no Set, exibir badge verde "Coletado" com ícone CheckCircle; caso contrário, badge amarela "Pendente"
+4. **Ordenação**: empreendimentos pendentes aparecem primeiro na lista, coletados vão para o final
+5. **Contador no header**: exibir "X de Y coletados" para dar visão geral ao operador
 
-Detalhes técnicos (resumo para implementação):
-- Causa raiz principal: RLS de `rotas_leitura` bloqueando update de operador + update cliente sem validação de linhas afetadas.
-- Correção estrutural: sincronização no banco (trigger + backfill) em vez de depender do cliente.
-- Robustez adicional: usar data local no coletor e fallback visual na página administrativa.
+### Detalhes visuais
+
+- Badge "Coletado": fundo verde claro, texto verde escuro, ícone CheckCircle
+- Badge "Pendente": fundo amarelo claro, texto amarelo escuro
+- Cards coletados com leve opacidade reduzida (opacity-60) para direcionar atenção aos pendentes
+- Aplicar tanto na lista filtrada por UF/Rota quanto nos resultados de busca por nome
+
+### Detalhes técnicos
+
+- Query usa `gte`/`lte` com primeiro e último dia do mês atual
+- Filtro `not('empreendimento_id', 'is', null)` para evitar registros órfãos
+- Mesma lógica aplicada a `displayList` (busca e filtro)
+- Sem dependência de nova tabela ou migração — usa dados já existentes em `servicos_nacional_gas`
+
