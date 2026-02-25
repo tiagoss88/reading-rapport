@@ -1,74 +1,23 @@
 
 
-## Atualizar rotas dos empreendimentos CE conforme planilha
+## Diagnóstico: Acesso a `/admin/atualizar-rotas-ce` na URL publicada
 
-### Resumo
+### Problema identificado
 
-A planilha contém **~200 condomínios** do Ceará com suas respectivas rotas (1 a 20). O objetivo é atualizar o campo `rota` na tabela `empreendimentos_terceirizados` para cada empreendimento listado, fazendo o match pelo nome e UF = 'CE'.
+A página `/admin/atualizar-rotas-ce` foi criada no código do projeto e funciona no preview (Lovable editor), mas o usuário está tentando acessar pela **URL publicada** (`reading-rapport.lovable.app`). Para que as alterações apareçam na URL publicada, é necessário **publicar o projeto** (deploy).
 
-### Abordagem
+### Solução
 
-Executar comandos `UPDATE` na tabela `empreendimentos_terceirizados` via ferramenta de dados do Supabase, agrupando por rota para eficiência. Cada comando atualiza o campo `rota` para todos os condomínios daquela rota, usando match por `nome` (case-insensitive via `ILIKE` ou match exato) e `uf = 'CE'`.
+Nenhuma alteração de código é necessária. O passo é:
 
-### Detalhes técnicos
+1. No editor do Lovable, clicar no botão **"Share" / "Publish"** (canto superior direito)
+2. Confirmar a publicação para que o deploy seja feito na URL `reading-rapport.lovable.app`
+3. Após o deploy concluir, acessar `https://reading-rapport.lovable.app/admin/atualizar-rotas-ce`
 
-Serão executados ~20 comandos UPDATE, um por rota. Exemplo:
+A rota já existe no `App.tsx` e está protegida por `ProtectedRoute` + `PermissionRoute role="admin"`, então funcionará normalmente para o usuário admin logado.
 
-```sql
-UPDATE empreendimentos_terceirizados
-SET rota = 1
-WHERE uf = 'CE'
-  AND UPPER(TRIM(nome)) IN (
-    'LES JARDINS', 'JARDIM DAS TULHERIAS', 'LE LOUVRE', ...
-  );
-```
+### Alternativa imediata
 
-Para nomes que possam não bater exatamente (acentos, espaços extras), será feita normalização com `UPPER(TRIM(...))` em ambos os lados.
-
-### Riscos e mitigação
-
-- **Nomes não encontrados**: se algum condomínio da planilha não existir no banco (nome diferente), ele simplesmente não será atualizado. Posso listar os não-encontrados depois para revisão manual.
-- **Sem alteração de schema**: apenas dados são modificados, nenhuma migração necessária.
-
-### Dados da planilha (20 rotas, ~200 condomínios CE)
-
-Rota 1: LES JARDINS, JARDIM DAS TULHERIAS, LE LOUVRE, VILLA FIORI, ANHEMBI, VERANO PORTENO, PORTO REAL, CONDE DE VILLENEUVE, JURUA, VILLAGE MISAEL PINHEIRO, CATAMARÃ, ENSEADA DA IRACEMA
-
-Rota 2: VITRAL DO PARQUE, VENTOS ALISIOS, NORDESTE, ABARANA, ALGARVE, INOVATTO, JARDINS VINÓLIA, VALENCA RESIDENCE, PREMIER, TURMALINA, BELLAGIO, MARCELA STURDART
-
-Rota 3: VIVENDAS RIO BRANCO, BRAZZAVILLE, PALACIO DE FATIMA, GIZELA, MAISON RIGEL, NEBADON, SHOPPING BENFICA, RESIDENCIAL TERRAZA, SPE GRAND IMPERIAL, WAI WAI, BRISA DO LAGO I
-
-Rota 4: VIVENDA PARANGABA, SOBERANO, JOSE ELMAR, JARDIM DAS BROMELIAS, PARQUE DAS PALMEIRAS, PEDRO PILOMENO, VILLA DE ROMA, MOOV PARANGABA, VILLAGE LEONARDO DA VINCI
-
-Rota 5: VG SUN, BONS VENTOS, ROYAL EMBASSY, ISABEL MARINHO, BEATRIZ RESIDENCE, REQUINTE, DUBAI, TOWER RESIDENCE, VALE IMPERIAL
-
-Rota 6: DUETTO DI FATIMA, LAGUNA CONDOMINIUM, RESIDENCIAL CENTRAL PARK, VILLAGE CENTRAL PARK, VIA SUL SHOPPING, PATIO JACAREY, PARQUE FIORE, STAR CITY, VILA REAL - COCO, HYDE PARK, PORTAL DO PARQUE
-
-Rota 7: SONATA, BARCELONA, POP ESUEBIO, TERRAZO SHOPPING EUSÉBIO, SOLARIUM RESIDENCE, RESIDENCIAL GALILEIA, IPANEMA, MORADA DA PRAIA, SKYVIEW, ATOCHA, MARIA HELENA
-
-Rota 8: SOLAR DAS AGUAS, COLONIAL SUL, PARK DAS FLORES, RESERVA CASTELLI, PASSAREDO, TOPAZIO, VALE DOS IPES, THIAGO ALBUQUERQUE, BELLE VILLE, TERLIZZY, LA PIAZZA, TAMARA, JERICOACOARA, IRAN RABELO
-
-Rota 9: PARQUE FLUENCE, ITAPERI, MARAPONGA RESIDENCE, JOÃO NUNES COND, MIRANTE CLUBE, KHALIL GIBRAN, BRUNO AGUIAR PESSOA, MACONDO, NOTRE DAME, CLOVIS NETO, SAN JULIANO, VANCOUVER, QUEIROZ PORTO, VICTAR 01 (VISTA MAR GTI)
-
-Rota 10: MARACANAÚ, MARANGUAPE, GRAND SHOPPING, VILA PITAGUARY, FELICITA, LUMINOS, PLAZA MAYOR, DR ANTONIO NERICIO, ROGACIANO LEITE I, SAN LORENZO, JOSE PESSOA DE ARAUJO, JARDIM DE HOLANDA, PARC DES FLEURS, GEMINI, LIDIANE, VILLA FIRENZE, MONTE CARLO, VERDI
-
-Rota 11: SHOPPING IGUATEMI, SAINT GILBERT RESIDENCE, PALAZZO RIGOLETTO, VIENNA, VILLA SOLARIUM, VENICE CLUBE, VILLA FOOD, M LAR JACAREY, AMERICA DO SUL - TORRE BRASIL, NEO HOME CLUB, SANTA CRUZ, VICTOR V
-
-Rota 12: CHATELAIN, NOVA VIDA, MAIZE, TOM JOBIM, NORDESTE PALACE, PARQUE DOS IPES, NORTH SHOPPING, SHOPPING AEROPORTO, PAUL MAURIAT, NAUTILUS, TAMBAQUI, ZARAGOZZA, VIENA, IBERIA I, NERE AMETZA
-
-Rota 13: TALASSA DUNAS, RESERVA DO PARQUE A, PATIO COCÓ, LIS DU PARC, ÂNGELA, PLATZ, PUERTO MONTT, JOSE DE ALENCAR, VILLA NOVA, DANIEL CARLOS, SILVANI SOARES, DU LOUVRE, JOSE RANDAL DE MESQUITA, STRAUSS, LUXEMBURGO, VALE LIRA
-
-Rota 14: SOLAR DAS ARVÓRES, VILLA REAL - SERRINHA, RECANTO DAS ACACIAS II, MARBELA, SOLAR BEZERRA DE MENEZES, PALAZZO DON GIOVANNI, SAN PIETRO, SHOPPING ALDEOTA, SHOPPING DEL PASEO, CRISTAL X, HENRIQUE JORGE, JAVA
-
-Rota 15: JARDINO PASSEO, PARC CEZANNE, ONIX E JADE, PROMENADE ALDEOTA, MARSELHA, CIDRAO PALACE, LIBERTY PLACE, JACARTA, ATLANTIS, PACO DO BEM, PALADIUM, MARINO MARINE, ASTORIA
-
-Rota 16: PARQUE DE FATIMA, MANUELA MENDES, BOSQUE DAS ACACIAS, BOSQUES DAS FLORES, ARBORE, RESIDENCIAL CHRONUS, DUO RESIDENCE, GRAND PLACE
-
-Rota 17: AQUARELA CONDOMINIO CLUB, FAROL DA COSTA, MIRANTE DAS DUNAS, ROYAL OAK, SAN THOMAS, SAINT ANTHONY PLACE, JARDIM DE CASTELO, PONTAL
-
-Rota 18: PAÇO DOS PASSAROS, KAROL WOTYJLA, ABOLIÇÃO, SAMBURA, MEET ALDEOTA, MIRANTE HOME RESORT, BRASILIA, TERAVIVA, TERALUZ
-
-Rota 19: PABLO PICASSO, PORTAL MADRID, JARDIM ABAETE, MONTE REI, DELIVERY MALL, MONTE REAL, VIVENDAS PASSARÉ, PARK CLUB PASSARE
-
-Rota 20: VICTA 05 BELVEDERE, JARDIM DOS PASSAROS
+Se preferir executar agora sem esperar o deploy, use a **URL de preview** que já está funcionando:
+`https://id-preview--8ceaa74b-3fa6-4180-8171-f694f135a9b1.lovable.app/admin/atualizar-rotas-ce`
 
