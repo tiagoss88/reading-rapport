@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Building2, MapPin, Gauge, Route, Search, X } from 'lucide-react'
+import { ArrowLeft, Building2, MapPin, Gauge, Route, Search, X, CheckCircle2, Clock } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 
 export default function ColetorLeiturasTerceirizadas() {
   const navigate = useNavigate()
@@ -16,6 +18,30 @@ export default function ColetorLeiturasTerceirizadas() {
   const [searchTerm, setSearchTerm] = useState('')
 
   const isSearchActive = searchTerm.length >= 3
+
+  // Competência atual (primeiro e último dia do mês)
+  const hoje = new Date()
+  const inicioMes = format(startOfMonth(hoje), 'yyyy-MM-dd')
+  const fimMes = format(endOfMonth(hoje), 'yyyy-MM-dd')
+
+  // Query: empreendimentos já coletados na competência atual
+  const { data: coletadosIds } = useQuery({
+    queryKey: ['empreendimentos-coletados-mes', inicioMes, fimMes],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicos_nacional_gas')
+        .select('empreendimento_id')
+        .eq('tipo_servico', 'leitura')
+        .eq('status_atendimento', 'executado')
+        .gte('data_agendamento', inicioMes)
+        .lte('data_agendamento', fimMes)
+        .not('empreendimento_id', 'is', null)
+      if (error) throw error
+      return new Set(data.map(s => s.empreendimento_id))
+    },
+  })
+
+  const coletadosSet = coletadosIds ?? new Set<string>()
 
   // Search by name query
   const { data: searchResults, isLoading: isSearchLoading } = useQuery({
@@ -94,9 +120,22 @@ export default function ColetorLeiturasTerceirizadas() {
     setSearchTerm('')
   }
 
-  // Determine which list to show
-  const displayList = isSearchActive ? searchResults : empreendimentos
+  // Determine which list to show, sorted: pendentes first, coletados last
+  const rawList = isSearchActive ? searchResults : empreendimentos
+  const displayList = useMemo(() => {
+    if (!rawList) return undefined
+    return [...rawList].sort((a, b) => {
+      const aColetado = coletadosSet.has(a.id) ? 1 : 0
+      const bColetado = coletadosSet.has(b.id) ? 1 : 0
+      return aColetado - bColetado
+    })
+  }, [rawList, coletadosSet])
+
   const displayLoading = isSearchActive ? isSearchLoading : (isLoading && !!selectedRota)
+
+  // Contadores
+  const totalList = displayList?.length ?? 0
+  const totalColetados = displayList?.filter(e => coletadosSet.has(e.id)).length ?? 0
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -203,39 +242,62 @@ export default function ColetorLeiturasTerceirizadas() {
         {/* Lista de empreendimentos */}
         {displayList && displayList.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center space-x-2 px-1">
-              <Route className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-gray-700">
-                {displayList.length} empreendimento{displayList.length !== 1 ? 's' : ''}
-              </span>
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center space-x-2">
+                <Route className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-gray-700">
+                  {totalList} empreendimento{totalList !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                {totalColetados} de {totalList} coletados
+              </Badge>
             </div>
 
-            {displayList.map(emp => (
-              <Card
-                key={emp.id}
-                className="cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
-                onClick={() => navigate(`/coletor/empreendimento/${emp.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
-                      <Building2 className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-gray-900 truncate">{emp.nome}</h3>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <MapPin className="w-3 h-3 mr-1 shrink-0" />
-                        <span className="truncate">{emp.endereco}</span>
+            {displayList.map(emp => {
+              const isColetado = coletadosSet.has(emp.id)
+              return (
+                <Card
+                  key={emp.id}
+                  className={`cursor-pointer hover:shadow-md transition-all active:scale-[0.98] ${isColetado ? 'opacity-60' : ''}`}
+                  onClick={() => navigate(`/coletor/empreendimento/${emp.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${isColetado ? 'bg-green-100' : 'bg-yellow-100'}`}>
+                        {isColetado
+                          ? <CheckCircle2 className="w-5 h-5 text-green-600" />
+                          : <Building2 className="w-5 h-5 text-yellow-600" />
+                        }
                       </div>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <Gauge className="w-3 h-3 mr-1 shrink-0" />
-                        <span>{emp.quantidade_medidores} medidores</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-gray-900 truncate">{emp.nome}</h3>
+                          {isColetado ? (
+                            <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px] px-1.5 py-0 shrink-0">
+                              Coletado
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-[10px] px-1.5 py-0 shrink-0">
+                              Pendente
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <MapPin className="w-3 h-3 mr-1 shrink-0" />
+                          <span className="truncate">{emp.endereco}</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          <Gauge className="w-3 h-3 mr-1 shrink-0" />
+                          <span>{emp.quantidade_medidores} medidores</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
       </div>
