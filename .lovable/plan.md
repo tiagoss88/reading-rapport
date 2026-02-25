@@ -1,51 +1,38 @@
 
 
-## Detalhes da Rota ao Clicar no Card do Cronograma
+## Correção: Coletas Confirmadas no Dashboard
 
-### Objetivo
+### Problema
 
-Ao clicar em um card de rota no Cronograma de Leitura, expandir ou abrir um painel mostrando os empreendimentos (clientes) daquela rota e os operadores designados para cada um.
+No arquivo `src/pages/Dashboard.tsx` (linha 34), a query de contagem de coletas confirmadas filtra pela coluna errada:
 
-### Alterações
-
-**Arquivo: `src/pages/ColetorCronograma.tsx`**
-
-- Adicionar estado `expandedDiaId` para controlar qual card esta expandido (accordion-style, apenas um aberto por vez).
-- Tornar cada card clicavel (cursor-pointer + indicador visual tipo chevron).
-- Ao clicar, expandir uma secao abaixo do resumo mostrando:
-  - Lista de empreendimentos da rota (nome, endereco, quantidade de medidores).
-  - Para cada empreendimento, os operadores designados (cruzando `rotasLeitura` por `empreendimento_id`).
-  - Se nenhum operador designado, exibir "Sem operador atribuido".
-- Adicionar import de `ChevronDown`/`ChevronUp` do lucide-react.
-- A query de `rotas_leitura` ja traz `empreendimento_id` e `operador.nome` -- basta filtrar por empreendimento na secao expandida.
-- Usar `Collapsible` do radix ou simplesmente renderizacao condicional com animacao CSS.
-
-### Layout expandido (dentro do card)
-
-```text
-┌─────────────────────────────────────┐
-│ Rota 18                  2 operador │
-│ 25 de fevereiro                     │
-│ 7 empreendimentos · 340 medidores   │
-│ ▼                                   │
-├─────────────────────────────────────┤
-│  🏢 Condominio Solar das Flores     │
-│     45 medidores                    │
-│     → João Silva, Maria Santos      │
-│─────────────────────────────────────│
-│  🏢 Residencial Bela Vista          │
-│     30 medidores                    │
-│     → João Silva                    │
-│─────────────────────────────────────│
-│  🏢 Edifício Monte Carlo            │
-│     55 medidores                    │
-│     → Sem operador atribuído        │
-└─────────────────────────────────────┘
+```typescript
+.eq('status', 'executado')  // coluna 'status' NÃO EXISTE
 ```
 
-### Detalhes tecnicos
+A coluna correta na tabela `servicos_nacional_gas` é `status_atendimento`. Como a coluna `status` não existe, a query retorna 0 resultados silenciosamente.
 
-- Sem queries adicionais: os dados de `empreendimentos_terceirizados` e `rotas_leitura` ja estao carregados.
-- Filtrar `rotasLeitura` por `empreendimento_id` para obter os operadores de cada empreendimento naquela data.
-- Usar `Collapsible` + `CollapsibleContent` do radix para animacao suave de abertura/fechamento.
+### Correção
+
+**Arquivo: `src/pages/Dashboard.tsx`, linha 34**
+
+Substituir:
+```typescript
+.eq('status', 'executado')
+```
+
+Por:
+```typescript
+.eq('status_atendimento', 'executado')
+```
+
+Adicionalmente, remover o cast `as any` que estava mascarando o erro de tipo:
+```typescript
+const coletasRes = await supabase
+  .from('servicos_nacional_gas')
+  .select('id', { count: 'exact', head: true })
+  .eq('status_atendimento', 'executado')
+```
+
+Alteracao de uma unica linha. O contador passara a mostrar o valor real de coletas executadas.
 
