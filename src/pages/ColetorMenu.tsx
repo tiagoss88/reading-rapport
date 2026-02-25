@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BookOpen, LogOut, User, Building2, Calendar, ChevronRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
+import ProfileDialog from '@/components/ProfileDialog'
 
 export default function ColetorMenu() {
   const navigate = useNavigate()
@@ -58,14 +59,17 @@ export default function ColetorMenu() {
               </p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="text-gray-600 hover:text-red-600"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ProfileDialog />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
 
 
