@@ -1,23 +1,32 @@
 
 
-## Diagnóstico: Acesso a `/admin/atualizar-rotas-ce` na URL publicada
+## Diagnóstico: Redirecionamento ao Dashboard
 
 ### Problema identificado
 
-A página `/admin/atualizar-rotas-ce` foi criada no código do projeto e funciona no preview (Lovable editor), mas o usuário está tentando acessar pela **URL publicada** (`reading-rapport.lovable.app`). Para que as alterações apareçam na URL publicada, é necessário **publicar o projeto** (deploy).
+O console mostra claramente o erro:
+```
+No routes matched location "/coletor/leituras-terceirizadas"
+```
+
+A URL que o preview está tentando acessar (`/coletor/leituras-terceirizadas`) **não existe** no `App.tsx`. A rota correta para a tela de leituras terceirizadas é `/coletor-sync`, não `/coletor/leituras-terceirizadas`.
+
+Para a página de atualização de rotas CE, a rota correta é `/admin/atualizar-rotas-ce`.
+
+### Causa raiz
+
+O Lovable está direcionando o preview para uma URL que não está registrada nas rotas do aplicativo. Como não existe rota `*` (catch-all) no `App.tsx`, nada é renderizado e o sistema redireciona o usuário admin para o dashboard.
 
 ### Solução
 
-Nenhuma alteração de código é necessária. O passo é:
+**Nenhuma alteração de código necessária.** Para acessar a página de atualização de rotas CE:
 
-1. No editor do Lovable, clicar no botão **"Share" / "Publish"** (canto superior direito)
-2. Confirmar a publicação para que o deploy seja feito na URL `reading-rapport.lovable.app`
-3. Após o deploy concluir, acessar `https://reading-rapport.lovable.app/admin/atualizar-rotas-ce`
+1. Na barra de endereço do preview, altere manualmente a URL para:
+   `https://id-preview--8ceaa74b-3fa6-4180-8171-f694f135a9b1.lovable.app/admin/atualizar-rotas-ce`
 
-A rota já existe no `App.tsx` e está protegida por `ProtectedRoute` + `PermissionRoute role="admin"`, então funcionará normalmente para o usuário admin logado.
+2. Certifique-se de estar logado com a conta admin (`tiago@agasen.com.br`)
 
-### Alternativa imediata
+3. Clique em "Executar Atualização" para rodar o script
 
-Se preferir executar agora sem esperar o deploy, use a **URL de preview** que já está funcionando:
-`https://id-preview--8ceaa74b-3fa6-4180-8171-f694f135a9b1.lovable.app/admin/atualizar-rotas-ce`
+Se preferir acessar pela URL publicada, primeiro publique o projeto clicando em "Share" / "Publish" no canto superior direito do Lovable.
 
