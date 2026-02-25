@@ -222,12 +222,15 @@ export default function PlanejamentoRotas() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {rotasDodia.length > 0 ? (
-                              <Badge variant="secondary">
-                                <Users className="mr-1 h-3 w-3" />
-                                {rotasDodia.length} operador(es)
-                              </Badge>
-                            ) : (
+                            {rotasDodia.length > 0 ? (() => {
+                              const distinctOperadores = new Set(rotasDodia.filter(r => r.operador_id).map(r => r.operador_id))
+                              return (
+                                <Badge variant="secondary">
+                                  <Users className="mr-1 h-3 w-3" />
+                                  {distinctOperadores.size} operador(es)
+                                </Badge>
+                              )
+                            })() : (
                               <Badge variant="outline">Não planejado</Badge>
                             )}
                           </TableCell>

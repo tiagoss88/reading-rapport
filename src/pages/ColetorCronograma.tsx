@@ -159,12 +159,15 @@ export default function ColetorCronograma() {
                       <CardTitle className="text-base">
                         Rota {dia.numero_rota.toString().padStart(2, '0')}
                       </CardTitle>
-                      {rotasDoDia.length > 0 ? (
-                        <Badge variant="secondary" className="text-xs">
-                          <Users className="mr-1 h-3 w-3" />
-                          {rotasDoDia.length} operador(es)
-                        </Badge>
-                      ) : (
+                      {rotasDoDia.length > 0 ? (() => {
+                        const distinctOperadores = new Set(rotasDoDia.filter(r => r.operador_id).map(r => r.operador_id))
+                        return (
+                          <Badge variant="secondary" className="text-xs">
+                            <Users className="mr-1 h-3 w-3" />
+                            {distinctOperadores.size} operador(es)
+                          </Badge>
+                        )
+                      })() : (
                         <Badge variant="outline" className="text-xs">Não planejado</Badge>
                       )}
                     </div>
@@ -185,7 +188,7 @@ export default function ColetorCronograma() {
                     </div>
                     {rotasDoDia.length > 0 && (
                       <div className="text-xs text-muted-foreground pt-1">
-                        Operador(es): {rotasDoDia.map(r => (r as any).operador?.nome || 'N/A').join(', ')}
+                        Operador(es): {[...new Set(rotasDoDia.map(r => (r as any).operador?.nome).filter(Boolean))].join(', ') || 'N/A'}
                       </div>
                     )}
                   </CardContent>
