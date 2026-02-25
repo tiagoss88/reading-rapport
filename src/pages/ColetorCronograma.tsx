@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Calendar, Building2, Users, Gauge } from 'lucide-react'
+import { ArrowLeft, Calendar, Building2, Users, Gauge, ChevronDown, ChevronUp } from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { format, parse, lastDayOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -33,6 +34,7 @@ export default function ColetorCronograma() {
   const [uf, setUf] = useState<string>('BA')
   const [ano, setAno] = useState<string>(currentYear.toString())
   const [mes, setMes] = useState<string>((new Date().getMonth() + 1).toString())
+  const [expandedDiaId, setExpandedDiaId] = useState<string | null>(null)
 
   const { data: diasUteis, isLoading } = useQuery({
     queryKey: ['dias-uteis', uf, ano, mes],
@@ -83,6 +85,12 @@ export default function ColetorCronograma() {
 
   const getRotasLeituraParaData = (data: string) => {
     return rotasLeitura?.filter(r => r.data === data) || []
+  }
+
+  const getOperadoresDoEmpreendimento = (empreendimentoId: string, data: string) => {
+    const rotas = rotasLeitura?.filter(r => r.empreendimento_id === empreendimentoId && r.data === data) || []
+    const nomes = [...new Set(rotas.map(r => (r as any).operador?.nome).filter(Boolean))]
+    return nomes
   }
 
   return (
@@ -152,47 +160,91 @@ export default function ColetorCronograma() {
               const rotasDoDia = getRotasLeituraParaData(dia.data)
               const totalMedidores = emps.reduce((acc, e) => acc + e.quantidade_medidores, 0)
 
+              const isExpanded = expandedDiaId === dia.id
+
               return (
-                <Card key={dia.id}>
-                  <CardHeader className="pb-2 pt-4 px-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">
-                        Rota {dia.numero_rota.toString().padStart(2, '0')}
-                      </CardTitle>
-                      {rotasDoDia.length > 0 ? (() => {
-                        const distinctOperadores = new Set(rotasDoDia.filter(r => r.operador_id).map(r => r.operador_id))
-                        return (
-                          <Badge variant="secondary" className="text-xs">
-                            <Users className="mr-1 h-3 w-3" />
-                            {distinctOperadores.size} operador(es)
-                          </Badge>
-                        )
-                      })() : (
-                        <Badge variant="outline" className="text-xs">Não planejado</Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4 pt-0 space-y-1">
-                    <p className="text-sm text-muted-foreground">
-                      {format(parse(dia.data, 'yyyy-MM-dd', new Date()), "dd 'de' MMMM", { locale: ptBR })}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Building2 className="h-3.5 w-3.5" />
-                        {emps.length} empreendimento(s)
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Gauge className="h-3.5 w-3.5" />
-                        {totalMedidores} medidores
-                      </span>
-                    </div>
-                    {rotasDoDia.length > 0 && (
-                      <div className="text-xs text-muted-foreground pt-1">
-                        Operador(es): {[...new Set(rotasDoDia.map(r => (r as any).operador?.nome).filter(Boolean))].join(', ') || 'N/A'}
+                <Collapsible
+                  key={dia.id}
+                  open={isExpanded}
+                  onOpenChange={(open) => setExpandedDiaId(open ? dia.id : null)}
+                >
+                  <Card className="cursor-pointer">
+                    <CollapsibleTrigger asChild>
+                      <div>
+                        <CardHeader className="pb-2 pt-4 px-4">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">
+                              Rota {dia.numero_rota.toString().padStart(2, '0')}
+                            </CardTitle>
+                            <div className="flex items-center gap-2">
+                              {rotasDoDia.length > 0 ? (() => {
+                                const distinctOperadores = new Set(rotasDoDia.filter(r => r.operador_id).map(r => r.operador_id))
+                                return (
+                                  <Badge variant="secondary" className="text-xs">
+                                    <Users className="mr-1 h-3 w-3" />
+                                    {distinctOperadores.size} operador(es)
+                                  </Badge>
+                                )
+                              })() : (
+                                <Badge variant="outline" className="text-xs">Não planejado</Badge>
+                              )}
+                              {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="px-4 pb-4 pt-0 space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            {format(parse(dia.data, 'yyyy-MM-dd', new Date()), "dd 'de' MMMM", { locale: ptBR })}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Building2 className="h-3.5 w-3.5" />
+                              {emps.length} empreendimento(s)
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Gauge className="h-3.5 w-3.5" />
+                              {totalMedidores} medidores
+                            </span>
+                          </div>
+                        </CardContent>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="px-4 pb-4 border-t border-border">
+                        <div className="divide-y divide-border">
+                          {emps.map((emp) => {
+                            const operadores = getOperadoresDoEmpreendimento(emp.id, dia.data)
+                            return (
+                              <div key={emp.id} className="py-3 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Building2 className="h-4 w-4 text-primary shrink-0" />
+                                  <span className="text-sm font-medium">{emp.nome}</span>
+                                </div>
+                                {emp.endereco && (
+                                  <p className="text-xs text-muted-foreground ml-6">{emp.endereco}</p>
+                                )}
+                                <p className="text-xs text-muted-foreground ml-6">
+                                  <Gauge className="inline h-3 w-3 mr-1" />
+                                  {emp.quantidade_medidores} medidores
+                                </p>
+                                <p className="text-xs ml-6">
+                                  {operadores.length > 0 ? (
+                                    <span className="text-foreground">→ {operadores.join(', ')}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground italic">→ Sem operador atribuído</span>
+                                  )}
+                                </p>
+                              </div>
+                            )
+                          })}
+                          {emps.length === 0 && (
+                            <p className="py-3 text-xs text-muted-foreground italic">Nenhum empreendimento nesta rota</p>
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )
             })}
           </div>
