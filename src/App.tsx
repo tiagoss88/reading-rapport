@@ -37,6 +37,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import ColetorProtectedRoute from '@/components/ColetorProtectedRoute'
 import NotFound from "./pages/NotFound";
 import NotAuthorized from '@/pages/NotAuthorized'
+import AdminAtualizarRotasCE from '@/pages/AdminAtualizarRotasCE'
 
 const queryClient = new QueryClient();
 
@@ -200,6 +201,13 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
                       <LeiturasTerceirizadas />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/atualizar-rotas-ce" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <AdminAtualizarRotasCE />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
