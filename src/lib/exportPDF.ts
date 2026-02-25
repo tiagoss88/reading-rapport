@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 const relatorioTitulos: Record<TipoRelatorio, string> = {
   condominios_competencia: 'Condomínios Coletados por Competência',
   rdo_servicos: 'RDO - Relatório Diário de Obra',
+  cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
 };
 
 export function exportarPDF(
@@ -21,7 +22,13 @@ export function exportarPDF(
   doc.text(titulo, 14, 20);
 
   doc.setFontSize(10);
-  if (tipoRelatorio === 'condominios_competencia' && filtros.competencia) {
+  if (tipoRelatorio === 'cadastro_condominios_uf') {
+    if (filtros.ufFiltro) {
+      doc.text(`UF: ${filtros.ufFiltro}`, 14, 28);
+    } else {
+      doc.text('Todas as UFs', 14, 28);
+    }
+  } else if (tipoRelatorio === 'condominios_competencia' && filtros.competencia) {
     const [ano, mes] = filtros.competencia.split('-');
     doc.text(`Competência: ${mes}/${ano}`, 14, 28);
   } else {
@@ -40,6 +47,16 @@ export function exportarPDF(
         item.uf || '-',
         item.qtd_medidores,
         item.data_coleta ? format(new Date(item.data_coleta), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+      ]);
+      break;
+
+    case 'cadastro_condominios_uf':
+      colunas = ['Condomínio', 'UF', 'Rota', 'Qtd Medidores'];
+      linhas = dados.map((item) => [
+        item.condominio,
+        item.uf || '',
+        item.rota != null ? item.rota : '--',
+        item.qtd_medidores,
       ]);
       break;
 

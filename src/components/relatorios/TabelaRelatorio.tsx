@@ -21,6 +21,15 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead>Data da Coleta</TableHead>
           </>
         );
+      case 'cadastro_condominios_uf':
+        return (
+          <>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>UF</TableHead>
+            <TableHead>Rota</TableHead>
+            <TableHead>Qtd Medidores</TableHead>
+          </>
+        );
       case 'rdo_servicos':
         return (
           <>
@@ -50,6 +59,20 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                   ? format(new Date(item.data_coleta), 'dd/MM/yyyy', { locale: ptBR })
                   : '-'}
               </TableCell>
+            </TableRow>
+          );
+        case 'cadastro_condominios_uf':
+          return (
+            <TableRow
+              key={index}
+              className={item.is_subtotal ? 'bg-muted font-bold' : ''}
+            >
+              <TableCell className={item.is_subtotal ? 'font-bold' : 'font-medium'}>
+                {item.condominio}
+              </TableCell>
+              <TableCell>{item.uf || ''}</TableCell>
+              <TableCell>{item.rota != null ? item.rota : '--'}</TableCell>
+              <TableCell>{item.qtd_medidores}</TableCell>
             </TableRow>
           );
         case 'rdo_servicos':
