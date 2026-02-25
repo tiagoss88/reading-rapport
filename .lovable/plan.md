@@ -1,32 +1,61 @@
 
 
-## Icone de Perfil no Menu do Coletor
+## Destacar Nome do Operador Logado no Cronograma
 
 ### Objetivo
 
-Adicionar um botao de perfil ao lado do botao "Sair" no header do menu do coletor, permitindo que o operador visualize seu perfil e troque sua senha.
+Na tela de Cronograma de Leitura (`/coletor/cronograma`), quando a lista de operadores designados para um condominio e exibida, o nome do operador que esta logado deve aparecer em **negrito**, facilitando a identificacao visual.
 
 ### Alteracoes
 
-**Arquivo: `src/pages/ColetorMenu.tsx`**
+**Arquivo: `src/pages/ColetorCronograma.tsx`**
 
-- Importar o componente `ProfileDialog` de `@/components/ProfileDialog` (ja existe no projeto e permite troca de senha).
-- No header, ao lado do botao de logout, adicionar o `<ProfileDialog />` que renderiza um botao com avatar e abre um dialog de perfil.
-- Os dois botoes (perfil + sair) ficarao lado a lado com `flex items-center gap-1`.
+1. **Buscar o nome do operador logado**: Adicionar um `useQuery` que consulta `operadores` filtrando por `user_id` igual ao `user.id` do contexto de autenticacao (importar `useAuth`). Retorna o `nome` do operador.
 
-### Layout resultante
+2. **Renderizar com destaque**: Na linha 230-235, onde os nomes dos operadores sao exibidos com `operadores.join(', ')`, substituir por um mapeamento individual onde cada nome e comparado com o nome do operador logado. Se for igual, renderizar com `<span className="font-bold">`. Caso contrario, renderizar normalmente.
 
-```text
-┌──────────────────────────────────┐
-│ 👤 Menu Principal     [perfil][×]│
-│    operador@email.com            │
-└──────────────────────────────────┘
+### Codigo resultante (trecho relevante)
+
+```tsx
+// Importar useAuth
+import { useAuth } from '@/contexts/AuthContext'
+
+// Dentro do componente, buscar nome do operador logado
+const { user } = useAuth()
+
+const { data: operadorLogado } = useQuery({
+  queryKey: ['operador-logado', user?.id],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('operadores')
+      .select('nome')
+      .eq('user_id', user!.id)
+      .maybeSingle()
+    return data
+  },
+  enabled: !!user?.id
+})
+
+// Na renderizacao dos operadores (linha ~230-235)
+{operadores.length > 0 ? (
+  <span className="text-foreground">
+    → {operadores.map((nome, i) => (
+      <span key={i}>
+        {i > 0 && ', '}
+        <span className={nome === operadorLogado?.nome ? 'font-bold' : ''}>
+          {nome}
+        </span>
+      </span>
+    ))}
+  </span>
+) : (
+  <span className="text-muted-foreground italic">→ Sem operador atribuído</span>
+)}
 ```
 
-O componente `ProfileDialog` ja possui:
-- Exibicao do email do usuario (somente leitura)
-- Campos para nova senha e confirmacao
-- Validacao e chamada a `supabase.auth.updateUser`
+### Resumo
 
-Nenhum componente novo precisa ser criado. Apenas uma importacao e insercao no JSX do header.
+- 1 arquivo alterado: `src/pages/ColetorCronograma.tsx`
+- Adiciona query para buscar nome do operador logado (com cache automatico do React Query)
+- Compara cada nome exibido com o do operador logado para aplicar `font-bold`
 
