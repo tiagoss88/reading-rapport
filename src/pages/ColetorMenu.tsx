@@ -79,9 +79,9 @@ export default function ColetorMenu() {
                     <BookOpen className="w-6 h-6 text-green-600" />
                   </div>
                   <div className="flex-1">
-                    <CardTitle className="text-lg">Leituras</CardTitle>
+                    <CardTitle className="text-lg">Confirmação de Leituras</CardTitle>
                     <CardDescription>
-                      Empreendimentos por UF e Rota
+                      Upload dos comprovantes sem pendência
                     </CardDescription>
                   </div>
                 </div>
@@ -107,16 +107,16 @@ export default function ColetorMenu() {
                     <Building2 className="w-6 h-6 text-blue-600" />
                   </div>
                   <div className="flex-1">
-                    <CardTitle className="text-lg">Serviços Terceirizados</CardTitle>
+                    <CardTitle className="text-lg">Serviços</CardTitle>
                     <CardDescription>
-                      Serviços agendados da Nacional Gás
+                      Lista de serviços
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="flex items-center text-sm text-gray-600">
-                  <span>Visualizar e executar serviços de medição terceirizada</span>
+                  <span>Visualizar e executar serviços</span>
                 </div>
               </CardContent>
             </Card>
