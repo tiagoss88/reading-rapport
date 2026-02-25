@@ -1,36 +1,74 @@
 
 
-## Indicar empreendimentos já coletados na competência atual (Coletor)
+## Atualizar rotas dos empreendimentos CE conforme planilha
 
-### Problema
+### Resumo
 
-A tela de listagem de empreendimentos no coletor (`ColetorLeiturasTerceirizadas.tsx`) exibe todos os empreendimentos sem distinção, mesmo que já tenham sido coletados na competência atual. O operador não tem como saber quais já foram feitos e pode re-coletar por engano.
+A planilha contém **~200 condomínios** do Ceará com suas respectivas rotas (1 a 20). O objetivo é atualizar o campo `rota` na tabela `empreendimentos_terceirizados` para cada empreendimento listado, fazendo o match pelo nome e UF = 'CE'.
 
-### Solução
+### Abordagem
 
-Adicionar verificação de coletas já realizadas na competência atual e exibir indicador visual nos empreendimentos já coletados, mantendo-os na lista (para eventual re-coleta se necessário) mas com destaque claro.
-
-### Arquivo a editar
-
-**`src/pages/ColetorLeiturasTerceirizadas.tsx`**
-
-1. **Nova query**: buscar `empreendimento_id` dos serviços com `tipo_servico = 'leitura'` e `status_atendimento = 'executado'` na competência atual (mês/ano correntes, filtrado por `data_agendamento` entre primeiro e último dia do mês)
-2. **Criar Set** com IDs já coletados para lookup O(1)
-3. **Badge visual** em cada card: se o empreendimento está no Set, exibir badge verde "Coletado" com ícone CheckCircle; caso contrário, badge amarela "Pendente"
-4. **Ordenação**: empreendimentos pendentes aparecem primeiro na lista, coletados vão para o final
-5. **Contador no header**: exibir "X de Y coletados" para dar visão geral ao operador
-
-### Detalhes visuais
-
-- Badge "Coletado": fundo verde claro, texto verde escuro, ícone CheckCircle
-- Badge "Pendente": fundo amarelo claro, texto amarelo escuro
-- Cards coletados com leve opacidade reduzida (opacity-60) para direcionar atenção aos pendentes
-- Aplicar tanto na lista filtrada por UF/Rota quanto nos resultados de busca por nome
+Executar comandos `UPDATE` na tabela `empreendimentos_terceirizados` via ferramenta de dados do Supabase, agrupando por rota para eficiência. Cada comando atualiza o campo `rota` para todos os condomínios daquela rota, usando match por `nome` (case-insensitive via `ILIKE` ou match exato) e `uf = 'CE'`.
 
 ### Detalhes técnicos
 
-- Query usa `gte`/`lte` com primeiro e último dia do mês atual
-- Filtro `not('empreendimento_id', 'is', null)` para evitar registros órfãos
-- Mesma lógica aplicada a `displayList` (busca e filtro)
-- Sem dependência de nova tabela ou migração — usa dados já existentes em `servicos_nacional_gas`
+Serão executados ~20 comandos UPDATE, um por rota. Exemplo:
+
+```sql
+UPDATE empreendimentos_terceirizados
+SET rota = 1
+WHERE uf = 'CE'
+  AND UPPER(TRIM(nome)) IN (
+    'LES JARDINS', 'JARDIM DAS TULHERIAS', 'LE LOUVRE', ...
+  );
+```
+
+Para nomes que possam não bater exatamente (acentos, espaços extras), será feita normalização com `UPPER(TRIM(...))` em ambos os lados.
+
+### Riscos e mitigação
+
+- **Nomes não encontrados**: se algum condomínio da planilha não existir no banco (nome diferente), ele simplesmente não será atualizado. Posso listar os não-encontrados depois para revisão manual.
+- **Sem alteração de schema**: apenas dados são modificados, nenhuma migração necessária.
+
+### Dados da planilha (20 rotas, ~200 condomínios CE)
+
+Rota 1: LES JARDINS, JARDIM DAS TULHERIAS, LE LOUVRE, VILLA FIORI, ANHEMBI, VERANO PORTENO, PORTO REAL, CONDE DE VILLENEUVE, JURUA, VILLAGE MISAEL PINHEIRO, CATAMARÃ, ENSEADA DA IRACEMA
+
+Rota 2: VITRAL DO PARQUE, VENTOS ALISIOS, NORDESTE, ABARANA, ALGARVE, INOVATTO, JARDINS VINÓLIA, VALENCA RESIDENCE, PREMIER, TURMALINA, BELLAGIO, MARCELA STURDART
+
+Rota 3: VIVENDAS RIO BRANCO, BRAZZAVILLE, PALACIO DE FATIMA, GIZELA, MAISON RIGEL, NEBADON, SHOPPING BENFICA, RESIDENCIAL TERRAZA, SPE GRAND IMPERIAL, WAI WAI, BRISA DO LAGO I
+
+Rota 4: VIVENDA PARANGABA, SOBERANO, JOSE ELMAR, JARDIM DAS BROMELIAS, PARQUE DAS PALMEIRAS, PEDRO PILOMENO, VILLA DE ROMA, MOOV PARANGABA, VILLAGE LEONARDO DA VINCI
+
+Rota 5: VG SUN, BONS VENTOS, ROYAL EMBASSY, ISABEL MARINHO, BEATRIZ RESIDENCE, REQUINTE, DUBAI, TOWER RESIDENCE, VALE IMPERIAL
+
+Rota 6: DUETTO DI FATIMA, LAGUNA CONDOMINIUM, RESIDENCIAL CENTRAL PARK, VILLAGE CENTRAL PARK, VIA SUL SHOPPING, PATIO JACAREY, PARQUE FIORE, STAR CITY, VILA REAL - COCO, HYDE PARK, PORTAL DO PARQUE
+
+Rota 7: SONATA, BARCELONA, POP ESUEBIO, TERRAZO SHOPPING EUSÉBIO, SOLARIUM RESIDENCE, RESIDENCIAL GALILEIA, IPANEMA, MORADA DA PRAIA, SKYVIEW, ATOCHA, MARIA HELENA
+
+Rota 8: SOLAR DAS AGUAS, COLONIAL SUL, PARK DAS FLORES, RESERVA CASTELLI, PASSAREDO, TOPAZIO, VALE DOS IPES, THIAGO ALBUQUERQUE, BELLE VILLE, TERLIZZY, LA PIAZZA, TAMARA, JERICOACOARA, IRAN RABELO
+
+Rota 9: PARQUE FLUENCE, ITAPERI, MARAPONGA RESIDENCE, JOÃO NUNES COND, MIRANTE CLUBE, KHALIL GIBRAN, BRUNO AGUIAR PESSOA, MACONDO, NOTRE DAME, CLOVIS NETO, SAN JULIANO, VANCOUVER, QUEIROZ PORTO, VICTAR 01 (VISTA MAR GTI)
+
+Rota 10: MARACANAÚ, MARANGUAPE, GRAND SHOPPING, VILA PITAGUARY, FELICITA, LUMINOS, PLAZA MAYOR, DR ANTONIO NERICIO, ROGACIANO LEITE I, SAN LORENZO, JOSE PESSOA DE ARAUJO, JARDIM DE HOLANDA, PARC DES FLEURS, GEMINI, LIDIANE, VILLA FIRENZE, MONTE CARLO, VERDI
+
+Rota 11: SHOPPING IGUATEMI, SAINT GILBERT RESIDENCE, PALAZZO RIGOLETTO, VIENNA, VILLA SOLARIUM, VENICE CLUBE, VILLA FOOD, M LAR JACAREY, AMERICA DO SUL - TORRE BRASIL, NEO HOME CLUB, SANTA CRUZ, VICTOR V
+
+Rota 12: CHATELAIN, NOVA VIDA, MAIZE, TOM JOBIM, NORDESTE PALACE, PARQUE DOS IPES, NORTH SHOPPING, SHOPPING AEROPORTO, PAUL MAURIAT, NAUTILUS, TAMBAQUI, ZARAGOZZA, VIENA, IBERIA I, NERE AMETZA
+
+Rota 13: TALASSA DUNAS, RESERVA DO PARQUE A, PATIO COCÓ, LIS DU PARC, ÂNGELA, PLATZ, PUERTO MONTT, JOSE DE ALENCAR, VILLA NOVA, DANIEL CARLOS, SILVANI SOARES, DU LOUVRE, JOSE RANDAL DE MESQUITA, STRAUSS, LUXEMBURGO, VALE LIRA
+
+Rota 14: SOLAR DAS ARVÓRES, VILLA REAL - SERRINHA, RECANTO DAS ACACIAS II, MARBELA, SOLAR BEZERRA DE MENEZES, PALAZZO DON GIOVANNI, SAN PIETRO, SHOPPING ALDEOTA, SHOPPING DEL PASEO, CRISTAL X, HENRIQUE JORGE, JAVA
+
+Rota 15: JARDINO PASSEO, PARC CEZANNE, ONIX E JADE, PROMENADE ALDEOTA, MARSELHA, CIDRAO PALACE, LIBERTY PLACE, JACARTA, ATLANTIS, PACO DO BEM, PALADIUM, MARINO MARINE, ASTORIA
+
+Rota 16: PARQUE DE FATIMA, MANUELA MENDES, BOSQUE DAS ACACIAS, BOSQUES DAS FLORES, ARBORE, RESIDENCIAL CHRONUS, DUO RESIDENCE, GRAND PLACE
+
+Rota 17: AQUARELA CONDOMINIO CLUB, FAROL DA COSTA, MIRANTE DAS DUNAS, ROYAL OAK, SAN THOMAS, SAINT ANTHONY PLACE, JARDIM DE CASTELO, PONTAL
+
+Rota 18: PAÇO DOS PASSAROS, KAROL WOTYJLA, ABOLIÇÃO, SAMBURA, MEET ALDEOTA, MIRANTE HOME RESORT, BRASILIA, TERAVIVA, TERALUZ
+
+Rota 19: PABLO PICASSO, PORTAL MADRID, JARDIM ABAETE, MONTE REI, DELIVERY MALL, MONTE REAL, VIVENDAS PASSARÉ, PARK CLUB PASSARE
+
+Rota 20: VICTA 05 BELVEDERE, JARDIM DOS PASSAROS
 
