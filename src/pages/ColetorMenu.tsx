@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpen, LogOut, User, Gauge, Building2 } from 'lucide-react'
+import { BookOpen, LogOut, User, Gauge, Building2, Calendar } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
 
@@ -28,6 +28,10 @@ export default function ColetorMenu() {
         variant: "destructive"
       })
     }
+  }
+
+  const goToCronograma = () => {
+    navigate('/coletor/cronograma')
   }
 
   const goToLeituras = () => {
@@ -67,6 +71,31 @@ export default function ColetorMenu() {
 
         {/* Menu Options */}
         <div className="space-y-4">
+          {/* Cronograma de Leitura */}
+          <ProtectedComponent permission="coletor_leituras">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToCronograma}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="flex-1">
+                    <CardTitle className="text-lg">Cronograma de Leitura</CardTitle>
+                    <CardDescription>
+                      Planejamento das rotas por UF
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center text-sm text-gray-600">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <span>Visualizar datas e rotas programadas</span>
+                </div>
+              </CardContent>
+            </Card>
+          </ProtectedComponent>
+
           {/* Leituras */}
           <ProtectedComponent permission="coletor_leituras">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow">

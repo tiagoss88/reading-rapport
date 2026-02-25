@@ -25,6 +25,7 @@ import LeiturasTerceirizadas from '@/pages/MedicaoTerceirizada/Leituras'
 import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
+import ColetorCronograma from '@/pages/ColetorCronograma'
 import ColetorLeiturasTerceirizadas from '@/pages/ColetorLeiturasTerceirizadas'
 import ColetorEmpreendimentoDetalhe from '@/pages/ColetorEmpreendimentoDetalhe'
 import ColetorUnidades from '@/pages/ColetorUnidades'
@@ -57,6 +58,13 @@ const App = () => (
                 <Route path="/coletor" element={
                   <ColetorProtectedRoute>
                     <ColetorMenu />
+                  </ColetorProtectedRoute>
+                } />
+                <Route path="/coletor/cronograma" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorCronograma />
+                    </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
                 <Route path="/coletor-sync" element={
