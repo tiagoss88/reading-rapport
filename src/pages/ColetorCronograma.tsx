@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -35,6 +36,20 @@ export default function ColetorCronograma() {
   const [ano, setAno] = useState<string>(currentYear.toString())
   const [mes, setMes] = useState<string>((new Date().getMonth() + 1).toString())
   const [expandedDiaId, setExpandedDiaId] = useState<string | null>(null)
+  const { user } = useAuth()
+
+  const { data: operadorLogado } = useQuery({
+    queryKey: ['operador-logado', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('operadores')
+        .select('nome')
+        .eq('user_id', user!.id)
+        .maybeSingle()
+      return data
+    },
+    enabled: !!user?.id
+  })
 
   const { data: diasUteis, isLoading } = useQuery({
     queryKey: ['dias-uteis', uf, ano, mes],
@@ -229,7 +244,16 @@ export default function ColetorCronograma() {
                                 </p>
                                 <p className="text-xs ml-6">
                                   {operadores.length > 0 ? (
-                                    <span className="text-foreground">→ {operadores.join(', ')}</span>
+                                    <span className="text-foreground">
+                                      → {operadores.map((nome, i) => (
+                                        <span key={i}>
+                                          {i > 0 && ', '}
+                                          <span className={nome === operadorLogado?.nome ? 'font-bold' : ''}>
+                                            {nome}
+                                          </span>
+                                        </span>
+                                      ))}
+                                    </span>
                                   ) : (
                                     <span className="text-muted-foreground italic">→ Sem operador atribuído</span>
                                   )}
