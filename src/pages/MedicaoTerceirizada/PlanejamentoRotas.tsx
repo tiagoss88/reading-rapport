@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Calendar, Plus, Trash2, Users, Building2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { format, parse } from 'date-fns'
+import { format, parse, lastDayOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import DiaUtilDialog from '@/components/medicao-terceirizada/DiaUtilDialog'
 import RotaDiariaDialog from '@/components/medicao-terceirizada/RotaDiariaDialog'
@@ -76,7 +76,7 @@ export default function PlanejamentoRotas() {
     queryKey: ['rotas-leitura', uf, ano, mes],
     queryFn: async () => {
       const startDate = `${ano}-${mes.padStart(2, '0')}-01`
-      const endDate = `${ano}-${mes.padStart(2, '0')}-31`
+      const endDate = format(lastDayOfMonth(new Date(parseInt(ano), parseInt(mes) - 1)), 'yyyy-MM-dd')
       
       const { data, error } = await supabase
         .from('rotas_leitura')
