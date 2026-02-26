@@ -1,18 +1,25 @@
 
 
-## Adicionar Filtro de UF na Aba "Rota do Dia"
+## Adicionar Busca e Paginacao na Aba "Coletas Realizadas"
 
-### Alteracao
+### Alteracoes
 
 **Arquivo: `src/pages/MedicaoTerceirizada/Leituras.tsx`**
 
-1. Adicionar um novo state `filtroUFRotaDia` (separado do `filtroUF` das outras abas) com valor inicial `'todas'`.
+1. **Novos states**:
+   - `buscaColeta` (string, default `''`) — termo de busca por nome do empreendimento
+   - `itensPorPagina` (number, default `10`) — quantidade de itens por pagina
 
-2. No `CardHeader` da aba "Rota do Dia" (linha 195-202), adicionar um `Select` de UF ao lado do input de data, usando as `ufsDisponiveis` ja calculadas.
+2. **UI no CardHeader** (linha 269, apos os filtros existentes):
+   - Adicionar um `Input` com icone de busca e placeholder "Buscar condominio..."
+   - Adicionar um `Select` com opcoes 10, 25, 50, 100 para limitar itens exibidos
 
-3. Filtrar `rotasDoDia` antes de renderizar na tabela: se `filtroUFRotaDia !== 'todas'`, mostrar apenas rotas cujo empreendimento tenha `uf` igual ao filtro selecionado.
+3. **Logica de filtragem e paginacao** (linha 323):
+   - Filtrar `coletasFiltradas` pelo termo de busca (comparando com `emp?.nome` via `toLowerCase().includes()`)
+   - Aplicar `.slice(0, itensPorPagina)` no resultado
+   - Exibir contador "Mostrando X de Y" abaixo da tabela
 
 ### Resultado
 
-A aba "Rota do Dia" passa a ter um seletor de UF ao lado do campo de data, permitindo visualizar apenas as rotas de um estado especifico.
+A aba "Coletas Realizadas" tera uma barra de busca por nome e um seletor de quantidade de itens, tornando a navegacao mais eficiente em listas grandes.
 
