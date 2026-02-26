@@ -44,6 +44,8 @@ export default function LeiturasTerceirizadas() {
   const [filtroRota, setFiltroRota] = useState<string>('todas')
   const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
   const [filtroUFRotaDia, setFiltroUFRotaDia] = useState<string>('todas')
+  const [buscaColeta, setBuscaColeta] = useState('')
+  const [itensPorPagina, setItensPorPagina] = useState<number>(10)
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
@@ -299,14 +301,39 @@ export default function LeiturasTerceirizadas() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Input
+                  placeholder="Buscar condomínio..."
+                  value={buscaColeta}
+                  onChange={e => setBuscaColeta(e.target.value)}
+                  className="w-56"
+                />
+                <Select value={String(itensPorPagina)} onValueChange={v => setItensPorPagina(Number(v))}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardHeader>
             <CardContent>
               {loadingColetas ? (
                 <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-              ) : !coletasFiltradas.length ? (
-                <p className="text-center text-muted-foreground py-8">Nenhuma coleta realizada nesta competência.</p>
-              ) : (
+              ) : (() => {
+                const coletasBuscadas = coletasFiltradas.filter(c => {
+                  if (!buscaColeta) return true
+                  const emp = c.empreendimentos_terceirizados as any
+                  return emp?.nome?.toLowerCase().includes(buscaColeta.toLowerCase())
+                })
+                const coletasExibidas = coletasBuscadas.slice(0, itensPorPagina)
+                return !coletasBuscadas.length ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhuma coleta encontrada.</p>
+                ) : (
+                  <>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -320,7 +347,7 @@ export default function LeiturasTerceirizadas() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {coletasFiltradas.map(coleta => {
+                    {coletasExibidas.map(coleta => {
                       const emp = coleta.empreendimentos_terceirizados as any
                       const tecnico = coleta.operadores as any
                       const fotoUrl = extrairFotoUrl(coleta.observacao)
@@ -355,7 +382,12 @@ export default function LeiturasTerceirizadas() {
                     })}
                   </TableBody>
                 </Table>
-              )}
+                <p className="text-sm text-muted-foreground mt-3">
+                  Mostrando {coletasExibidas.length} de {coletasBuscadas.length} coletas
+                </p>
+                  </>
+                )
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
