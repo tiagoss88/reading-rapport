@@ -28,13 +28,26 @@ export function useInstallPrompt() {
       return;
     }
 
+    // Verificar se o evento já foi capturado globalmente (antes do React montar)
+    const savedPrompt = (window as any).__deferredInstallPrompt;
+    if (savedPrompt) {
+      console.log('[PWA] Usando evento beforeinstallprompt capturado globalmente');
+      setDeferredPrompt(savedPrompt as BeforeInstallPromptEvent);
+      if (!dismissed) setIsVisible(true);
+    }
+
     const handler = (e: Event) => {
       e.preventDefault();
+      console.log('[PWA] beforeinstallprompt capturado no hook');
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      (window as any).__deferredInstallPrompt = e;
       if (!dismissed) setIsVisible(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
+
+    console.log('[PWA] banner state:', { standalone, ios, dismissed, hasSavedPrompt: !!savedPrompt });
+
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
