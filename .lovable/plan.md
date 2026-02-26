@@ -1,27 +1,26 @@
 
 
-## Adicionar Prompt de Instalacao do PWA
+## Corrigir Banner de Instalacao PWA
 
-O projeto tem a configuracao PWA via `vite-plugin-pwa` mas nao tem nenhum codigo para capturar o evento `beforeinstallprompt` e exibir um banner/popup convidando o usuario a instalar o app.
+### Problema raiz
+
+O evento `beforeinstallprompt` do Chrome frequentemente dispara **antes** do React montar os componentes. Como o listener so e registrado quando o `ColetorMenu` renderiza, o evento ja passou e o banner nunca aparece.
 
 ### Alteracoes
 
-**1. Criar `src/hooks/useInstallPrompt.tsx`**
-- Hook que escuta o evento `beforeinstallprompt` do navegador
-- Armazena o evento para disparar a instalacao quando o usuario clicar
-- Controla estado de visibilidade do banner (com localStorage para nao mostrar repetidamente)
+**1. Capturar o evento globalmente em `src/main.tsx`**
+- Adicionar um listener `beforeinstallprompt` no escopo global, antes do React montar
+- Salvar o evento em `window.__deferredInstallPrompt` para o hook consumir depois
 
-**2. Criar `src/components/InstallAppBanner.tsx`**
-- Banner fixo no topo ou bottom da tela do coletor
-- Botao "Instalar App" que chama `prompt()` no evento salvo
-- Botao para dispensar o banner
-- Design mobile-friendly, compacto
+**2. Atualizar `src/hooks/useInstallPrompt.tsx`**
+- No `useEffect`, verificar se `window.__deferredInstallPrompt` ja existe (evento que disparou antes do mount)
+- Se existir, usar esse evento imediatamente e mostrar o banner
+- Manter o listener para o caso do evento ainda nao ter disparado
 
-**3. Integrar no `src/pages/ColetorMenu.tsx`**
-- Renderizar o `InstallAppBanner` no menu principal do coletor
-- So aparece quando o navegador suporta instalacao e o app ainda nao foi instalado
+**3. Limpar localStorage para testes**
+- Adicionar log no console para debug (`[PWA] banner state: ...`)
+- Garantir que `pwa-banner-dismissed` nao esta bloqueando a exibicao
 
-### Nota
-- No iOS/Safari, o evento `beforeinstallprompt` nao existe. Para iOS, o banner mostrara instrucoes manuais: "Toque em Compartilhar > Adicionar a Tela de Inicio"
-- No Android/Chrome, o prompt nativo sera disparado automaticamente ao clicar no botao
+### Nota importante
+O evento `beforeinstallprompt` **nao dispara** no preview do Lovable (iframe). O teste deve ser feito no dominio real `ngd.agasen.com.br` apos o deploy. Tambem e necessario que o usuario **nao tenha o app ja instalado** e esteja usando Chrome no Android.
 
