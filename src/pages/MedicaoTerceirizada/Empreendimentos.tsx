@@ -132,9 +132,9 @@ export default function EmpreendimentosTerceirizados() {
     <Layout title="Cadastro de Empreendimentos Terceirizados">
       <div className="space-y-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="h-5 w-5" />
+          <CardHeader className="flex flex-row items-center justify-between py-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Building2 className="h-4 w-4" />
               Empreendimentos Terceirizados
             </CardTitle>
             <div className="flex gap-2">
@@ -174,7 +174,7 @@ export default function EmpreendimentosTerceirizados() {
           </CardHeader>
           <CardContent>
             {/* Filtros */}
-            <div className="flex flex-wrap gap-4 mb-6">
+            <div className="flex flex-wrap gap-3 mb-4">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
