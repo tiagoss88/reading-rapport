@@ -43,6 +43,7 @@ export default function LeiturasTerceirizadas() {
   const [filtroUF, setFiltroUF] = useState<string>('todas')
   const [filtroRota, setFiltroRota] = useState<string>('todas')
   const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
+  const [filtroUFRotaDia, setFiltroUFRotaDia] = useState<string>('todas')
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
@@ -192,14 +193,27 @@ export default function LeiturasTerceirizadas() {
         {/* Aba 1 - Rota do Dia */}
         <TabsContent value="rota-dia">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
               <CardTitle>Rota do Dia</CardTitle>
-              <Input
-                type="date"
-                value={dataSelecionada}
-                onChange={e => setDataSelecionada(e.target.value)}
-                className="w-48"
-              />
+              <div className="flex items-center gap-3">
+                <Select value={filtroUFRotaDia} onValueChange={setFiltroUFRotaDia}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="UF" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas UFs</SelectItem>
+                    {ufsDisponiveis.map(uf => (
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="date"
+                  value={dataSelecionada}
+                  onChange={e => setDataSelecionada(e.target.value)}
+                  className="w-48"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               {loadingRotas || loadingExecutadosNoDia ? (
@@ -218,7 +232,10 @@ export default function LeiturasTerceirizadas() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rotasDoDia.map(rota => {
+                    {rotasDoDia.filter(rota => {
+                      const emp = rota.empreendimentos_terceirizados as any
+                      return filtroUFRotaDia === 'todas' || emp?.uf === filtroUFRotaDia
+                    }).map(rota => {
                       const emp = rota.empreendimentos_terceirizados as any
                       const op = rota.operadores as any
                       const empreendimentoIdRota = emp?.id || rota.empreendimento_id
