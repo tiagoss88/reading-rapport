@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import ProfileDialog from '@/components/ProfileDialog'
+import InstallAppBanner from '@/components/InstallAppBanner'
 
 export default function ColetorMenu() {
   const navigate = useNavigate()
@@ -74,6 +75,8 @@ export default function ColetorMenu() {
           </div>
         </div>
 
+        {/* Install Banner */}
+        <InstallAppBanner />
 
         {/* Menu Options */}
         <div className="space-y-3">
