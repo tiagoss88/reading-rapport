@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { BookOpen, LogOut, User, Building2, Calendar, ChevronRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import ProfileDialog from '@/components/ProfileDialog'
 
 export default function ColetorMenu() {
@@ -13,6 +14,7 @@ export default function ColetorMenu() {
   const { signOut, user } = useAuth()
   const { toast } = useToast()
   useLocationTracking(true)
+  usePushNotifications()
 
   const handleLogout = async () => {
     try {
