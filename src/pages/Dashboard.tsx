@@ -139,7 +139,7 @@ export default function Dashboard() {
                 </CardDescription>
               </div>
               <Button 
-                onClick={() => navigate('/coletor-sync')}
+                onClick={() => navigate('/coletor')}
                 className="flex items-center"
               >
                 <Smartphone className="h-4 w-4 mr-2" />
