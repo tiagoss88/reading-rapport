@@ -1,14 +1,16 @@
 
 
-## Reduzir Fonte e Espaçamento na Pagina de Empreendimentos
+## Corrigir Botao "Abrir Coletor" no Dashboard
 
-O `CardTitle` global esta com `text-2xl` que e grande para o design compacto do sistema. Vou reduzi-lo globalmente para `text-lg`.
+### Problema
 
-### Alteracoes
+O botao "Abrir Coletor" no Dashboard navega para `/coletor-sync` (tela de Leituras) em vez de `/coletor` (menu principal do coletor).
 
-**1. `src/components/ui/card.tsx` — Reduzir tamanho do CardTitle**
-- Alterar `text-2xl` para `text-lg` na classe do `CardTitle`
+### Alteracao
 
-**2. `src/pages/MedicaoTerceirizada/Empreendimentos.tsx` — Ajustes especificos**
-- Verificar se ha espacamentos extras ou fontes grandes especificas nesta pagina e compactar
+**Arquivo: `src/pages/Dashboard.tsx` (linha 142)**
+
+- Alterar `navigate('/coletor-sync')` para `navigate('/coletor')`
+
+Isso fara o botao direcionar corretamente para o menu principal do coletor, onde o operador pode escolher entre Cronograma, Leituras e Servicos.
 
