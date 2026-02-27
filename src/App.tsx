@@ -14,7 +14,8 @@ import Agendamentos from '@/pages/Agendamentos'
 import OperadorApp from '@/pages/OperadorApp'
 import PermissionsManagement from '@/pages/PermissionsManagement'
 import RastreamentoOperadores from '@/pages/RastreamentoOperadores'
-import Relatorios from '@/pages/Relatorios'
+import RelatoriosLeituras from '@/pages/RelatoriosLeituras'
+import RelatoriosServicos from '@/pages/RelatoriosServicos'
 import TiposServico from '@/pages/TiposServico'
 import ConfiguracoesSistema from '@/pages/ConfiguracoesSistema'
 import EmpreendimentosTerceirizados from '@/pages/MedicaoTerceirizada/Empreendimentos'
@@ -156,10 +157,17 @@ const App = () => (
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
-                <Route path="/relatorios" element={
+                <Route path="/relatorios/leituras" element={
                   <ProtectedRoute>
                     <PermissionRoute permission="view_relatorios" redirectTo="/not-authorized">
-                      <Relatorios />
+                      <RelatoriosLeituras />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/relatorios/servicos" element={
+                  <ProtectedRoute>
+                    <PermissionRoute permission="view_relatorios" redirectTo="/not-authorized">
+                      <RelatoriosServicos />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
