@@ -53,7 +53,7 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Leituras', href: '/medicao-terceirizada/leituras', icon: BookOpen },
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
     { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
-    { name: 'Planejamento de Rotas', href: '/medicao-terceirizada/rotas', icon: MapPin },
+    { name: 'Planejamento', href: '/medicao-terceirizada/rotas', icon: MapPin },
     { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
   ]
 

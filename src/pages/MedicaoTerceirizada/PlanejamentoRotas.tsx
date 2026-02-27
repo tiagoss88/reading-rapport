@@ -125,7 +125,7 @@ export default function PlanejamentoRotas() {
   }
 
   return (
-    <Layout title="Planejamento de Rotas de Leitura">
+    <Layout title="Planejamento">
       <div className="space-y-6">
         {/* Filtros */}
         <Card>
