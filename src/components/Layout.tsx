@@ -36,17 +36,23 @@ export default function Layout({ children, title }: LayoutProps) {
   const [collapsed, setCollapsed] = useState(false)
   
   const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
+  const [relatoriosOpen, setRelatoriosOpen] = useState(() => pathname.startsWith('/relatorios'))
   const [configuracoesOpen, setConfiguracoesOpen] = useState(() => ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))
 
   useEffect(() => {
     if (pathname.startsWith('/medicao-terceirizada')) setMedicaoTerceirizadaOpen(true)
+    if (pathname.startsWith('/relatorios')) setRelatoriosOpen(true)
     if (['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p))) setConfiguracoesOpen(true)
   }, [pathname])
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home, permission: 'view_dashboard' },
-    { name: 'Relatórios', href: '/relatorios', icon: BarChart3, permission: 'view_relatorios' },
     { name: 'Rastreamento', href: '/rastreamento', icon: MapPin, permission: 'view_rastreamento_operadores' },
+  ]
+
+  const relatoriosItems = [
+    { name: 'Leituras', href: '/relatorios/leituras', icon: BookOpen },
+    { name: 'Serviços', href: '/relatorios/servicos', icon: Wrench },
   ]
 
   const medicaoTerceirizadaItems = [
@@ -181,7 +187,53 @@ export default function Layout({ children, title }: LayoutProps) {
               </div>
             </ProtectedComponent>
             
-            {/* Relatórios, Rastreamento */}
+            {/* Relatórios Dropdown */}
+            <ProtectedComponent permission="view_relatorios">
+              <div className="space-y-1">
+                {collapsed ? (
+                  <NavLink
+                    to="/relatorios/leituras"
+                    title="Relatórios"
+                    className={({ isActive }) => navLinkClass(isActive || pathname.startsWith('/relatorios'))}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <BarChart3 className="h-5 w-5 flex-shrink-0" />
+                  </NavLink>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setRelatoriosOpen(!relatoriosOpen)}
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <div className="flex items-center">
+                        <BarChart3 className="mr-3 h-5 w-5 flex-shrink-0" />
+                        Relatórios
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${relatoriosOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {relatoriosOpen && (
+                      <div className="ml-8 space-y-1">
+                        {relatoriosItems.map((item) => (
+                          <NavLink
+                            key={item.name}
+                            to={item.href}
+                            title={item.name}
+                            className={({ isActive }) => subNavLinkClass(isActive)}
+                            onClick={() => setSidebarOpen(false)}
+                          >
+                            <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                            {item.name}
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </ProtectedComponent>
+
+            {/* Rastreamento */}
             {navigation.slice(1).map((item) => (
               <ProtectedComponent key={item.name} permission={item.permission as any}>
                 <NavLink
