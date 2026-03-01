@@ -81,7 +81,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
         .from('rotas_leitura')
         .select(`
           *,
-          empreendimento:empreendimentos_terceirizados(id, nome, quantidade_medidores),
+          empreendimento:empreendimentos_terceirizados(id, nome, quantidade_medidores, uf),
           operador:operadores(id, nome)
         `)
         .eq('data', diaUtil.data)
@@ -173,12 +173,17 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
     }
   })
 
+  // Filter by UF to avoid cross-state collisions
+  const filteredRotasLeitura = rotasLeitura?.filter(
+    r => (r as any).empreendimento?.uf === diaUtil.uf
+  ) || []
+
   // Group rotas by empreendimento
   const groupedByEmpreendimento: EmpreendimentoGroup[] = (() => {
-    if (!rotasLeitura) return []
+    if (filteredRotasLeitura.length === 0) return []
     const groups: Record<string, EmpreendimentoGroup> = {}
     
-    for (const rota of rotasLeitura) {
+    for (const rota of filteredRotasLeitura) {
       const empId = rota.empreendimento_id
       if (!groups[empId]) {
         groups[empId] = {
@@ -199,13 +204,13 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
     return Object.values(groups)
   })()
 
-  const empreendimentosNaRota = [...new Set(rotasLeitura?.map(r => r.empreendimento_id) || [])]
+  const empreendimentosNaRota = [...new Set(filteredRotasLeitura.map(r => r.empreendimento_id))]
   const empreendimentosDisponiveis = empreendimentos?.filter(e => !empreendimentosNaRota.includes(e.id)) || []
 
   const getOperadoresDoEmpreendimento = (empreendimentoId: string): string[] => {
-    return rotasLeitura
-      ?.filter(r => r.empreendimento_id === empreendimentoId && r.operador_id)
-      .map(r => r.operador_id!) || []
+    return filteredRotasLeitura
+      .filter(r => r.empreendimento_id === empreendimentoId && r.operador_id)
+      .map(r => r.operador_id!)
   }
 
   const statusColors: Record<string, string> = {
