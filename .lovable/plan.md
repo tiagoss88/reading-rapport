@@ -1,30 +1,16 @@
 
 
-## Dividir Relatorios em submenu com Leituras e Servicos
+## Adicionar paginacao na aba de Servicos
 
-Transformar o item "Relatorios" no menu lateral em um dropdown (igual ao "Medicao" e "Configuracoes"), com dois subitens: **Leituras** e **Servicos**.
+Adicionar um controle de limite de registros por pagina (25, 50, 100, 250) na tabela de servicos em `src/pages/MedicaoTerceirizada/Servicos.tsx`.
 
 ### Alteracoes
 
-**1. Criar `src/pages/RelatoriosLeituras.tsx`**
-- Copia da pagina Relatorios atual, mas pre-filtrando apenas os tipos de leitura (`condominios_competencia`, `cadastro_condominios_uf`)
-- Remove o selector de categoria e mostra direto o selector apenas com relatorios de leitura
-- Layout title: "Relatorios de Leituras"
+**`src/pages/MedicaoTerceirizada/Servicos.tsx`**
 
-**2. Criar `src/pages/RelatoriosServicos.tsx`**
-- Mesma estrutura, mas apenas com o tipo `rdo_servicos`
-- Layout title: "Relatorios de Servicos"
-
-**3. Atualizar `src/components/Layout.tsx`**
-- Remover "Relatorios" do array `navigation`
-- Criar um novo dropdown "Relatorios" (igual ao padrao de Medicao/Configuracoes) com:
-  - Leituras → `/relatorios/leituras` (icon: FileText)
-  - Servicos → `/relatorios/servicos` (icon: Wrench)
-
-**4. Atualizar `src/App.tsx`**
-- Adicionar rotas `/relatorios/leituras` e `/relatorios/servicos` com PermissionRoute `view_relatorios`
-- Manter `/relatorios` redirecionando para `/relatorios/leituras` (ou remover)
-
-**5. Atualizar `src/components/relatorios/RelatorioSelector.tsx`**
-- Aceitar prop `categoria` para filtrar os relatorios disponiveis (so Leituras ou so Servicos)
+1. Adicionar estado `pageSize` (default 25) e `currentPage` (default 1)
+2. Adicionar um Select ao lado dos filtros existentes com opcoes: 25, 50, 100, 250
+3. Aplicar `.slice()` no `filteredServicos` para exibir apenas os registros da pagina atual
+4. Adicionar controles de navegacao (Anterior/Proximo) e indicador "Mostrando X-Y de Z" abaixo da tabela
+5. Resetar `currentPage` para 1 quando qualquer filtro mudar
 
