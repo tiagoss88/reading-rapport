@@ -40,6 +40,7 @@ import ColetorProtectedRoute from '@/components/ColetorProtectedRoute'
 import NotFound from "./pages/NotFound";
 import NotAuthorized from '@/pages/NotAuthorized'
 import AdminAtualizarRotasCE from '@/pages/AdminAtualizarRotasCE'
+import AdminGerarSQLRotas from '@/pages/AdminGerarSQLRotas'
 
 const queryClient = new QueryClient();
 
@@ -224,7 +225,14 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
                       <AdminAtualizarRotasCE />
-                    </PermissionRoute>
+                </PermissionRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/gerar-sql-rotas" element={
+              <ProtectedRoute>
+                <PermissionRoute role="admin">
+                  <AdminGerarSQLRotas />
+                </PermissionRoute>
                   </ProtectedRoute>
                 } />
                 <Route path="/coletor/leituras-terceirizadas" element={
