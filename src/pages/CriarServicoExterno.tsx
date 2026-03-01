@@ -97,6 +97,19 @@ export default function CriarServicoExterno() {
         title: "Serviço externo criado com sucesso",
         description: "O serviço foi agendado e aparecerá na lista de agendamentos."
       })
+
+      // Enviar push notification para operadores
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            title: 'Novo Serviço Externo',
+            body: `Serviço "${formData.tipo_servico}" agendado para ${formData.data_agendamento}`,
+            url: '/coletor/servicos'
+          }
+        })
+      } catch (pushErr) {
+        console.error('Erro ao enviar push notification:', pushErr)
+      }
       
       // Reset form
       setFormData({

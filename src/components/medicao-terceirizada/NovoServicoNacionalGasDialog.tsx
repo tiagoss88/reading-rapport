@@ -139,9 +139,27 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
         })
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
       toast({ title: 'Serviço cadastrado com sucesso' })
+
+      // Enviar push notification
+      try {
+        const tecnicoNome = variables.tecnico_id
+          ? operadores?.find(op => op.id === variables.tecnico_id)?.nome
+          : null
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            title: 'Novo Serviço Nacional Gás',
+            body: `Serviço "${variables.tipo_servico}" - ${variables.condominio_nome_original}${tecnicoNome ? ` (Técnico: ${tecnicoNome})` : ''}`,
+            url: '/coletor/servicos',
+            ...(variables.tecnico_id ? { operador_ids: [variables.tecnico_id] } : {})
+          }
+        })
+      } catch (pushErr) {
+        console.error('Erro ao enviar push notification:', pushErr)
+      }
+
       form.reset()
       onOpenChange(false)
     },

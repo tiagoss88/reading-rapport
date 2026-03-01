@@ -164,6 +164,19 @@ export default function CriarServico() {
         title: "Serviço criado com sucesso",
         description: "O serviço foi agendado e aparecerá na agenda."
       })
+
+      // Enviar push notification para operadores
+      try {
+        await supabase.functions.invoke('send-push-notification', {
+          body: {
+            title: 'Novo Serviço',
+            body: `Serviço "${validatedData.tipo_servico}" agendado para ${validatedData.data_agendamento}`,
+            url: '/coletor/servicos'
+          }
+        })
+      } catch (pushErr) {
+        console.error('Erro ao enviar push notification:', pushErr)
+      }
       
       // Reset form
       setFormData({
