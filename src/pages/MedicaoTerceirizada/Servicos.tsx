@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays, Plus } from 'lucide-react'
+import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -79,6 +79,8 @@ export default function ServicosNacionalGas() {
   const [ufFilter, setUfFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [tipoFilter, setTipoFilter] = useState<string>('all')
+  const [pageSize, setPageSize] = useState(25)
+  const [currentPage, setCurrentPage] = useState(1)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -134,6 +136,15 @@ export default function ServicosNacionalGas() {
     
     return matchesSearch && matchesUf && matchesStatus && matchesTipo
   })
+
+  // Reset page when filters change
+  const totalFiltered = filteredServicos?.length || 0
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize))
+  const safePage = Math.min(currentPage, totalPages)
+  if (safePage !== currentPage) setCurrentPage(safePage)
+
+  const startIndex = (safePage - 1) * pageSize
+  const paginatedServicos = filteredServicos?.slice(startIndex, startIndex + pageSize)
 
   const handleEdit = (servico: ServicoNacionalGas) => {
     setSelectedServico(servico)
@@ -239,12 +250,12 @@ export default function ServicosNacionalGas() {
                       <Input
                         placeholder="Buscar por condomínio, morador ou apartamento..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
                         className="pl-10"
                       />
                     </div>
                   </div>
-                  <Select value={ufFilter} onValueChange={setUfFilter}>
+                  <Select value={ufFilter} onValueChange={(v) => { setUfFilter(v); setCurrentPage(1) }}>
                     <SelectTrigger className="w-[120px]">
                       <SelectValue placeholder="UF" />
                     </SelectTrigger>
@@ -254,7 +265,7 @@ export default function ServicosNacionalGas() {
                       <SelectItem value="CE">CE</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1) }}>
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
@@ -266,7 +277,7 @@ export default function ServicosNacionalGas() {
                       <SelectItem value="cancelado">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={tipoFilter} onValueChange={setTipoFilter}>
+                  <Select value={tipoFilter} onValueChange={(v) => { setTipoFilter(v); setCurrentPage(1) }}>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Tipo de Serviço" />
                     </SelectTrigger>
@@ -277,12 +288,24 @@ export default function ServicosNacionalGas() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
+                    <SelectTrigger className="w-[130px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="25">25 por página</SelectItem>
+                      <SelectItem value="50">50 por página</SelectItem>
+                      <SelectItem value="100">100 por página</SelectItem>
+                      <SelectItem value="250">250 por página</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Tabela */}
                 {isLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Carregando...</div>
                 ) : (
+                  <>
                   <div className="rounded-md border overflow-x-auto">
                     <Table>
                       <TableHeader>
@@ -305,14 +328,14 @@ export default function ServicosNacionalGas() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredServicos?.length === 0 ? (
+                        {paginatedServicos?.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                               Nenhum serviço encontrado
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filteredServicos?.map((servico) => (
+                          paginatedServicos?.map((servico) => (
                             <TableRow key={servico.id} className={!servico.empreendimento_id ? 'bg-yellow-50/50 dark:bg-yellow-900/5' : ''}>
                               <TableCell>
                                 <Checkbox
@@ -371,6 +394,36 @@ export default function ServicosNacionalGas() {
                       </TableBody>
                     </Table>
                   </div>
+                  {/* Pagination controls */}
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-sm text-muted-foreground">
+                      Mostrando {totalFiltered === 0 ? 0 : startIndex + 1}{' - '}{Math.min(startIndex + pageSize, totalFiltered)} de {totalFiltered} registros
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={safePage <= 1}
+                        onClick={() => setCurrentPage(safePage - 1)}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Anterior
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        Página {safePage} de {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setCurrentPage(safePage + 1)}
+                      >
+                        Próximo
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                  </>
                 )}
               </CardContent>
             </Card>
