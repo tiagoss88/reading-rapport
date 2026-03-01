@@ -1,26 +1,22 @@
 
 
-## Gerar SQL de atualização de rotas BA
+## Bug: Rotas de diferentes UFs misturadas no planejamento
 
-Vou criar os comandos SQL para você executar diretamente no Supabase SQL Editor, baseado nos dados colados.
+### Causa raiz
 
-### SQL a ser gerado
+No `RotaDiariaDialog.tsx` (linha 77-92), a query de `rotas_leitura` filtra apenas por `data` (date), sem filtrar por UF. Quando BA rota 01 e CE rota 01 caem na mesma data, todos os empreendimentos de ambas as UFs aparecem juntos.
 
-Um bloco `BEGIN; ... COMMIT;` com ~95 statements `UPDATE` no formato:
+### Correção
 
-```sql
-UPDATE empreendimentos_terceirizados 
-SET rota = X 
-WHERE UPPER(TRIM(nome)) = 'NOME' AND uf = 'BA';
-```
+1. **`RotaDiariaDialog.tsx`** - Filtrar `rotas_leitura` no client-side usando o `uf` do empreendimento retornado pelo join, já que `rotas_leitura` não tem coluna `uf` diretamente:
+   - Na query (linha 82-88), incluir `uf` no select do empreendimento (já inclui `id, nome, quantidade_medidores` -- adicionar `uf`)
+   - No agrupamento `groupedByEmpreendimento` (linha 177-200), filtrar apenas registros onde `empreendimento.uf === diaUtil.uf`
+   - Na lista `empreendimentosNaRota` (linha 202), aplicar o mesmo filtro por UF
+   - Na função `getOperadoresDoEmpreendimento` (linha 205-208), aplicar o mesmo filtro
 
-### Implementação
+Alternativamente, a abordagem mais limpa: filtrar os `rotasLeitura` uma vez e usar o resultado filtrado em todos os lugares. Criar um `filteredRotasLeitura` que filtra por `empreendimento.uf === diaUtil.uf`.
 
-Vou usar a **ferramenta de insert/update do Supabase** para executar os updates diretamente, ou gerar o SQL completo numa página existente para você copiar e colar.
+### Arquivos alterados
 
-Como são ~95 registros, a abordagem mais prática é executar os updates diretamente via a ferramenta SQL do Supabase disponível no projeto.
-
-### Plano
-
-1. Executar os ~95 UPDATE statements diretamente no banco via ferramenta SQL do Supabase
+- `src/components/medicao-terceirizada/RotaDiariaDialog.tsx`
 
