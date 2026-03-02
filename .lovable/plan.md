@@ -1,20 +1,14 @@
 
 
-## Problema confirmado
+## Problema
 
-A migration anterior para corrigir a RLS **não foi salva/aplicada**. A política restritiva original ainda está ativa:
+A migration para corrigir a RLS na tabela `rotas_leitura` **nunca foi efetivamente aplicada**. O arquivo `20260302_rotas_leitura_select_all_authenticated.sql` não existe na pasta de migrations.
 
-```sql
-CREATE POLICY "Operadores podem ver suas rotas"
-  ON public.rotas_leitura FOR SELECT
-  USING (operador_id IN (SELECT id FROM operadores WHERE user_id = auth.uid()));
-```
-
-Isso faz com que Lucas Paulo só veja os registros onde ele é o operador designado. Os empreendimentos atribuídos a Paulo Vitor e Lucas Guilherme aparecem como "Sem operador atribuído".
+A política restritiva original continua ativa, impedindo operadores de verem atribuições de outros operadores.
 
 ## Solução
 
-Criar uma nova migration SQL que substitui a política restritiva por uma aberta a todos os autenticados:
+Criar a migration SQL com nome no formato correto (timestamp padrão do projeto):
 
 ```sql
 DROP POLICY IF EXISTS "Operadores podem ver suas rotas" ON public.rotas_leitura;
@@ -25,7 +19,7 @@ CREATE POLICY "Operadores podem ver todas as rotas"
   USING (true);
 ```
 
-- Risco baixo: os dados são apenas atribuições (operador + empreendimento + data + status)
-- Admins e gestores já possuem política própria de SELECT sem restrição
-- Nenhuma alteração no frontend necessária
+Arquivo: `supabase/migrations/20260302210000_rotas_leitura_open_select.sql`
+
+Nenhuma alteração no frontend necessária.
 
