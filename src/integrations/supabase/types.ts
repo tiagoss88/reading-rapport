@@ -279,6 +279,7 @@ export type Database = {
           observacao: string | null
           operador_id: string
           status_sincronizacao: string
+          tipo_leitura: string | null
           tipo_observacao: string | null
           updated_at: string
         }
@@ -293,6 +294,7 @@ export type Database = {
           observacao?: string | null
           operador_id: string
           status_sincronizacao?: string
+          tipo_leitura?: string | null
           tipo_observacao?: string | null
           updated_at?: string
         }
@@ -307,6 +309,7 @@ export type Database = {
           observacao?: string | null
           operador_id?: string
           status_sincronizacao?: string
+          tipo_leitura?: string | null
           tipo_observacao?: string | null
           updated_at?: string
         }

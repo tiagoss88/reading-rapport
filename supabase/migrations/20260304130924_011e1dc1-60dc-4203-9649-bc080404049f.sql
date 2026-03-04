@@ -1,0 +1,1 @@
+ALTER TABLE public.leituras ADD COLUMN tipo_leitura TEXT DEFAULT 'normal';
