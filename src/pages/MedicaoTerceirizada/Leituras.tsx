@@ -48,6 +48,9 @@ export default function LeiturasTerceirizadas() {
   const [filtroUFRotaDia, setFiltroUFRotaDia] = useState<string>('todas')
   const [buscaColeta, setBuscaColeta] = useState('')
   const [itensPorPagina, setItensPorPagina] = useState<number>(10)
+  const [editarColeta, setEditarColeta] = useState<any>(null)
+  const [novaColetaOpen, setNovaColetaOpen] = useState(false)
+  const queryClient = useQueryClient()
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
