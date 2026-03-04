@@ -18,6 +18,7 @@ import {
   Shield,
   Handshake,
   Navigation2,
+  Bell,
   PanelLeftClose,
   PanelLeftOpen,
   BookOpen
