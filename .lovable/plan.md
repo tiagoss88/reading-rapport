@@ -1,41 +1,57 @@
 
 
-## Causa raiz identificada
+## Diagnostico: Push Notifications nao funcionam no WebView
 
-O problema **não é na tabela `rotas_leitura`** (essa correção provavelmente já funcionou). O problema está na **RLS da tabela `operadores`**.
+Existem **dois problemas** que impedem as notificacoes push de funcionar:
 
-A política atual de SELECT em `operadores` é:
+### Problema 1: Chave VAPID nao configurada
 
-```sql
-CREATE POLICY "Admins and managers can view all operadores"
-  ON public.operadores FOR SELECT TO authenticated
-  USING (
-    has_role(auth.uid(), 'admin') OR
-    has_role(auth.uid(), 'gestor_empreendimento') OR
-    auth.uid() = user_id   -- operador só vê a si mesmo
-  );
-```
+A variavel `VITE_VAPID_PUBLIC_KEY` **nao existe** no arquivo `.env`. O hook `usePushNotifications` verifica essa variavel na linha 24 e retorna imediatamente se estiver vazia -- a assinatura push nunca e registrada, logo nenhum dispositivo recebe notificacoes.
 
-Quando o cronograma faz `SELECT *, operador:operadores(nome)` na `rotas_leitura`, o JOIN com `operadores` retorna `null` para todos os operadores que **não são** Lucas Paulo, porque a RLS de `operadores` bloqueia o acesso dele aos registros de Paulo Vitor e Lucas Guilherme.
+**Correcao**: Adicionar `VITE_VAPID_PUBLIC_KEY` ao `.env` com a chave VAPID publica correspondente a chave privada configurada nos secrets do Supabase Edge Functions.
 
-Por isso aparecem como "Sem operador atribuído" — os registros de `rotas_leitura` existem, mas o nome do operador vem `null` no JOIN.
+### Problema 2: WebView nao suporta Push API
 
-## Solução
+Este e o problema principal. Aplicativos WebView (Android WebView / WKWebView no iOS) **nao suportam Service Workers nem a Push API**. Isso significa que mesmo com a chave VAPID configurada, o `navigator.serviceWorker.register()` e o `PushManager.subscribe()` vao falhar silenciosamente no WebView.
 
-Atualizar a política SELECT da tabela `operadores` para permitir que qualquer usuário autenticado veja todos os operadores. Os dados de operadores (nome, status) não são sensíveis e são necessários para coordenação da equipe.
+As opcoes para resolver:
 
-### Migration SQL
+**Opcao A - Polling no app (mais simples, sem mudanca no app nativo)**
+- Criar um sistema de polling no frontend que consulta periodicamente uma tabela `notificacoes` no Supabase
+- Quando um servico e criado, insere uma notificacao na tabela
+- O coletor verifica a cada X segundos se ha novas notificacoes e exibe um toast/alerta
+- Funciona em qualquer WebView sem dependencias nativas
 
-```sql
-DROP POLICY IF EXISTS "Admins and managers can view all operadores" ON public.operadores;
+**Opcao B - Supabase Realtime (mais eficiente)**
+- Usar `supabase.channel()` para escutar insercoes em tempo real na tabela de servicos
+- Quando um novo servico e inserido, o coletor recebe o evento instantaneamente e exibe um toast
+- Nao precisa de polling, funciona via WebSocket (suportado em WebViews)
+- Mais eficiente que polling
 
-CREATE POLICY "Authenticated users can view all operadores"
-  ON public.operadores FOR SELECT TO authenticated
-  USING (true);
-```
+**Opcao C - Push nativo via Firebase (mais complexo)**
+- Requer modificar o app nativo para integrar FCM/APNs
+- Complexidade significativamente maior
 
-### Detalhes técnicos
-- A tabela `operadores` contém: id, nome, email, telefone, user_id, status — dados de coordenação, não sensíveis
-- Nenhuma alteração no frontend necessária
-- As políticas de INSERT/UPDATE/DELETE permanecem restritas a admins
+### Recomendacao
+
+**Opcao B (Supabase Realtime)** e a melhor para o cenario atual:
+- Funciona em WebView
+- Notificacao instantanea (sem delay de polling)
+- Ja tem Supabase configurado
+- Implementacao apenas no frontend
+
+### Implementacao (Opcao B)
+
+1. **Criar hook `useRealtimeNotifications.tsx`** que:
+   - Escuta insercoes na tabela `servicos` e `servicos_nacional_gas` via Realtime
+   - Exibe um toast com os dados do novo servico
+   - Opcionalmente reproduz um som de alerta
+
+2. **Adicionar o hook no `ColetorMenu.tsx`** (onde ja esta o `usePushNotifications`)
+
+3. **Habilitar Realtime** nas tabelas `servicos` e `servicos_nacional_gas` no Supabase (configuracao no dashboard)
+
+### Arquivos alterados
+- Novo: `src/hooks/useRealtimeNotifications.tsx`
+- Editado: `src/pages/ColetorMenu.tsx` (substituir `usePushNotifications` pelo novo hook)
 
