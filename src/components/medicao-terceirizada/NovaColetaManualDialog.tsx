@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+// Select removed – using autocomplete input instead
 import { supabase } from '@/integrations/supabase/client'
 import { smartCompress } from '@/lib/imageCompression'
 import { useQuery } from '@tanstack/react-query'
@@ -26,6 +26,7 @@ export default function NovaColetaManualDialog({ open, onOpenChange, onSuccess }
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [buscaEmp, setBuscaEmp] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: empreendimentos } = useQuery({
@@ -81,6 +82,7 @@ export default function NovaColetaManualDialog({ open, onOpenChange, onSuccess }
     setTexto('')
     setFotos([])
     setBuscaEmp('')
+    setShowSuggestions(false)
   }
 
   const handleSave = async () => {
@@ -130,26 +132,52 @@ export default function NovaColetaManualDialog({ open, onOpenChange, onSuccess }
         </DialogHeader>
 
         <div className="space-y-4">
-          <div>
+          <div className="relative">
             <Label>Condomínio</Label>
-            <Input
-              placeholder="Buscar condomínio..."
-              value={buscaEmp}
-              onChange={e => setBuscaEmp(e.target.value)}
-              className="mt-1 mb-1"
-            />
-            <Select value={empreendimentoId} onValueChange={setEmpreendimentoId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o condomínio" />
-              </SelectTrigger>
-              <SelectContent>
+            <div className="relative mt-1">
+              <Input
+                placeholder="Digite para buscar condomínio..."
+                value={buscaEmp}
+                onChange={e => {
+                  setBuscaEmp(e.target.value)
+                  setEmpreendimentoId('')
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => { if (!empreendimentoId) setShowSuggestions(true) }}
+              />
+              {empreendimentoId && (
+                <button
+                  type="button"
+                  onClick={() => { setBuscaEmp(''); setEmpreendimentoId(''); setShowSuggestions(false) }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {showSuggestions && !empreendimentoId && empFiltrados.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border bg-popover shadow-md">
                 {empFiltrados.map(e => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.nome} (Rota {e.rota} - {e.uf})
-                  </SelectItem>
+                  <button
+                    key={e.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => {
+                      setEmpreendimentoId(e.id)
+                      setBuscaEmp(`${e.nome} (Rota ${e.rota} - ${e.uf})`)
+                      setShowSuggestions(false)
+                    }}
+                  >
+                    {e.nome} <span className="text-muted-foreground">(Rota {e.rota} - {e.uf})</span>
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
+              </div>
+            )}
+            {showSuggestions && !empreendimentoId && buscaEmp && empFiltrados.length === 0 && (
+              <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-md px-3 py-2 text-sm text-muted-foreground">
+                Nenhum condomínio encontrado
+              </div>
+            )}
           </div>
 
           <div>
