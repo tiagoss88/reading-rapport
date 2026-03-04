@@ -233,6 +233,9 @@ export default function LeiturasTerceirizadas() {
             <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
               <CardTitle>Rota do Dia</CardTitle>
               <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" onClick={() => setResumoOpen(true)} disabled={!rotasAgrupadas.length}>
+                  <Copy className="h-4 w-4 mr-1" /> Copiar Resumo
+                </Button>
                 <Select value={filtroUFRotaDia} onValueChange={setFiltroUFRotaDia}>
                   <SelectTrigger className="w-32">
                     <SelectValue placeholder="UF" />
