@@ -369,6 +369,7 @@ export default function LeiturasTerceirizadas() {
                       <TableHead>Técnico</TableHead>
                       <TableHead>Data da Coleta</TableHead>
                       <TableHead>Foto</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
