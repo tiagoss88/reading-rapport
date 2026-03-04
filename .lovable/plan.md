@@ -1,57 +1,30 @@
 
 
-## Diagnostico: Push Notifications nao funcionam no WebView
+## Diagnóstico: Login falha porque o backend mudou
 
-Existem **dois problemas** que impedem as notificacoes push de funcionar:
+Ao ativar o Lovable Cloud, o `.env` foi atualizado para apontar para um novo projeto backend (`cfyhskxjvvqpnnzsebud`), mas todos os seus dados, usuários e configurações estão no projeto original (`mxoflglqsxupkzrbodkm`).
 
-### Problema 1: Chave VAPID nao configurada
+## Solução: Restaurar conexão com o projeto original
 
-A variavel `VITE_VAPID_PUBLIC_KEY` **nao existe** no arquivo `.env`. O hook `usePushNotifications` verifica essa variavel na linha 24 e retorna imediatamente se estiver vazia -- a assinatura push nunca e registrada, logo nenhum dispositivo recebe notificacoes.
+Alterar o `.env` para apontar de volta ao projeto original:
 
-**Correcao**: Adicionar `VITE_VAPID_PUBLIC_KEY` ao `.env` com a chave VAPID publica correspondente a chave privada configurada nos secrets do Supabase Edge Functions.
+```
+VITE_SUPABASE_PROJECT_ID="mxoflglqsxupkzrbodkm"
+VITE_SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14b2ZsZ2xxc3h1cGt6cmJvZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NjM1MzgsImV4cCI6MjA3MDUzOTUzOH0.zToDlCEsT7TCAnQslnFVRRiygRveOCXf33TAuG_tdF8"
+VITE_SUPABASE_URL="https://mxoflglqsxupkzrbodkm.supabase.co"
+```
 
-### Problema 2: WebView nao suporta Push API
+**Porém**, o `.env` é gerenciado automaticamente pelo Lovable Cloud e não pode ser editado diretamente. Existem duas alternativas:
 
-Este e o problema principal. Aplicativos WebView (Android WebView / WKWebView no iOS) **nao suportam Service Workers nem a Push API**. Isso significa que mesmo com a chave VAPID configurada, o `navigator.serviceWorker.register()` e o `PushManager.subscribe()` vao falhar silenciosamente no WebView.
+### Opção A — Criar a tabela `notificacoes_medidores` no projeto original
+Executar a migration SQL diretamente no projeto original (via painel do Supabase `mxoflglqsxupkzrbodkm`) e manter tudo conectado lá. Eu ajusto o código para não depender do Cloud.
 
-As opcoes para resolver:
+### Opção B — Migrar dados do projeto antigo para o Cloud
+Exportar todos os dados e usuários do projeto antigo para o novo Cloud. Processo demorado e complexo.
 
-**Opcao A - Polling no app (mais simples, sem mudanca no app nativo)**
-- Criar um sistema de polling no frontend que consulta periodicamente uma tabela `notificacoes` no Supabase
-- Quando um servico e criado, insere uma notificacao na tabela
-- O coletor verifica a cada X segundos se ha novas notificacoes e exibe um toast/alerta
-- Funciona em qualquer WebView sem dependencias nativas
+**Recomendação**: Opção A — manter o projeto original e criar a tabela de notificações lá. É a solução mais rápida e segura.
 
-**Opcao B - Supabase Realtime (mais eficiente)**
-- Usar `supabase.channel()` para escutar insercoes em tempo real na tabela de servicos
-- Quando um novo servico e inserido, o coletor recebe o evento instantaneamente e exibe um toast
-- Nao precisa de polling, funciona via WebSocket (suportado em WebViews)
-- Mais eficiente que polling
-
-**Opcao C - Push nativo via Firebase (mais complexo)**
-- Requer modificar o app nativo para integrar FCM/APNs
-- Complexidade significativamente maior
-
-### Recomendacao
-
-**Opcao B (Supabase Realtime)** e a melhor para o cenario atual:
-- Funciona em WebView
-- Notificacao instantanea (sem delay de polling)
-- Ja tem Supabase configurado
-- Implementacao apenas no frontend
-
-### Implementacao (Opcao B)
-
-1. **Criar hook `useRealtimeNotifications.tsx`** que:
-   - Escuta insercoes na tabela `servicos` e `servicos_nacional_gas` via Realtime
-   - Exibe um toast com os dados do novo servico
-   - Opcionalmente reproduz um som de alerta
-
-2. **Adicionar o hook no `ColetorMenu.tsx`** (onde ja esta o `usePushNotifications`)
-
-3. **Habilitar Realtime** nas tabelas `servicos` e `servicos_nacional_gas` no Supabase (configuracao no dashboard)
-
-### Arquivos alterados
-- Novo: `src/hooks/useRealtimeNotifications.tsx`
-- Editado: `src/pages/ColetorMenu.tsx` (substituir `usePushNotifications` pelo novo hook)
+### Arquivos a modificar
+- Restaurar as credenciais do projeto original no código (contornando o `.env` se necessário)
+- Garantir que a tabela `notificacoes_medidores` exista no projeto original
 
