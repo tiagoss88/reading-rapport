@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { supabase } from '@/integrations/supabase/client'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
+import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
 
 const extrairFotoUrl = (observacao: string | null) => {
   if (!observacao) return null
