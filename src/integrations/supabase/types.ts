@@ -14,7 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      notificacoes_medidores: {
+        Row: {
+          bloco: string
+          condominio_nome: string
+          created_at: string | null
+          data_notificacao: string
+          empreendimento_id: string | null
+          fotos: string[] | null
+          id: string
+          observacao: string | null
+          operador_id: string | null
+          unidade: string
+          updated_at: string | null
+        }
+        Insert: {
+          bloco: string
+          condominio_nome: string
+          created_at?: string | null
+          data_notificacao: string
+          empreendimento_id?: string | null
+          fotos?: string[] | null
+          id?: string
+          observacao?: string | null
+          operador_id?: string | null
+          unidade: string
+          updated_at?: string | null
+        }
+        Update: {
+          bloco?: string
+          condominio_nome?: string
+          created_at?: string | null
+          data_notificacao?: string
+          empreendimento_id?: string | null
+          fotos?: string[] | null
+          id?: string
+          observacao?: string | null
+          operador_id?: string | null
+          unidade?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
