@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { supabase } from '@/integrations/supabase/client'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
+import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
 
 const extrairFotoUrl = (observacao: string | null) => {
   if (!observacao) return null
@@ -46,6 +48,9 @@ export default function LeiturasTerceirizadas() {
   const [filtroUFRotaDia, setFiltroUFRotaDia] = useState<string>('todas')
   const [buscaColeta, setBuscaColeta] = useState('')
   const [itensPorPagina, setItensPorPagina] = useState<number>(10)
+  const [editarColeta, setEditarColeta] = useState<any>(null)
+  const [novaColetaOpen, setNovaColetaOpen] = useState(false)
+  const queryClient = useQueryClient()
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
@@ -283,7 +288,12 @@ export default function LeiturasTerceirizadas() {
         <TabsContent value="realizadas">
           <Card>
             <CardHeader>
-              <CardTitle>Coletas Realizadas</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Coletas Realizadas</CardTitle>
+                <Button size="sm" onClick={() => setNovaColetaOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Nova Coleta Manual
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-3 mt-2">
                 <Select value={competencia} onValueChange={setCompetencia}>
                   <SelectTrigger className="w-48">
@@ -360,6 +370,7 @@ export default function LeiturasTerceirizadas() {
                       <TableHead>Técnico</TableHead>
                       <TableHead>Data da Coleta</TableHead>
                       <TableHead>Foto</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -392,6 +403,16 @@ export default function LeiturasTerceirizadas() {
                             ) : (
                               <ImageOff className="h-4 w-4 text-muted-foreground" />
                             )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditarColeta(coleta)}
+                              title="Editar coleta"
+                            >
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       )
@@ -504,6 +525,19 @@ export default function LeiturasTerceirizadas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditarColetaDialog
+        open={!!editarColeta}
+        onOpenChange={(open) => !open && setEditarColeta(null)}
+        coleta={editarColeta}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })}
+      />
+
+      <NovaColetaManualDialog
+        open={novaColetaOpen}
+        onOpenChange={setNovaColetaOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })}
+      />
     </Layout>
   )
 }
