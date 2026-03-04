@@ -525,6 +525,19 @@ export default function LeiturasTerceirizadas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditarColetaDialog
+        open={!!editarColeta}
+        onOpenChange={(open) => !open && setEditarColeta(null)}
+        coleta={editarColeta}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })}
+      />
+
+      <NovaColetaManualDialog
+        open={novaColetaOpen}
+        onOpenChange={setNovaColetaOpen}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })}
+      />
     </Layout>
   )
 }
