@@ -1,32 +1,57 @@
 
 
-## Plano: Botão "Copiar Resumo" na Rota do Dia
+## Diagnostico: Push Notifications nao funcionam no WebView
 
-### Objetivo
-Adicionar um botão no header da aba "Rota do Dia" que abre um dialog com texto formatado separando condomínios **Concluídos** e **Pendentes** do dia, pronto para copiar e enviar via WhatsApp.
+Existem **dois problemas** que impedem as notificacoes push de funcionar:
 
-### Alteração
-**`src/pages/MedicaoTerceirizada/Leituras.tsx`**
+### Problema 1: Chave VAPID nao configurada
 
-1. Adicionar estado `resumoOpen` (boolean) e botão ao lado do filtro de UF/data no header da aba "Rota do Dia"
-2. Criar um `Dialog` com o resumo textual gerado a partir de `rotasAgrupadas`:
-   - Separar em duas listas: **Concluídos** (statusEfetivo === 'concluido') e **Pendentes** (demais)
-   - Formato do texto:
-     ```
-     📋 Rota do Dia - DD/MM/YYYY
+A variavel `VITE_VAPID_PUBLIC_KEY` **nao existe** no arquivo `.env`. O hook `usePushNotifications` verifica essa variavel na linha 24 e retorna imediatamente se estiver vazia -- a assinatura push nunca e registrada, logo nenhum dispositivo recebe notificacoes.
 
-     ✅ CONCLUÍDOS (X):
-     • Condomínio A - Rota 1
-     • Condomínio B - Rota 2
+**Correcao**: Adicionar `VITE_VAPID_PUBLIC_KEY` ao `.env` com a chave VAPID publica correspondente a chave privada configurada nos secrets do Supabase Edge Functions.
 
-     ⏳ PENDENTES (Y):
-     • Condomínio C - Rota 3
-     • Condomínio D - Rota 4
-     ```
-3. Botão "Copiar" usa `navigator.clipboard.writeText()` com toast de confirmação
-4. O texto é exibido num `<pre>` ou `<textarea>` selecionável para cópia manual também
-5. Respeitar o filtro de UF ativo (`filtroUFRotaDia`)
+### Problema 2: WebView nao suporta Push API
 
-### Componentes usados
-Apenas componentes já existentes: `Dialog`, `Button`, `toast`. Nenhum arquivo novo necessário.
+Este e o problema principal. Aplicativos WebView (Android WebView / WKWebView no iOS) **nao suportam Service Workers nem a Push API**. Isso significa que mesmo com a chave VAPID configurada, o `navigator.serviceWorker.register()` e o `PushManager.subscribe()` vao falhar silenciosamente no WebView.
+
+As opcoes para resolver:
+
+**Opcao A - Polling no app (mais simples, sem mudanca no app nativo)**
+- Criar um sistema de polling no frontend que consulta periodicamente uma tabela `notificacoes` no Supabase
+- Quando um servico e criado, insere uma notificacao na tabela
+- O coletor verifica a cada X segundos se ha novas notificacoes e exibe um toast/alerta
+- Funciona em qualquer WebView sem dependencias nativas
+
+**Opcao B - Supabase Realtime (mais eficiente)**
+- Usar `supabase.channel()` para escutar insercoes em tempo real na tabela de servicos
+- Quando um novo servico e inserido, o coletor recebe o evento instantaneamente e exibe um toast
+- Nao precisa de polling, funciona via WebSocket (suportado em WebViews)
+- Mais eficiente que polling
+
+**Opcao C - Push nativo via Firebase (mais complexo)**
+- Requer modificar o app nativo para integrar FCM/APNs
+- Complexidade significativamente maior
+
+### Recomendacao
+
+**Opcao B (Supabase Realtime)** e a melhor para o cenario atual:
+- Funciona em WebView
+- Notificacao instantanea (sem delay de polling)
+- Ja tem Supabase configurado
+- Implementacao apenas no frontend
+
+### Implementacao (Opcao B)
+
+1. **Criar hook `useRealtimeNotifications.tsx`** que:
+   - Escuta insercoes na tabela `servicos` e `servicos_nacional_gas` via Realtime
+   - Exibe um toast com os dados do novo servico
+   - Opcionalmente reproduz um som de alerta
+
+2. **Adicionar o hook no `ColetorMenu.tsx`** (onde ja esta o `usePushNotifications`)
+
+3. **Habilitar Realtime** nas tabelas `servicos` e `servicos_nacional_gas` no Supabase (configuracao no dashboard)
+
+### Arquivos alterados
+- Novo: `src/hooks/useRealtimeNotifications.tsx`
+- Editado: `src/pages/ColetorMenu.tsx` (substituir `usePushNotifications` pelo novo hook)
 

@@ -10,7 +10,8 @@ import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus, Copy } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
@@ -50,7 +51,9 @@ export default function LeiturasTerceirizadas() {
   const [itensPorPagina, setItensPorPagina] = useState<number>(10)
   const [editarColeta, setEditarColeta] = useState<any>(null)
   const [novaColetaOpen, setNovaColetaOpen] = useState(false)
+  const [resumoOpen, setResumoOpen] = useState(false)
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
@@ -230,6 +233,9 @@ export default function LeiturasTerceirizadas() {
             <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
               <CardTitle>Rota do Dia</CardTitle>
               <div className="flex items-center gap-3">
+                <Button variant="outline" size="sm" onClick={() => setResumoOpen(true)} disabled={!rotasAgrupadas.length}>
+                  <Copy className="h-4 w-4 mr-1" /> Copiar Resumo
+                </Button>
                 <Select value={filtroUFRotaDia} onValueChange={setFiltroUFRotaDia}>
                   <SelectTrigger className="w-32">
                     <SelectValue placeholder="UF" />
@@ -538,6 +544,50 @@ export default function LeiturasTerceirizadas() {
         onOpenChange={setNovaColetaOpen}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })}
       />
+
+      <Dialog open={resumoOpen} onOpenChange={setResumoOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resumo da Rota do Dia</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const filtradas = rotasAgrupadas.filter(g => filtroUFRotaDia === 'todas' || g.emp?.uf === filtroUFRotaDia)
+            const concluidos = filtradas.filter(g => g.statusEfetivo === 'concluido')
+            const pendentesRota = filtradas.filter(g => g.statusEfetivo !== 'concluido')
+            const dataFormatada = format(parseISO(dataSelecionada), 'dd/MM/yyyy')
+            const texto = [
+              `📋 Rota do Dia - ${dataFormatada}`,
+              '',
+              `✅ CONCLUÍDOS (${concluidos.length}):`,
+              ...concluidos.map(g => `• ${g.emp?.nome || '-'} - Rota ${g.emp?.rota || '-'}`),
+              '',
+              `⏳ PENDENTES (${pendentesRota.length}):`,
+              ...pendentesRota.map(g => `• ${g.emp?.nome || '-'} - Rota ${g.emp?.rota || '-'}`),
+            ].join('\n')
+
+            const handleCopiar = async () => {
+              await navigator.clipboard.writeText(texto)
+              toast({ title: 'Copiado!', description: 'Resumo copiado para a área de transferência.' })
+            }
+
+            return (
+              <div className="space-y-3">
+                <textarea
+                  readOnly
+                  value={texto}
+                  className="w-full h-64 p-3 text-sm bg-muted rounded-md border resize-none font-mono"
+                  onClick={e => (e.target as HTMLTextAreaElement).select()}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={handleCopiar}>
+                    <Copy className="h-4 w-4 mr-1" /> Copiar
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
     </Layout>
   )
 }
