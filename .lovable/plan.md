@@ -1,57 +1,37 @@
 
 
-## Diagnostico: Push Notifications nao funcionam no WebView
+## Plano: Edição de Coletas Realizadas no Painel Admin
 
-Existem **dois problemas** que impedem as notificacoes push de funcionar:
+### Objetivo
+Adicionar botão de edição em cada linha da aba "Coletas Realizadas", abrindo um dialog que permita ao admin:
+- Substituir/adicionar foto comprovante
+- Editar observação
+- Inserir coleta manualmente (botão "Nova Coleta Manual" no header)
 
-### Problema 1: Chave VAPID nao configurada
+### Contexto técnico
+As coletas são registros em `servicos_nacional_gas` com `tipo_servico='leitura'` e `status_atendimento='executado'`. A foto fica concatenada no campo `observacao` no formato `Foto comprovante: [URL] | Obs: [texto]`.
 
-A variavel `VITE_VAPID_PUBLIC_KEY` **nao existe** no arquivo `.env`. O hook `usePushNotifications` verifica essa variavel na linha 24 e retorna imediatamente se estiver vazia -- a assinatura push nunca e registrada, logo nenhum dispositivo recebe notificacoes.
+### Alterações
 
-**Correcao**: Adicionar `VITE_VAPID_PUBLIC_KEY` ao `.env` com a chave VAPID publica correspondente a chave privada configurada nos secrets do Supabase Edge Functions.
+**1. Criar dialog `EditarColetaDialog`** (novo componente)
+- Props: `coleta` (dados da coleta), `open`, `onOpenChange`, `onSuccess`
+- Campos editáveis:
+  - **Foto**: exibe foto atual (se houver), botão para substituir/adicionar com upload para bucket `medidor-fotos` + compressão via `smartCompress`
+  - **Observação**: textarea com texto extraído da observação atual
+- Ao salvar: reconstrói o campo `observacao` no formato existente e faz `UPDATE` em `servicos_nacional_gas`
 
-### Problema 2: WebView nao suporta Push API
+**2. Criar dialog `NovaColetaManualDialog`** (novo componente)
+- Permite admin registrar coleta manual sem passar pelo coletor
+- Campos: Condomínio (autocomplete de `empreendimentos_terceirizados`), Data, Foto (upload), Observação
+- Insere em `servicos_nacional_gas` com `tipo_servico='leitura'`, `status_atendimento='executado'`
 
-Este e o problema principal. Aplicativos WebView (Android WebView / WKWebView no iOS) **nao suportam Service Workers nem a Push API**. Isso significa que mesmo com a chave VAPID configurada, o `navigator.serviceWorker.register()` e o `PushManager.subscribe()` vao falhar silenciosamente no WebView.
+**3. Modificar `src/pages/MedicaoTerceirizada/Leituras.tsx`**
+- Adicionar coluna "Ações" na tabela de coletas com botão de edição (ícone `Pencil`)
+- Adicionar botão "Nova Coleta Manual" no header da aba "Coletas Realizadas"
+- Importar e renderizar os dois novos dialogs
+- Invalidar query `coletas-realizadas` após edição/criação
 
-As opcoes para resolver:
-
-**Opcao A - Polling no app (mais simples, sem mudanca no app nativo)**
-- Criar um sistema de polling no frontend que consulta periodicamente uma tabela `notificacoes` no Supabase
-- Quando um servico e criado, insere uma notificacao na tabela
-- O coletor verifica a cada X segundos se ha novas notificacoes e exibe um toast/alerta
-- Funciona em qualquer WebView sem dependencias nativas
-
-**Opcao B - Supabase Realtime (mais eficiente)**
-- Usar `supabase.channel()` para escutar insercoes em tempo real na tabela de servicos
-- Quando um novo servico e inserido, o coletor recebe o evento instantaneamente e exibe um toast
-- Nao precisa de polling, funciona via WebSocket (suportado em WebViews)
-- Mais eficiente que polling
-
-**Opcao C - Push nativo via Firebase (mais complexo)**
-- Requer modificar o app nativo para integrar FCM/APNs
-- Complexidade significativamente maior
-
-### Recomendacao
-
-**Opcao B (Supabase Realtime)** e a melhor para o cenario atual:
-- Funciona em WebView
-- Notificacao instantanea (sem delay de polling)
-- Ja tem Supabase configurado
-- Implementacao apenas no frontend
-
-### Implementacao (Opcao B)
-
-1. **Criar hook `useRealtimeNotifications.tsx`** que:
-   - Escuta insercoes na tabela `servicos` e `servicos_nacional_gas` via Realtime
-   - Exibe um toast com os dados do novo servico
-   - Opcionalmente reproduz um som de alerta
-
-2. **Adicionar o hook no `ColetorMenu.tsx`** (onde ja esta o `usePushNotifications`)
-
-3. **Habilitar Realtime** nas tabelas `servicos` e `servicos_nacional_gas` no Supabase (configuracao no dashboard)
-
-### Arquivos alterados
-- Novo: `src/hooks/useRealtimeNotifications.tsx`
-- Editado: `src/pages/ColetorMenu.tsx` (substituir `usePushNotifications` pelo novo hook)
+### Arquivos
+- **Criados**: `src/components/medicao-terceirizada/EditarColetaDialog.tsx`, `src/components/medicao-terceirizada/NovaColetaManualDialog.tsx`
+- **Modificado**: `src/pages/MedicaoTerceirizada/Leituras.tsx`
 
