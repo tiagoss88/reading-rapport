@@ -26,6 +26,7 @@ export default function NovaColetaManualDialog({ open, onOpenChange, onSuccess }
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [buscaEmp, setBuscaEmp] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: empreendimentos } = useQuery({
