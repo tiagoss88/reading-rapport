@@ -601,6 +601,48 @@ export default function LeiturasTerceirizadas() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog de confirmação de exclusão */}
+      <AlertDialog open={!!coletaExcluir} onOpenChange={(open) => { if (!open) setColetaExcluir(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta coleta de <strong>{coletaExcluir?.condominio_nome_original}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault()
+                if (!coletaExcluir) return
+                setExcluindo(true)
+                try {
+                  const { error } = await supabase
+                    .from('servicos_nacional_gas')
+                    .delete()
+                    .eq('id', coletaExcluir.id)
+                  if (error) throw error
+                  toast({ title: 'Coleta excluída com sucesso' })
+                  queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })
+                } catch (err: any) {
+                  toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' })
+                } finally {
+                  setExcluindo(false)
+                  setColetaExcluir(null)
+                }
+              }}
+            >
+              {excluindo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   )
 }
