@@ -106,6 +106,13 @@ const App = () => (
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
+                <Route path="/coletor/notificacoes" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorNotificacoes />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
+                } />
                 <Route path="/" element={
                   <ProtectedRoute>
                     <Index />
