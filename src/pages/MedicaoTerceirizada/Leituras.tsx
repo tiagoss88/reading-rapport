@@ -403,7 +403,16 @@ export default function LeiturasTerceirizadas() {
                               <ImageOff className="h-4 w-4 text-muted-foreground" />
                             )}
                           </TableCell>
-                        </TableRow>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditarColeta(coleta)}
+                              title="Editar coleta"
+                            >
+                              <Pencil className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </TableCell>
                       )
                     })}
                   </TableBody>
