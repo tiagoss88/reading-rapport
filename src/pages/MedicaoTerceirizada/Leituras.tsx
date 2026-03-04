@@ -51,7 +51,9 @@ export default function LeiturasTerceirizadas() {
   const [itensPorPagina, setItensPorPagina] = useState<number>(10)
   const [editarColeta, setEditarColeta] = useState<any>(null)
   const [novaColetaOpen, setNovaColetaOpen] = useState(false)
+  const [resumoOpen, setResumoOpen] = useState(false)
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
