@@ -270,6 +270,7 @@ export type Database = {
       leituras: {
         Row: {
           cliente_id: string
+          competencia: string | null
           created_at: string
           data_leitura: string
           foto_url: string | null
@@ -283,6 +284,7 @@ export type Database = {
         }
         Insert: {
           cliente_id: string
+          competencia?: string | null
           created_at?: string
           data_leitura?: string
           foto_url?: string | null
@@ -296,6 +298,7 @@ export type Database = {
         }
         Update: {
           cliente_id?: string
+          competencia?: string | null
           created_at?: string
           data_leitura?: string
           foto_url?: string | null
