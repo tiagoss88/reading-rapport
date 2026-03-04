@@ -544,6 +544,50 @@ export default function LeiturasTerceirizadas() {
         onOpenChange={setNovaColetaOpen}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })}
       />
+
+      <Dialog open={resumoOpen} onOpenChange={setResumoOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resumo da Rota do Dia</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const filtradas = rotasAgrupadas.filter(g => filtroUFRotaDia === 'todas' || g.emp?.uf === filtroUFRotaDia)
+            const concluidos = filtradas.filter(g => g.statusEfetivo === 'concluido')
+            const pendentesRota = filtradas.filter(g => g.statusEfetivo !== 'concluido')
+            const dataFormatada = format(parseISO(dataSelecionada), 'dd/MM/yyyy')
+            const texto = [
+              `📋 Rota do Dia - ${dataFormatada}`,
+              '',
+              `✅ CONCLUÍDOS (${concluidos.length}):`,
+              ...concluidos.map(g => `• ${g.emp?.nome || '-'} - Rota ${g.emp?.rota || '-'}`),
+              '',
+              `⏳ PENDENTES (${pendentesRota.length}):`,
+              ...pendentesRota.map(g => `• ${g.emp?.nome || '-'} - Rota ${g.emp?.rota || '-'}`),
+            ].join('\n')
+
+            const handleCopiar = async () => {
+              await navigator.clipboard.writeText(texto)
+              toast({ title: 'Copiado!', description: 'Resumo copiado para a área de transferência.' })
+            }
+
+            return (
+              <div className="space-y-3">
+                <textarea
+                  readOnly
+                  value={texto}
+                  className="w-full h-64 p-3 text-sm bg-muted rounded-md border resize-none font-mono"
+                  onClick={e => (e.target as HTMLTextAreaElement).select()}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={handleCopiar}>
+                    <Copy className="h-4 w-4 mr-1" /> Copiar
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
     </Layout>
   )
 }
