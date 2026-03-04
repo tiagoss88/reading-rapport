@@ -414,14 +414,24 @@ export default function LeiturasTerceirizadas() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setEditarColeta(coleta)}
-                              title="Editar coleta"
-                            >
-                              <Pencil className="h-4 w-4 text-muted-foreground" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEditarColeta(coleta)}
+                                title="Editar coleta"
+                              >
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setColetaExcluir(coleta)}
+                                title="Excluir coleta"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
