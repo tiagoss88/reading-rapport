@@ -82,6 +82,66 @@ export type Database = {
           },
         ]
       }
+      configuracoes_sistema: {
+        Row: {
+          chave: string
+          created_at: string | null
+          descricao: string | null
+          id: string
+          tipo: string | null
+          updated_at: string | null
+          valor: string | null
+        }
+        Insert: {
+          chave: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          tipo?: string | null
+          updated_at?: string | null
+          valor?: string | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          tipo?: string | null
+          updated_at?: string | null
+          valor?: string | null
+        }
+        Relationships: []
+      }
+      dias_uteis: {
+        Row: {
+          ano: number
+          created_at: string
+          data: string
+          id: string
+          mes: number
+          numero_rota: number
+          uf: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          data: string
+          id?: string
+          mes: number
+          numero_rota: number
+          uf: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          data?: string
+          id?: string
+          mes?: number
+          numero_rota?: number
+          uf?: string
+        }
+        Relationships: []
+      }
       empreendimento_users: {
         Row: {
           created_at: string
@@ -164,6 +224,45 @@ export type Database = {
           preco_kg_gas?: number | null
           preco_m3_gas?: number | null
           tipo_gas?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      empreendimentos_terceirizados: {
+        Row: {
+          created_at: string
+          endereco: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nome: string
+          quantidade_medidores: number
+          rota: number
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endereco: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome: string
+          quantidade_medidores?: number
+          rota: number
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endereco?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome?: string
+          quantidade_medidores?: number
+          rota?: number
+          uf?: string
           updated_at?: string
         }
         Relationships: []
@@ -265,7 +364,74 @@ export type Database = {
           unidade?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_notificacoes_empreendimento"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos_terceirizados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operador_localizacoes: {
+        Row: {
+          bateria_nivel: number | null
+          created_at: string | null
+          em_movimento: boolean | null
+          endereco_estimado: string | null
+          fonte_localizacao: string | null
+          id: string
+          latitude: number
+          longitude: number
+          operador_id: string
+          precisao: number | null
+          precisao_rating: string | null
+          tentativas_gps: number | null
+          timestamp: string
+          velocidade: number | null
+        }
+        Insert: {
+          bateria_nivel?: number | null
+          created_at?: string | null
+          em_movimento?: boolean | null
+          endereco_estimado?: string | null
+          fonte_localizacao?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          operador_id: string
+          precisao?: number | null
+          precisao_rating?: string | null
+          tentativas_gps?: number | null
+          timestamp?: string
+          velocidade?: number | null
+        }
+        Update: {
+          bateria_nivel?: number | null
+          created_at?: string | null
+          em_movimento?: boolean | null
+          endereco_estimado?: string | null
+          fonte_localizacao?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          operador_id?: string
+          precisao?: number | null
+          precisao_rating?: string | null
+          tentativas_gps?: number | null
+          timestamp?: string
+          velocidade?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operador_localizacoes_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       operadores: {
         Row: {
@@ -317,6 +483,54 @@ export type Database = {
           name?: Database["public"]["Enums"]["app_permission"]
         }
         Relationships: []
+      }
+      rotas_leitura: {
+        Row: {
+          created_at: string
+          data: string
+          empreendimento_id: string
+          id: string
+          observacoes: string | null
+          operador_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          empreendimento_id: string
+          id?: string
+          observacoes?: string | null
+          operador_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          empreendimento_id?: string
+          id?: string
+          observacoes?: string | null
+          operador_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rotas_leitura_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos_terceirizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rotas_leitura_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       servicos: {
         Row: {
@@ -475,6 +689,155 @@ export type Database = {
         }
         Relationships: []
       }
+      servicos_nacional_gas: {
+        Row: {
+          apartamento: string | null
+          bloco: string | null
+          condominio_nome_original: string
+          created_at: string
+          data_agendamento: string | null
+          data_solicitacao: string | null
+          email: string | null
+          empreendimento_id: string | null
+          fonte: string | null
+          id: string
+          morador_nome: string | null
+          observacao: string | null
+          status_atendimento: string
+          tecnico_id: string | null
+          telefone: string | null
+          tipo_servico: string
+          turno: string | null
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          apartamento?: string | null
+          bloco?: string | null
+          condominio_nome_original: string
+          created_at?: string
+          data_agendamento?: string | null
+          data_solicitacao?: string | null
+          email?: string | null
+          empreendimento_id?: string | null
+          fonte?: string | null
+          id?: string
+          morador_nome?: string | null
+          observacao?: string | null
+          status_atendimento?: string
+          tecnico_id?: string | null
+          telefone?: string | null
+          tipo_servico: string
+          turno?: string | null
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          apartamento?: string | null
+          bloco?: string | null
+          condominio_nome_original?: string
+          created_at?: string
+          data_agendamento?: string | null
+          data_solicitacao?: string | null
+          email?: string | null
+          empreendimento_id?: string | null
+          fonte?: string | null
+          id?: string
+          morador_nome?: string | null
+          observacao?: string | null
+          status_atendimento?: string
+          tecnico_id?: string | null
+          telefone?: string | null
+          tipo_servico?: string
+          turno?: string | null
+          uf?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_nacional_gas_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos_terceirizados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicos_nacional_gas_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      servicos_nacional_gas_historico: {
+        Row: {
+          alterado_por: string | null
+          campo_alterado: string
+          created_at: string
+          id: string
+          servico_id: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          alterado_por?: string | null
+          campo_alterado: string
+          created_at?: string
+          id?: string
+          servico_id: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          alterado_por?: string | null
+          campo_alterado?: string
+          created_at?: string
+          id?: string
+          servico_id?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_nacional_gas_historico_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_nacional_gas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tipos_servico: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          preco_padrao: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          preco_padrao?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          preco_padrao?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_permissions: {
         Row: {
           created_at: string
@@ -525,7 +888,32 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      operadores_ultima_localizacao: {
+        Row: {
+          bateria_nivel: number | null
+          em_movimento: boolean | null
+          id: string | null
+          latitude: number | null
+          longitude: number | null
+          operador_email: string | null
+          operador_id: string | null
+          operador_nome: string | null
+          operador_status: string | null
+          precisao: number | null
+          segundos_desde_atualizacao: number | null
+          timestamp: string | null
+          velocidade: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operador_localizacoes_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       assign_role_permissions: {
@@ -534,6 +922,16 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      get_public_empreendimentos: {
+        Args: never
+        Returns: {
+          endereco: string
+          id: string
+          latitude: number
+          longitude: number
+          nome: string
+        }[]
       }
       has_permission: {
         Args: {
