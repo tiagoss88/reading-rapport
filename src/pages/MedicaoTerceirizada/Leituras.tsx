@@ -119,6 +119,33 @@ export default function LeiturasTerceirizadas() {
     }
   })
 
+  // Agrupar rotas por empreendimento para evitar duplicação
+  const rotasAgrupadas = useMemo(() => {
+    if (!rotasDoDia) return []
+    const map = new Map<string, { emp: any; operadores: string[]; statusEfetivo: string }>()
+    for (const rota of rotasDoDia) {
+      const emp = rota.empreendimentos_terceirizados as any
+      const op = rota.operadores as any
+      const empId = emp?.id || rota.empreendimento_id
+      if (!map.has(empId)) {
+        const isExecutado = empreendimentoIdsExecutadosNoDia.has(empId)
+        map.set(empId, {
+          emp,
+          operadores: [],
+          statusEfetivo: rota.status === 'concluido' || isExecutado ? 'concluido' : rota.status
+        })
+      }
+      const group = map.get(empId)!
+      if (op?.nome && !group.operadores.includes(op.nome)) {
+        group.operadores.push(op.nome)
+      }
+      if (rota.status === 'concluido' || empreendimentoIdsExecutadosNoDia.has(empId)) {
+        group.statusEfetivo = 'concluido'
+      }
+    }
+    return Array.from(map.values())
+  }, [rotasDoDia, empreendimentoIdsExecutadosNoDia])
+
   // UFs e Rotas únicas para filtros
   const ufsDisponiveis = useMemo(() => {
     if (!todosEmpreendimentos) return []
