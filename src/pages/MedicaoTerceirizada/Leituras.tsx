@@ -119,6 +119,33 @@ export default function LeiturasTerceirizadas() {
     }
   })
 
+  // Agrupar rotas por empreendimento para evitar duplicação
+  const rotasAgrupadas = useMemo(() => {
+    if (!rotasDoDia) return []
+    const map = new Map<string, { emp: any; operadores: string[]; statusEfetivo: string }>()
+    for (const rota of rotasDoDia) {
+      const emp = rota.empreendimentos_terceirizados as any
+      const op = rota.operadores as any
+      const empId = emp?.id || rota.empreendimento_id
+      if (!map.has(empId)) {
+        const isExecutado = empreendimentoIdsExecutadosNoDia.has(empId)
+        map.set(empId, {
+          emp,
+          operadores: [],
+          statusEfetivo: rota.status === 'concluido' || isExecutado ? 'concluido' : rota.status
+        })
+      }
+      const group = map.get(empId)!
+      if (op?.nome && !group.operadores.includes(op.nome)) {
+        group.operadores.push(op.nome)
+      }
+      if (rota.status === 'concluido' || empreendimentoIdsExecutadosNoDia.has(empId)) {
+        group.statusEfetivo = 'concluido'
+      }
+    }
+    return Array.from(map.values())
+  }, [rotasDoDia, empreendimentoIdsExecutadosNoDia])
+
   // UFs e Rotas únicas para filtros
   const ufsDisponiveis = useMemo(() => {
     if (!todosEmpreendimentos) return []
@@ -234,28 +261,17 @@ export default function LeiturasTerceirizadas() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rotasDoDia.filter(rota => {
-                      const emp = rota.empreendimentos_terceirizados as any
-                      return filtroUFRotaDia === 'todas' || emp?.uf === filtroUFRotaDia
-                    }).map(rota => {
-                      const emp = rota.empreendimentos_terceirizados as any
-                      const op = rota.operadores as any
-                      const empreendimentoIdRota = emp?.id || rota.empreendimento_id
-                      const statusEfetivo =
-                        rota.status === 'concluido' ||
-                        (empreendimentoIdRota && empreendimentoIdsExecutadosNoDia.has(empreendimentoIdRota))
-                          ? 'concluido'
-                          : rota.status
-                      return (
-                        <TableRow key={rota.id}>
-                          <TableCell className="font-medium">{emp?.nome || '-'}</TableCell>
-                          <TableCell>{emp?.rota || '-'}</TableCell>
-                          <TableCell>{emp?.quantidade_medidores || 0}</TableCell>
-                          <TableCell>{op?.nome || 'Não atribuído'}</TableCell>
-                          <TableCell>{statusBadge(statusEfetivo)}</TableCell>
+                    {rotasAgrupadas.filter(group => {
+                      return filtroUFRotaDia === 'todas' || group.emp?.uf === filtroUFRotaDia
+                    }).map((group, idx) => (
+                        <TableRow key={group.emp?.id || idx}>
+                          <TableCell className="font-medium">{group.emp?.nome || '-'}</TableCell>
+                          <TableCell>{group.emp?.rota || '-'}</TableCell>
+                          <TableCell>{group.emp?.quantidade_medidores || 0}</TableCell>
+                          <TableCell>{group.operadores.length > 0 ? group.operadores.join(', ') : 'Não atribuído'}</TableCell>
+                          <TableCell>{statusBadge(group.statusEfetivo)}</TableCell>
                         </TableRow>
-                      )
-                    })}
+                    ))}
                   </TableBody>
                 </Table>
               )}
