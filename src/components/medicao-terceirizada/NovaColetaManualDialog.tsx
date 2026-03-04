@@ -82,6 +82,7 @@ export default function NovaColetaManualDialog({ open, onOpenChange, onSuccess }
     setTexto('')
     setFotos([])
     setBuscaEmp('')
+    setShowSuggestions(false)
   }
 
   const handleSave = async () => {
