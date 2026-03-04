@@ -33,6 +33,8 @@ import ColetorUnidades from '@/pages/ColetorUnidades'
 import ColetorLeitura from '@/pages/ColetorLeitura'
 
 import ColetorServicosTerceirizados from '@/pages/ColetorServicosTerceirizados'
+import ColetorNotificacoes from '@/pages/ColetorNotificacoes'
+import NotificacoesMedidores from '@/pages/MedicaoTerceirizada/Notificacoes'
 import EmpreendimentoLogin from '@/pages/EmpreendimentoLogin'
 import AreaCliente from '@/pages/AreaCliente'
 import ProtectedRoute from '@/components/ProtectedRoute'

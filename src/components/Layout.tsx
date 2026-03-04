@@ -62,6 +62,7 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
     { name: 'Planejamento', href: '/medicao-terceirizada/rotas', icon: MapPin },
     { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
+    { name: 'Notificações', href: '/medicao-terceirizada/notificacoes', icon: Bell },
   ]
 
   const configuracoesItems = [
