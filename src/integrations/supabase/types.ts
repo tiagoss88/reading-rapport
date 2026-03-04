@@ -14,6 +14,217 @@ export type Database = {
   }
   public: {
     Tables: {
+      clientes: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          cpf: string | null
+          created_at: string
+          empreendimento_id: string
+          endereco: string | null
+          estado: string | null
+          id: string
+          identificacao_unidade: string
+          latitude: number | null
+          leitura_inicial: number
+          longitude: number | null
+          nome: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string
+          empreendimento_id: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          identificacao_unidade: string
+          latitude?: number | null
+          leitura_inicial?: number
+          longitude?: number | null
+          nome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          cpf?: string | null
+          created_at?: string
+          empreendimento_id?: string
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          identificacao_unidade?: string
+          latitude?: number | null
+          leitura_inicial?: number
+          longitude?: number | null
+          nome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empreendimento_users: {
+        Row: {
+          created_at: string
+          empreendimento_id: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empreendimento_id: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empreendimento_id?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "empreendimento_users_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: true
+            referencedRelation: "empreendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empreendimentos: {
+        Row: {
+          cep: string | null
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          endereco: string
+          fator_conversao: number | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          nome: string
+          observacoes: string | null
+          preco_kg_gas: number | null
+          preco_m3_gas: number | null
+          tipo_gas: string | null
+          updated_at: string
+        }
+        Insert: {
+          cep?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco: string
+          fator_conversao?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome: string
+          observacoes?: string | null
+          preco_kg_gas?: number | null
+          preco_m3_gas?: number | null
+          tipo_gas?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cep?: string | null
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string
+          fator_conversao?: number | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          nome?: string
+          observacoes?: string | null
+          preco_kg_gas?: number | null
+          preco_m3_gas?: number | null
+          tipo_gas?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      leituras: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_leitura: string
+          foto_url: string | null
+          id: string
+          leitura_atual: number
+          observacao: string | null
+          operador_id: string
+          status_sincronizacao: string
+          tipo_observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_leitura?: string
+          foto_url?: string | null
+          id?: string
+          leitura_atual: number
+          observacao?: string | null
+          operador_id: string
+          status_sincronizacao?: string
+          tipo_observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_leitura?: string
+          foto_url?: string | null
+          id?: string
+          leitura_atual?: number
+          observacao?: string | null
+          operador_id?: string
+          status_sincronizacao?: string
+          tipo_observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leituras_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leituras_operador_id_fkey"
+            columns: ["operador_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacoes_medidores: {
         Row: {
           bloco: string
@@ -53,6 +264,193 @@ export type Database = {
           operador_id?: string | null
           unidade?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      operadores: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          nome: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      servicos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          data_agendamento: string
+          data_execucao: string | null
+          descricao_servico_realizado: string | null
+          empreendimento_id: string
+          fotos_servico: string[] | null
+          hora_agendamento: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          materiais_utilizados: string | null
+          observacoes: string | null
+          observacoes_execucao: string | null
+          operador_responsavel_id: string | null
+          preco_servico: number | null
+          status: string
+          tipo_servico: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          data_agendamento: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
+          empreendimento_id: string
+          fotos_servico?: string[] | null
+          hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          materiais_utilizados?: string | null
+          observacoes?: string | null
+          observacoes_execucao?: string | null
+          operador_responsavel_id?: string | null
+          preco_servico?: number | null
+          status?: string
+          tipo_servico: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          data_agendamento?: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
+          empreendimento_id?: string
+          fotos_servico?: string[] | null
+          hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          materiais_utilizados?: string | null
+          observacoes?: string | null
+          observacoes_execucao?: string | null
+          operador_responsavel_id?: string | null
+          preco_servico?: number | null
+          status?: string
+          tipo_servico?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicos_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "servicos_operador_responsavel_id_fkey"
+            columns: ["operador_responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      servicos_externos: {
+        Row: {
+          created_at: string
+          data_agendamento: string
+          data_execucao: string | null
+          descricao_servico_realizado: string | null
+          endereco_servico: string
+          fotos_servico: string[] | null
+          hora_agendamento: string | null
+          hora_fim: string | null
+          hora_inicio: string | null
+          id: string
+          materiais_utilizados: string | null
+          nome_cliente: string
+          observacoes: string | null
+          observacoes_execucao: string | null
+          operador_responsavel_id: string | null
+          preco_servico: number | null
+          status: string
+          telefone_cliente: string
+          tipo_servico: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_agendamento: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
+          endereco_servico: string
+          fotos_servico?: string[] | null
+          hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          materiais_utilizados?: string | null
+          nome_cliente: string
+          observacoes?: string | null
+          observacoes_execucao?: string | null
+          operador_responsavel_id?: string | null
+          preco_servico?: number | null
+          status?: string
+          telefone_cliente: string
+          tipo_servico: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_agendamento?: string
+          data_execucao?: string | null
+          descricao_servico_realizado?: string | null
+          endereco_servico?: string
+          fotos_servico?: string[] | null
+          hora_agendamento?: string | null
+          hora_fim?: string | null
+          hora_inicio?: string | null
+          id?: string
+          materiais_utilizados?: string | null
+          nome_cliente?: string
+          observacoes?: string | null
+          observacoes_execucao?: string | null
+          operador_responsavel_id?: string | null
+          preco_servico?: number | null
+          status?: string
+          telefone_cliente?: string
+          tipo_servico?: string
+          updated_at?: string
         }
         Relationships: []
       }
