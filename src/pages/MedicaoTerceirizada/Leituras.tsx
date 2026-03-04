@@ -288,8 +288,12 @@ export default function LeiturasTerceirizadas() {
         <TabsContent value="realizadas">
           <Card>
             <CardHeader>
-              <CardTitle>Coletas Realizadas</CardTitle>
-              <div className="flex flex-wrap gap-3 mt-2">
+              <div className="flex items-center justify-between">
+                <CardTitle>Coletas Realizadas</CardTitle>
+                <Button size="sm" onClick={() => setNovaColetaOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" /> Nova Coleta Manual
+                </Button>
+              </div>
                 <Select value={competencia} onValueChange={setCompetencia}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Competência" />
