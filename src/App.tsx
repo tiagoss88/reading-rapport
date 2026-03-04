@@ -33,6 +33,8 @@ import ColetorUnidades from '@/pages/ColetorUnidades'
 import ColetorLeitura from '@/pages/ColetorLeitura'
 
 import ColetorServicosTerceirizados from '@/pages/ColetorServicosTerceirizados'
+import ColetorNotificacoes from '@/pages/ColetorNotificacoes'
+import NotificacoesMedidores from '@/pages/MedicaoTerceirizada/Notificacoes'
 import EmpreendimentoLogin from '@/pages/EmpreendimentoLogin'
 import AreaCliente from '@/pages/AreaCliente'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -101,6 +103,13 @@ const App = () => (
                   <ColetorProtectedRoute>
                     <PermissionRoute permission="coletor_leituras">
                       <ColetorEmpreendimentoDetalhe />
+                    </PermissionRoute>
+                  </ColetorProtectedRoute>
+                } />
+                <Route path="/coletor/notificacoes" element={
+                  <ColetorProtectedRoute>
+                    <PermissionRoute permission="coletor_leituras">
+                      <ColetorNotificacoes />
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
@@ -218,6 +227,13 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
                       <LeiturasTerceirizadas />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/medicao-terceirizada/notificacoes" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <NotificacoesMedidores />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />

@@ -1,81 +1,57 @@
 
 
-## Plano: Sistema de Notificações de Substituição de Medidores
+## Diagnostico: Push Notifications nao funcionam no WebView
 
-### Resumo
-Criar um módulo de "Notificações" dentro do menu Medição Terceirizada para registrar notificações emitidas a clientes que precisam substituir medidores travados ou embaçados. O painel admin permite visualizar e criar notificações; o coletor permite apenas criar.
+Existem **dois problemas** que impedem as notificacoes push de funcionar:
 
-### 1. Migration SQL — criar tabela `notificacoes_medidores`
+### Problema 1: Chave VAPID nao configurada
 
-```sql
-CREATE TABLE public.notificacoes_medidores (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  data_notificacao DATE NOT NULL,
-  empreendimento_id UUID REFERENCES empreendimentos_terceirizados(id),
-  condominio_nome TEXT NOT NULL,
-  bloco TEXT NOT NULL,
-  unidade TEXT NOT NULL,
-  fotos TEXT[] DEFAULT '{}',
-  operador_id UUID REFERENCES auth.users(id),
-  observacao TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+A variavel `VITE_VAPID_PUBLIC_KEY` **nao existe** no arquivo `.env`. O hook `usePushNotifications` verifica essa variavel na linha 24 e retorna imediatamente se estiver vazia -- a assinatura push nunca e registrada, logo nenhum dispositivo recebe notificacoes.
 
-ALTER TABLE public.notificacoes_medidores ENABLE ROW LEVEL SECURITY;
+**Correcao**: Adicionar `VITE_VAPID_PUBLIC_KEY` ao `.env` com a chave VAPID publica correspondente a chave privada configurada nos secrets do Supabase Edge Functions.
 
-CREATE POLICY "Authenticated users can view notificacoes"
-  ON public.notificacoes_medidores FOR SELECT TO authenticated
-  USING (true);
+### Problema 2: WebView nao suporta Push API
 
-CREATE POLICY "Authenticated users can insert notificacoes"
-  ON public.notificacoes_medidores FOR INSERT TO authenticated
-  WITH CHECK (true);
+Este e o problema principal. Aplicativos WebView (Android WebView / WKWebView no iOS) **nao suportam Service Workers nem a Push API**. Isso significa que mesmo com a chave VAPID configurada, o `navigator.serviceWorker.register()` e o `PushManager.subscribe()` vao falhar silenciosamente no WebView.
 
-CREATE POLICY "Admins can update notificacoes"
-  ON public.notificacoes_medidores FOR UPDATE TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
+As opcoes para resolver:
 
-CREATE POLICY "Admins can delete notificacoes"
-  ON public.notificacoes_medidores FOR DELETE TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-```
+**Opcao A - Polling no app (mais simples, sem mudanca no app nativo)**
+- Criar um sistema de polling no frontend que consulta periodicamente uma tabela `notificacoes` no Supabase
+- Quando um servico e criado, insere uma notificacao na tabela
+- O coletor verifica a cada X segundos se ha novas notificacoes e exibe um toast/alerta
+- Funciona em qualquer WebView sem dependencias nativas
 
-### 2. Atualizar types.ts
-Adicionar a tabela `notificacoes_medidores` com Row/Insert/Update types.
+**Opcao B - Supabase Realtime (mais eficiente)**
+- Usar `supabase.channel()` para escutar insercoes em tempo real na tabela de servicos
+- Quando um novo servico e inserido, o coletor recebe o evento instantaneamente e exibe um toast
+- Nao precisa de polling, funciona via WebSocket (suportado em WebViews)
+- Mais eficiente que polling
 
-### 3. Página admin — `src/pages/MedicaoTerceirizada/Notificacoes.tsx`
-- Listagem de notificações com filtros (data, condomínio)
-- Tabela com colunas: Data, Condomínio, Bloco, Unidade, Fotos, Operador
-- Clique para ver detalhes/fotos em lightbox
-- Botão "Nova Notificação" abre dialog com:
-  - **Data**: DatePicker (editável, padrão hoje)
-  - **Condomínio**: Input com autocomplete buscando de `empreendimentos_terceirizados`
-  - **Bloco**: Input texto livre
-  - **Unidade**: Input texto livre
-  - **Fotos**: Upload múltiplo (câmera/galeria) com preview e remoção individual
-- Upload de fotos para bucket `medidor-fotos` existente
+**Opcao C - Push nativo via Firebase (mais complexo)**
+- Requer modificar o app nativo para integrar FCM/APNs
+- Complexidade significativamente maior
 
-### 4. Página coletor — `src/pages/ColetorNotificacoes.tsx`
-- Formulário simples (sem listagem) para criar notificação:
-  - Data (DatePicker, padrão hoje)
-  - Condomínio (autocomplete de `empreendimentos_terceirizados`)
-  - Bloco (texto)
-  - Unidade (texto)
-  - Fotos (múltiplas, câmera/galeria, com preview)
-  - Botão "Registrar Notificação"
-- Usa `smartCompress` para otimizar imagens antes do upload
+### Recomendacao
 
-### 5. Atualizar rotas — `src/App.tsx`
-- Adicionar rota admin: `/medicao-terceirizada/notificacoes` → `NotificacoesMedidores` (role admin)
-- Adicionar rota coletor: `/coletor/notificacoes` → `ColetorNotificacoes` (permission coletor_leituras)
+**Opcao B (Supabase Realtime)** e a melhor para o cenario atual:
+- Funciona em WebView
+- Notificacao instantanea (sem delay de polling)
+- Ja tem Supabase configurado
+- Implementacao apenas no frontend
 
-### 6. Atualizar menus
-- **Layout.tsx**: Adicionar "Notificações" em `medicaoTerceirizadaItems` com ícone `Bell`
-- **ColetorMenu.tsx**: Adicionar card "Notificações" com ícone `Bell`, cor amarela, navegando para `/coletor/notificacoes`
+### Implementacao (Opcao B)
 
-### Arquivos criados/modificados
-- **Criados**: `src/pages/MedicaoTerceirizada/Notificacoes.tsx`, `src/pages/ColetorNotificacoes.tsx`
-- **Modificados**: `src/App.tsx`, `src/components/Layout.tsx`, `src/pages/ColetorMenu.tsx`, `src/integrations/supabase/types.ts`
-- **Migration**: 1 migration SQL para tabela + RLS
+1. **Criar hook `useRealtimeNotifications.tsx`** que:
+   - Escuta insercoes na tabela `servicos` e `servicos_nacional_gas` via Realtime
+   - Exibe um toast com os dados do novo servico
+   - Opcionalmente reproduz um som de alerta
+
+2. **Adicionar o hook no `ColetorMenu.tsx`** (onde ja esta o `usePushNotifications`)
+
+3. **Habilitar Realtime** nas tabelas `servicos` e `servicos_nacional_gas` no Supabase (configuracao no dashboard)
+
+### Arquivos alterados
+- Novo: `src/hooks/useRealtimeNotifications.tsx`
+- Editado: `src/pages/ColetorMenu.tsx` (substituir `usePushNotifications` pelo novo hook)
 

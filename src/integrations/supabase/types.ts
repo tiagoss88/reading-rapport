@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -270,7 +270,7 @@ export type Database = {
       leituras: {
         Row: {
           cliente_id: string
-          competencia: string
+          competencia: string | null
           created_at: string
           data_leitura: string
           foto_url: string | null
@@ -285,7 +285,7 @@ export type Database = {
         }
         Insert: {
           cliente_id: string
-          competencia: string
+          competencia?: string | null
           created_at?: string
           data_leitura?: string
           foto_url?: string | null
@@ -300,7 +300,7 @@ export type Database = {
         }
         Update: {
           cliente_id?: string
-          competencia?: string
+          competencia?: string | null
           created_at?: string
           data_leitura?: string
           foto_url?: string | null
@@ -326,6 +326,56 @@ export type Database = {
             columns: ["operador_id"]
             isOneToOne: false
             referencedRelation: "operadores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacoes_medidores: {
+        Row: {
+          bloco: string
+          condominio_nome: string
+          created_at: string | null
+          data_notificacao: string
+          empreendimento_id: string | null
+          fotos: string[] | null
+          id: string
+          observacao: string | null
+          operador_id: string | null
+          unidade: string
+          updated_at: string | null
+        }
+        Insert: {
+          bloco: string
+          condominio_nome: string
+          created_at?: string | null
+          data_notificacao: string
+          empreendimento_id?: string | null
+          fotos?: string[] | null
+          id?: string
+          observacao?: string | null
+          operador_id?: string | null
+          unidade: string
+          updated_at?: string | null
+        }
+        Update: {
+          bloco?: string
+          condominio_nome?: string
+          created_at?: string | null
+          data_notificacao?: string
+          empreendimento_id?: string | null
+          fotos?: string[] | null
+          id?: string
+          observacao?: string | null
+          operador_id?: string | null
+          unidade?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_notificacoes_empreendimento"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "empreendimentos_terceirizados"
             referencedColumns: ["id"]
           },
         ]
