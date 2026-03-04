@@ -10,9 +10,10 @@ import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus, Copy } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus, Copy, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
 import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
@@ -52,6 +53,8 @@ export default function LeiturasTerceirizadas() {
   const [editarColeta, setEditarColeta] = useState<any>(null)
   const [novaColetaOpen, setNovaColetaOpen] = useState(false)
   const [resumoOpen, setResumoOpen] = useState(false)
+  const [coletaExcluir, setColetaExcluir] = useState<any>(null)
+  const [excluindo, setExcluindo] = useState(false)
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
@@ -411,14 +414,24 @@ export default function LeiturasTerceirizadas() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setEditarColeta(coleta)}
-                              title="Editar coleta"
-                            >
-                              <Pencil className="h-4 w-4 text-muted-foreground" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setEditarColeta(coleta)}
+                                title="Editar coleta"
+                              >
+                                <Pencil className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setColetaExcluir(coleta)}
+                                title="Excluir coleta"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -588,6 +601,48 @@ export default function LeiturasTerceirizadas() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog de confirmação de exclusão */}
+      <AlertDialog open={!!coletaExcluir} onOpenChange={(open) => { if (!open) setColetaExcluir(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta coleta de <strong>{coletaExcluir?.condominio_nome_original}</strong>?
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindo}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault()
+                if (!coletaExcluir) return
+                setExcluindo(true)
+                try {
+                  const { error } = await supabase
+                    .from('servicos_nacional_gas')
+                    .delete()
+                    .eq('id', coletaExcluir.id)
+                  if (error) throw error
+                  toast({ title: 'Coleta excluída com sucesso' })
+                  queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })
+                } catch (err: any) {
+                  toast({ title: 'Erro ao excluir', description: err.message, variant: 'destructive' })
+                } finally {
+                  setExcluindo(false)
+                  setColetaExcluir(null)
+                }
+              }}
+            >
+              {excluindo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   )
 }
