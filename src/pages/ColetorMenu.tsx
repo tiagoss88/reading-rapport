@@ -42,9 +42,8 @@ export default function ColetorMenu() {
     navigate('/coletor-sync')
   }
 
-  const goToServicosTerceirizados = () => {
-    navigate('/coletor/servicos-terceirizados')
-  }
+  const goToServicosTerceirizados = () => navigate('/coletor/servicos-terceirizados')
+  const goToNotificacoes = () => navigate('/coletor/notificacoes')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">

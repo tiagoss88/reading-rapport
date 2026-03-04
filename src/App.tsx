@@ -230,6 +230,13 @@ const App = () => (
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
+                <Route path="/medicao-terceirizada/notificacoes" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <NotificacoesMedidores />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
                 <Route path="/admin/atualizar-rotas-ce" element={
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
