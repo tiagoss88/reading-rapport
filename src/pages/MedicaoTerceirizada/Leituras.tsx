@@ -294,6 +294,7 @@ export default function LeiturasTerceirizadas() {
                   <Plus className="h-4 w-4 mr-1" /> Nova Coleta Manual
                 </Button>
               </div>
+              <div className="flex flex-wrap gap-3 mt-2">
                 <Select value={competencia} onValueChange={setCompetencia}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Competência" />
