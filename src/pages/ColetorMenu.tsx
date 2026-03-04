@@ -138,6 +138,26 @@ export default function ColetorMenu() {
               </CardHeader>
             </Card>
           </ProtectedComponent>
+
+          {/* Notificações */}
+          <ProtectedComponent permission="coletor_leituras">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToNotificacoes}>
+              <CardHeader className="p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center shrink-0">
+                    <Bell className="w-5 h-5 text-yellow-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base font-semibold">Notificações</CardTitle>
+                    <CardDescription className="text-xs">
+                      Registrar notificação de medidor
+                    </CardDescription>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                </div>
+              </CardHeader>
+            </Card>
+          </ProtectedComponent>
         </div>
 
 
