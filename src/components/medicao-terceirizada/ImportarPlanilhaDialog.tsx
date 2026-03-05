@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, ClipboardPaste } from 'lucide-react'
+import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, ClipboardPaste, Ban } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -28,11 +28,32 @@ interface ImportedRow {
   observacao: string | null
   empreendimento_id?: string | null
   matched?: boolean
+  isDuplicate?: boolean
 }
 
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
+}
+
+// Generate a normalized key for duplicate comparison
+const makeDuplicateKey = (row: {
+  data_solicitacao?: string | null
+  uf?: string
+  condominio_nome_original?: string
+  bloco?: string | null
+  apartamento?: string | null
+  morador_nome?: string | null
+}): string => {
+  const norm = (v: string | null | undefined) => (v || '').toLowerCase().trim()
+  return [
+    norm(row.data_solicitacao),
+    norm(row.uf),
+    norm(row.condominio_nome_original),
+    norm(row.bloco),
+    norm(row.apartamento),
+    norm(row.morador_nome),
+  ].join('|')
 }
 
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
@@ -51,7 +72,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       const { data, error } = await supabase
         .from('empreendimentos_terceirizados')
         .select('id, nome, uf')
-      
       if (error) throw error
       return data
     }
@@ -63,11 +83,37 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       const { data, error } = await supabase
         .from('operadores')
         .select('id, nome')
-      
       if (error) throw error
       return data
     }
   })
+
+  // Fetch existing services for duplicate checking
+  const { data: existingServices } = useQuery({
+    queryKey: ['servicos-nacional-gas-duplicates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicos_nacional_gas')
+        .select('data_solicitacao, uf, condominio_nome_original, bloco, apartamento, morador_nome')
+      if (error) throw error
+      return data
+    },
+    enabled: open
+  })
+
+  const existingKeys = new Set(
+    (existingServices || []).map(s => makeDuplicateKey(s))
+  )
+
+  const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
+    const seenKeys = new Set<string>()
+    return rows.map(row => {
+      const key = makeDuplicateKey(row)
+      const isDuplicate = existingKeys.has(key) || seenKeys.has(key)
+      seenKeys.add(key)
+      return { ...row, isDuplicate }
+    })
+  }
 
   const parseExcelDate = (value: any): string | null => {
     if (!value) return null
@@ -106,27 +152,23 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const findEmpreendimento = (nome: string, uf: string) => {
     if (!empreendimentos || !nome) return null
     const normalizedNome = nome.toLowerCase().trim()
-    
-    const match = empreendimentos.find(e => 
+    const match = empreendimentos.find(e =>
       e.uf === uf && e.nome.toLowerCase().trim().includes(normalizedNome)
-    ) || empreendimentos.find(e => 
+    ) || empreendimentos.find(e =>
       e.uf === uf && normalizedNome.includes(e.nome.toLowerCase().trim())
     )
-    
     return match?.id || null
   }
 
   const findTecnico = (nome: string | null) => {
     if (!operadores || !nome) return null
     const normalizedNome = nome.toLowerCase().trim()
-    
-    const match = operadores.find(o => 
+    const match = operadores.find(o =>
       o.nome.toLowerCase().trim() === normalizedNome
-    ) || operadores.find(o => 
+    ) || operadores.find(o =>
       o.nome.toLowerCase().trim().includes(normalizedNome) ||
       normalizedNome.includes(o.nome.toLowerCase().trim())
     )
-    
     return match?.id || null
   }
 
@@ -153,7 +195,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
           return
         }
 
-        // Map headers to column indices
         const headers = jsonData[0].map(h => String(h || '').toUpperCase().trim())
         const getIndex = (names: string[]) => {
           for (const name of names) {
@@ -182,7 +223,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
         }
 
         const rows: ImportedRow[] = []
-        
+
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i]
           if (!row || row.length === 0) continue
@@ -218,7 +259,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
           })
         }
 
-        setParsedData(rows)
+        setParsedData(markDuplicates(rows))
         setStep('preview')
       } catch (error) {
         console.error('Error parsing file:', error)
@@ -228,9 +269,11 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     reader.readAsBinaryString(file)
   }
 
+  const newRows = parsedData.filter(r => !r.isDuplicate)
+
   const importMutation = useMutation({
     mutationFn: async () => {
-      const servicesToInsert = parsedData.map(row => ({
+      const servicesToInsert = newRows.map(row => ({
         data_solicitacao: row.data_solicitacao,
         uf: row.uf,
         empreendimento_id: row.empreendimento_id,
@@ -249,14 +292,19 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
         observacao: row.observacao
       }))
 
+      if (servicesToInsert.length === 0) {
+        throw new Error('Nenhum serviço novo para importar')
+      }
+
       const { error } = await supabase
         .from('servicos_nacional_gas')
         .insert(servicesToInsert)
-      
+
       if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
+      queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas-duplicates'] })
       setStep('success')
     },
     onError: (error) => {
@@ -281,9 +329,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       return
     }
 
-    // Primeira linha = cabeçalhos
     const headers = lines[0].split('\t').map(h => h.toUpperCase().trim())
-    
+
     const getIndex = (names: string[]) => {
       for (const name of names) {
         const idx = headers.findIndex(h => h.includes(name))
@@ -326,7 +373,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       const empreendimentoId = findEmpreendimento(condominio, uf)
       const tecnicoNome = colMap.tecnico >= 0 ? String(values[colMap.tecnico] || '').trim() : null
 
-      // Parse date from text format (DD/MM/YYYY)
       const parseDateText = (val: string | undefined): string | null => {
         if (!val) return null
         const trimmed = val.trim()
@@ -363,12 +409,13 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       return
     }
 
-    setParsedData(rows)
+    setParsedData(markDuplicates(rows))
     setStep('preview')
   }
 
-  const matchedCount = parsedData.filter(r => r.matched).length
-  const unmatchedCount = parsedData.filter(r => !r.matched).length
+  const matchedCount = parsedData.filter(r => r.matched && !r.isDuplicate).length
+  const unmatchedCount = parsedData.filter(r => !r.matched && !r.isDuplicate).length
+  const duplicateCount = parsedData.filter(r => r.isDuplicate).length
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -395,7 +442,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
               </TabsList>
 
               <TabsContent value="file" className="space-y-4">
-                <div 
+                <div
                   className="border-2 border-dashed rounded-lg p-12 text-center cursor-pointer hover:border-primary transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -421,8 +468,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                   value={pastedText}
                   onChange={(e) => setPastedText(e.target.value)}
                 />
-                <Button 
-                  onClick={() => parseTextData(pastedText)} 
+                <Button
+                  onClick={() => parseTextData(pastedText)}
                   disabled={!pastedText.trim()}
                   className="w-full"
                 >
@@ -441,7 +488,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
 
         {step === 'preview' && (
           <div className="flex flex-col flex-1 min-h-0 gap-4">
-            <div className="flex gap-4 shrink-0">
+            <div className="flex gap-4 shrink-0 flex-wrap">
               <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-md">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-green-800 dark:text-green-400">
@@ -453,6 +500,14 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                   <AlertTriangle className="h-4 w-4 text-yellow-600" />
                   <span className="text-yellow-800 dark:text-yellow-400">
                     {unmatchedCount} não vinculados
+                  </span>
+                </div>
+              )}
+              {duplicateCount > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 rounded-md">
+                  <Ban className="h-4 w-4 text-destructive" />
+                  <span className="text-destructive">
+                    {duplicateCount} duplicado(s)
                   </span>
                 </div>
               )}
@@ -471,9 +526,23 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                 </thead>
                 <tbody>
                   {parsedData.map((row, idx) => (
-                    <tr key={idx} className={`border-b ${!row.matched ? 'bg-yellow-50/50 dark:bg-yellow-900/10' : ''}`}>
+                    <tr
+                      key={idx}
+                      className={`border-b ${
+                        row.isDuplicate
+                          ? 'bg-destructive/5 line-through opacity-60'
+                          : !row.matched
+                          ? 'bg-yellow-50/50 dark:bg-yellow-900/10'
+                          : ''
+                      }`}
+                    >
                       <td className="p-2">
-                        {row.matched ? (
+                        {row.isDuplicate ? (
+                          <span className="flex items-center gap-1 text-destructive text-xs font-medium">
+                            <Ban className="h-4 w-4" />
+                            Duplicado
+                          </span>
+                        ) : row.matched ? (
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         ) : (
                           <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -497,8 +566,15 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
               <Button variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
-              <Button onClick={() => importMutation.mutate()} disabled={importMutation.isPending}>
-                {importMutation.isPending ? 'Importando...' : `Importar ${parsedData.length} serviço(s)`}
+              <Button
+                onClick={() => importMutation.mutate()}
+                disabled={importMutation.isPending || newRows.length === 0}
+              >
+                {importMutation.isPending
+                  ? 'Importando...'
+                  : newRows.length === 0
+                  ? 'Todos duplicados'
+                  : `Importar ${newRows.length} serviço(s)`}
               </Button>
             </div>
           </div>
@@ -509,7 +585,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
             <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Importação Concluída!</h3>
             <p className="text-muted-foreground mb-4">
-              {parsedData.length} serviço(s) foram importados com sucesso.
+              {newRows.length} serviço(s) foram importados com sucesso.
+              {duplicateCount > 0 && ` ${duplicateCount} duplicado(s) foram ignorados.`}
             </p>
             <Button onClick={handleClose}>Fechar</Button>
           </div>
