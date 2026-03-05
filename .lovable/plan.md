@@ -1,32 +1,57 @@
 
 
-## Plano: Detecção de duplicatas na importação de serviços
+## Diagnostico: Push Notifications nao funcionam no WebView
 
-### Problema
-Atualmente, ao importar uma planilha, o sistema insere todos os registros sem verificar se já existem no banco. Se o usuário importar a mesma planilha duas vezes, todos os serviços ficam duplicados.
+Existem **dois problemas** que impedem as notificacoes push de funcionar:
 
-### Solução
-Após o parsing dos dados, buscar os serviços existentes no banco e comparar com os registros da planilha usando a combinação: **data_solicitacao + uf + condominio_nome_original + bloco + apartamento + morador_nome**. Marcar duplicatas na preview e excluí-las da importação.
+### Problema 1: Chave VAPID nao configurada
 
-### Alteração: `src/components/medicao-terceirizada/ImportarPlanilhaDialog.tsx`
+A variavel `VITE_VAPID_PUBLIC_KEY` **nao existe** no arquivo `.env`. O hook `usePushNotifications` verifica essa variavel na linha 24 e retorna imediatamente se estiver vazia -- a assinatura push nunca e registrada, logo nenhum dispositivo recebe notificacoes.
 
-1. **Adicionar campo `isDuplicate` ao `ImportedRow`** (já existe na interface do `ImportarEmpreendimentosDialog` como referência)
+**Correcao**: Adicionar `VITE_VAPID_PUBLIC_KEY` ao `.env` com a chave VAPID publica correspondente a chave privada configurada nos secrets do Supabase Edge Functions.
 
-2. **Nova query para buscar serviços existentes** — carregar `servicos_nacional_gas` com campos `data_solicitacao, uf, condominio_nome_original, bloco, apartamento, morador_nome` para usar como base de comparação
+### Problema 2: WebView nao suporta Push API
 
-3. **Função `checkDuplicate`** — normaliza e compara os campos-chave (lowercase, trim, nulls tratados como string vazia) para gerar uma "chave" de comparação. Verifica tanto duplicatas contra o banco quanto duplicatas internas na própria planilha
+Este e o problema principal. Aplicativos WebView (Android WebView / WKWebView no iOS) **nao suportam Service Workers nem a Push API**. Isso significa que mesmo com a chave VAPID configurada, o `navigator.serviceWorker.register()` e o `PushManager.subscribe()` vao falhar silenciosamente no WebView.
 
-4. **Marcar duplicatas no preview** — após o parsing (tanto em `parseFile` quanto em `parseTextData`), rodar a verificação de duplicatas em cada linha e setar `isDuplicate = true` nas linhas que já existem
+As opcoes para resolver:
 
-5. **UI do preview atualizada**:
-   - Novo badge ao lado dos contadores existentes: "X duplicados" em vermelho
-   - Linhas duplicadas aparecem com fundo vermelho claro e ícone de alerta diferente
-   - Coluna "Status" mostra "Duplicado" para essas linhas
+**Opcao A - Polling no app (mais simples, sem mudanca no app nativo)**
+- Criar um sistema de polling no frontend que consulta periodicamente uma tabela `notificacoes` no Supabase
+- Quando um servico e criado, insere uma notificacao na tabela
+- O coletor verifica a cada X segundos se ha novas notificacoes e exibe um toast/alerta
+- Funciona em qualquer WebView sem dependencias nativas
 
-6. **Filtrar duplicatas na importação** — no `importMutation`, inserir apenas `parsedData.filter(r => !r.isDuplicate)`. Se todos forem duplicados, desabilitar o botão de importar
+**Opcao B - Supabase Realtime (mais eficiente)**
+- Usar `supabase.channel()` para escutar insercoes em tempo real na tabela de servicos
+- Quando um novo servico e inserido, o coletor recebe o evento instantaneamente e exibe um toast
+- Nao precisa de polling, funciona via WebSocket (suportado em WebViews)
+- Mais eficiente que polling
 
-7. **Botão de importar** mostra contagem correta: "Importar X serviço(s)" (excluindo duplicados)
+**Opcao C - Push nativo via Firebase (mais complexo)**
+- Requer modificar o app nativo para integrar FCM/APNs
+- Complexidade significativamente maior
 
-### Nenhuma alteração de banco necessária
-A verificação é feita client-side comparando dados do parsing com uma consulta SELECT existente.
+### Recomendacao
+
+**Opcao B (Supabase Realtime)** e a melhor para o cenario atual:
+- Funciona em WebView
+- Notificacao instantanea (sem delay de polling)
+- Ja tem Supabase configurado
+- Implementacao apenas no frontend
+
+### Implementacao (Opcao B)
+
+1. **Criar hook `useRealtimeNotifications.tsx`** que:
+   - Escuta insercoes na tabela `servicos` e `servicos_nacional_gas` via Realtime
+   - Exibe um toast com os dados do novo servico
+   - Opcionalmente reproduz um som de alerta
+
+2. **Adicionar o hook no `ColetorMenu.tsx`** (onde ja esta o `usePushNotifications`)
+
+3. **Habilitar Realtime** nas tabelas `servicos` e `servicos_nacional_gas` no Supabase (configuracao no dashboard)
+
+### Arquivos alterados
+- Novo: `src/hooks/useRealtimeNotifications.tsx`
+- Editado: `src/pages/ColetorMenu.tsx` (substituir `usePushNotifications` pelo novo hook)
 
