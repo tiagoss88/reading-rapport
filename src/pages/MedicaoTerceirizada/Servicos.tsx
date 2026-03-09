@@ -363,6 +363,12 @@ export default function ServicosNacionalGas() {
                               <TableCell>{servico.tipo_servico?.toUpperCase()}</TableCell>
                               <TableCell>{servico.uf}</TableCell>
                               <TableCell>
+                                {servico.data_solicitacao
+                                  ? format(new Date(servico.data_solicitacao), 'dd/MM/yyyy')
+                                  : '-'
+                                }
+                              </TableCell>
+                              <TableCell>
                                 {servico.data_agendamento 
                                   ? format(new Date(servico.data_agendamento), 'dd/MM/yyyy')
                                   : '-'
