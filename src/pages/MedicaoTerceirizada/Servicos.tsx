@@ -370,7 +370,7 @@ export default function ServicosNacionalGas() {
                               <TableCell>{servico.uf}</TableCell>
                               <TableCell>
                                 {servico.data_agendamento 
-                                  ? format(new Date(servico.data_agendamento), 'dd/MM/yyyy')
+                                  ? format(new Date(servico.data_agendamento + 'T00:00:00'), 'dd/MM/yyyy')
                                   : '-'
                                 }
                                 {servico.turno && (
