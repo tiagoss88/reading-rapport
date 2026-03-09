@@ -316,12 +316,12 @@ export default function ServicosNacionalGas() {
                               onCheckedChange={(checked) => toggleSelectAll(!!checked)}
                             />
                           </TableHead>
+                          <TableHead>Solicitação</TableHead>
                           <TableHead>Condomínio</TableHead>
                           <TableHead>Bloco/Apto</TableHead>
                           <TableHead>Morador</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>UF</TableHead>
-                          <TableHead>Solicitação</TableHead>
                           <TableHead>Agendamento</TableHead>
                           <TableHead>Técnico</TableHead>
                           <TableHead>Status</TableHead>
@@ -345,6 +345,12 @@ export default function ServicosNacionalGas() {
                                 />
                               </TableCell>
                               <TableCell>
+                                {servico.data_solicitacao
+                                  ? format(new Date(servico.data_solicitacao), 'dd/MM/yyyy')
+                                  : '-'
+                                }
+                              </TableCell>
+                              <TableCell>
                                 <div className="flex flex-col">
                                   <span className="font-medium">{servico.condominio_nome_original}</span>
                                   {servico.empreendimento ? (
@@ -362,12 +368,6 @@ export default function ServicosNacionalGas() {
                               <TableCell>{servico.morador_nome || '-'}</TableCell>
                               <TableCell>{servico.tipo_servico?.toUpperCase()}</TableCell>
                               <TableCell>{servico.uf}</TableCell>
-                              <TableCell>
-                                {servico.data_solicitacao
-                                  ? format(new Date(servico.data_solicitacao), 'dd/MM/yyyy')
-                                  : '-'
-                                }
-                              </TableCell>
                               <TableCell>
                                 {servico.data_agendamento 
                                   ? format(new Date(servico.data_agendamento), 'dd/MM/yyyy')
