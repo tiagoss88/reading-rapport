@@ -321,6 +321,7 @@ export default function ServicosNacionalGas() {
                           <TableHead>Morador</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>UF</TableHead>
+                          <TableHead>Solicitação</TableHead>
                           <TableHead>Agendamento</TableHead>
                           <TableHead>Técnico</TableHead>
                           <TableHead>Status</TableHead>
