@@ -346,7 +346,7 @@ export default function ServicosNacionalGas() {
                               </TableCell>
                               <TableCell>
                                 {servico.data_solicitacao
-                                  ? format(new Date(servico.data_solicitacao), 'dd/MM/yyyy')
+                                  ? format(new Date(servico.data_solicitacao + 'T00:00:00'), 'dd/MM/yyyy')
                                   : '-'
                                 }
                               </TableCell>
