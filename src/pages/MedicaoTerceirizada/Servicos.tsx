@@ -316,12 +316,12 @@ export default function ServicosNacionalGas() {
                               onCheckedChange={(checked) => toggleSelectAll(!!checked)}
                             />
                           </TableHead>
+                          <TableHead>Solicitação</TableHead>
                           <TableHead>Condomínio</TableHead>
                           <TableHead>Bloco/Apto</TableHead>
                           <TableHead>Morador</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>UF</TableHead>
-                          <TableHead>Solicitação</TableHead>
                           <TableHead>Agendamento</TableHead>
                           <TableHead>Técnico</TableHead>
                           <TableHead>Status</TableHead>
