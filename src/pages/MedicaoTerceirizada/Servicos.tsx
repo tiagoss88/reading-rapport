@@ -321,6 +321,7 @@ export default function ServicosNacionalGas() {
                           <TableHead>Morador</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>UF</TableHead>
+                          <TableHead>Solicitação</TableHead>
                           <TableHead>Agendamento</TableHead>
                           <TableHead>Técnico</TableHead>
                           <TableHead>Status</TableHead>
@@ -330,7 +331,7 @@ export default function ServicosNacionalGas() {
                       <TableBody>
                         {paginatedServicos?.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                               Nenhum serviço encontrado
                             </TableCell>
                           </TableRow>
@@ -361,6 +362,12 @@ export default function ServicosNacionalGas() {
                               <TableCell>{servico.morador_nome || '-'}</TableCell>
                               <TableCell>{servico.tipo_servico?.toUpperCase()}</TableCell>
                               <TableCell>{servico.uf}</TableCell>
+                              <TableCell>
+                                {servico.data_solicitacao
+                                  ? format(new Date(servico.data_solicitacao), 'dd/MM/yyyy')
+                                  : '-'
+                                }
+                              </TableCell>
                               <TableCell>
                                 {servico.data_agendamento 
                                   ? format(new Date(servico.data_agendamento), 'dd/MM/yyyy')
