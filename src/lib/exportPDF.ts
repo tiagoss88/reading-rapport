@@ -8,6 +8,7 @@ const relatorioTitulos: Record<TipoRelatorio, string> = {
   condominios_competencia: 'Condomínios Coletados por Competência',
   rdo_servicos: 'RDO - Relatório Diário de Obra',
   cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
+  coletas_sem_pendencia: 'Coletas Sem Pendência',
 };
 
 export function exportarPDF(
