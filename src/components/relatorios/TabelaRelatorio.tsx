@@ -40,6 +40,16 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead>Status</TableHead>
           </>
         );
+      case 'coletas_sem_pendencia':
+        return (
+          <>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>UF</TableHead>
+            <TableHead>Técnico</TableHead>
+            <TableHead>Data Coleta</TableHead>
+            <TableHead>Observação</TableHead>
+          </>
+        );
       default:
         return <TableHead>Dados</TableHead>;
     }
@@ -80,7 +90,7 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableRow key={index}>
               <TableCell>
                 {item.data
-                  ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR })
+                  ? format(new Date(item.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
                   : '-'}
               </TableCell>
               <TableCell>{item.condominio || '-'}</TableCell>
@@ -101,6 +111,20 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                   {item.status}
                 </span>
               </TableCell>
+            </TableRow>
+          );
+        case 'coletas_sem_pendencia':
+          return (
+            <TableRow key={index}>
+              <TableCell className="font-medium">{item.condominio || '-'}</TableCell>
+              <TableCell>{item.uf || '-'}</TableCell>
+              <TableCell>{item.tecnico || '-'}</TableCell>
+              <TableCell>
+                {item.data_coleta
+                  ? format(new Date(item.data_coleta + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
+                  : '-'}
+              </TableCell>
+              <TableCell>{item.observacao || '-'}</TableCell>
             </TableRow>
           );
         default:

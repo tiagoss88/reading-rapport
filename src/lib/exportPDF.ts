@@ -8,6 +8,7 @@ const relatorioTitulos: Record<TipoRelatorio, string> = {
   condominios_competencia: 'Condomínios Coletados por Competência',
   rdo_servicos: 'RDO - Relatório Diário de Obra',
   cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
+  coletas_sem_pendencia: 'Coletas Sem Pendência',
 };
 
 export function exportarPDF(
@@ -28,7 +29,7 @@ export function exportarPDF(
     } else {
       doc.text('Todas as UFs', 14, 28);
     }
-  } else if (tipoRelatorio === 'condominios_competencia' && filtros.competencia) {
+  } else if ((tipoRelatorio === 'condominios_competencia' || tipoRelatorio === 'coletas_sem_pendencia') && filtros.competencia) {
     const [ano, mes] = filtros.competencia.split('-');
     doc.text(`Competência: ${mes}/${ano}`, 14, 28);
   } else {
@@ -63,11 +64,22 @@ export function exportarPDF(
     case 'rdo_servicos':
       colunas = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status'];
       linhas = dados.map((item) => [
-        item.data ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+        item.data ? format(new Date(item.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-',
         item.condominio || '-',
         item.tipo_servico?.toUpperCase(),
         item.tecnico || '-',
         item.status,
+      ]);
+      break;
+
+    case 'coletas_sem_pendencia':
+      colunas = ['Condomínio', 'UF', 'Técnico', 'Data Coleta', 'Observação'];
+      linhas = dados.map((item) => [
+        item.condominio || '-',
+        item.uf || '-',
+        item.tecnico || '-',
+        item.data_coleta ? format(new Date(item.data_coleta + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+        item.observacao || '-',
       ]);
       break;
   }

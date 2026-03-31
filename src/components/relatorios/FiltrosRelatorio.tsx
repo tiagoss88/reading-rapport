@@ -8,6 +8,7 @@ import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
 import { useRelatorioLeituras } from '@/hooks/useRelatorioLeituras';
 import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
 import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
+import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Loader2 } from 'lucide-react';
@@ -30,6 +31,7 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
   const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
+  const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
 
   const { data: ufsDisponiveis } = useQuery({
     queryKey: ['ufs_disponiveis'],
@@ -42,7 +44,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia',
   });
 
   const { data: operadores } = useQuery({
@@ -83,6 +85,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioServicos(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf') {
         dados = await gerarRelatorioCadastroCondominios(filtros);
+      } else if (tipoRelatorio === 'coletas_sem_pendencia') {
+        dados = await gerarRelatorioColetasSemPendencia(filtros);
       }
 
       if (dados.length === 0) {
@@ -118,7 +122,7 @@ export default function FiltrosRelatorio({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {tipoRelatorio === 'condominios_competencia' && (
+          {(tipoRelatorio === 'condominios_competencia' || tipoRelatorio === 'coletas_sem_pendencia') && (
             <div className="space-y-2">
               <Label htmlFor="competencia">Competência (Mês/Ano)</Label>
               <Input
@@ -130,7 +134,7 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
-          {tipoRelatorio === 'cadastro_condominios_uf' && (
+          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia') && (
             <div className="space-y-2">
               <Label htmlFor="ufFiltro">UF</Label>
               <Select
@@ -147,6 +151,30 @@ export default function FiltrosRelatorio({
                   {ufsDisponiveis?.map((uf) => (
                     <SelectItem key={uf} value={uf}>
                       {uf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {tipoRelatorio === 'coletas_sem_pendencia' && (
+            <div className="space-y-2">
+              <Label htmlFor="operador">Técnico</Label>
+              <Select
+                value={filtros.operadorId || 'todos'}
+                onValueChange={(value) =>
+                  onFiltrosChange({ ...filtros, operadorId: value === 'todos' ? undefined : value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {operadores?.map((op) => (
+                    <SelectItem key={op.id} value={op.id}>
+                      {op.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
