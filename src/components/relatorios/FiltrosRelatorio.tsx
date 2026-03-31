@@ -122,7 +122,7 @@ export default function FiltrosRelatorio({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {tipoRelatorio === 'condominios_competencia' && (
+          {(tipoRelatorio === 'condominios_competencia' || tipoRelatorio === 'coletas_sem_pendencia') && (
             <div className="space-y-2">
               <Label htmlFor="competencia">Competência (Mês/Ano)</Label>
               <Input
@@ -134,7 +134,7 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
-          {tipoRelatorio === 'cadastro_condominios_uf' && (
+          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia') && (
             <div className="space-y-2">
               <Label htmlFor="ufFiltro">UF</Label>
               <Select
@@ -151,6 +151,30 @@ export default function FiltrosRelatorio({
                   {ufsDisponiveis?.map((uf) => (
                     <SelectItem key={uf} value={uf}>
                       {uf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {tipoRelatorio === 'coletas_sem_pendencia' && (
+            <div className="space-y-2">
+              <Label htmlFor="operador">Técnico</Label>
+              <Select
+                value={filtros.operadorId || 'todos'}
+                onValueChange={(value) =>
+                  onFiltrosChange({ ...filtros, operadorId: value === 'todos' ? undefined : value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {operadores?.map((op) => (
+                    <SelectItem key={op.id} value={op.id}>
+                      {op.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
