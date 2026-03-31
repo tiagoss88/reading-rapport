@@ -31,6 +31,7 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
   const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
+  const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
 
   const { data: ufsDisponiveis } = useQuery({
     queryKey: ['ufs_disponiveis'],
