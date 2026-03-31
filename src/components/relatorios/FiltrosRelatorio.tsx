@@ -44,7 +44,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia',
   });
 
   const { data: operadores } = useQuery({
