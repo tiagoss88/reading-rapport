@@ -1,57 +1,45 @@
 
 
-## Diagnostico: Push Notifications nao funcionam no WebView
+## Plano: Relatório de Coletas "Sem Pendências" por Competência
 
-Existem **dois problemas** que impedem as notificacoes push de funcionar:
+### O que é
+Novo relatório na categoria **Leituras** que lista as confirmações de coleta (registros em `servicos_nacional_gas` com `tipo_servico='leitura'` e `status_atendimento='executado'`) realizadas pelos técnicos, com filtros por mês, UF e técnico.
 
-### Problema 1: Chave VAPID nao configurada
+### Dados exibidos na tabela
+| Condomínio | UF | Técnico | Data Coleta | Observação |
+|---|---|---|---|---|
+| Nome do empreendimento | BA/CE | Nome do operador | dd/MM/yyyy | Obs (se houver) |
 
-A variavel `VITE_VAPID_PUBLIC_KEY` **nao existe** no arquivo `.env`. O hook `usePushNotifications` verifica essa variavel na linha 24 e retorna imediatamente se estiver vazia -- a assinatura push nunca e registrada, logo nenhum dispositivo recebe notificacoes.
+Com totalizador no final: quantidade total de coletas.
 
-**Correcao**: Adicionar `VITE_VAPID_PUBLIC_KEY` ao `.env` com a chave VAPID publica correspondente a chave privada configurada nos secrets do Supabase Edge Functions.
+### Arquivos modificados
 
-### Problema 2: WebView nao suporta Push API
+**1. `src/pages/Relatorios.tsx`**
+- Adicionar `'coletas_sem_pendencia'` ao tipo `TipoRelatorio`
 
-Este e o problema principal. Aplicativos WebView (Android WebView / WKWebView no iOS) **nao suportam Service Workers nem a Push API**. Isso significa que mesmo com a chave VAPID configurada, o `navigator.serviceWorker.register()` e o `PushManager.subscribe()` vao falhar silenciosamente no WebView.
+**2. `src/components/relatorios/RelatorioSelector.tsx`**
+- Adicionar entrada `{ value: 'coletas_sem_pendencia', label: 'Coletas Sem Pendência', categoria: 'Leituras' }`
 
-As opcoes para resolver:
+**3. `src/components/relatorios/FiltrosRelatorio.tsx`**
+- Adicionar bloco de filtros para `coletas_sem_pendencia`: competência (mês), UF (select com UFs disponíveis), e técnico (select com operadores)
+- No `handleGerarRelatorio`, chamar o novo hook
 
-**Opcao A - Polling no app (mais simples, sem mudanca no app nativo)**
-- Criar um sistema de polling no frontend que consulta periodicamente uma tabela `notificacoes` no Supabase
-- Quando um servico e criado, insere uma notificacao na tabela
-- O coletor verifica a cada X segundos se ha novas notificacoes e exibe um toast/alerta
-- Funciona em qualquer WebView sem dependencias nativas
+**4. Novo arquivo: `src/hooks/useRelatorioColetasSemPendencia.tsx`**
+- Query em `servicos_nacional_gas` filtrando `tipo_servico='leitura'`, `status_atendimento='executado'`
+- Filtro por `data_agendamento` dentro do mês selecionado (competência)
+- Filtro opcional por `uf` e `tecnico_id`
+- Join com `empreendimentos_terceirizados` (nome) e `operadores` (nome do técnico)
+- Retorna array com: `condominio`, `uf`, `tecnico`, `data_coleta`, `observacao`
 
-**Opcao B - Supabase Realtime (mais eficiente)**
-- Usar `supabase.channel()` para escutar insercoes em tempo real na tabela de servicos
-- Quando um novo servico e inserido, o coletor recebe o evento instantaneamente e exibe um toast
-- Nao precisa de polling, funciona via WebSocket (suportado em WebViews)
-- Mais eficiente que polling
+**5. `src/components/relatorios/TabelaRelatorio.tsx`**
+- Adicionar colunas e linhas para `coletas_sem_pendencia`
 
-**Opcao C - Push nativo via Firebase (mais complexo)**
-- Requer modificar o app nativo para integrar FCM/APNs
-- Complexidade significativamente maior
+**6. `src/components/relatorios/ExportacaoButtons.tsx` (Excel interno)**
+- Adicionar mapeamento de colunas/linhas para `coletas_sem_pendencia`
 
-### Recomendacao
+**7. `src/lib/exportPDF.ts` e `src/lib/exportCSV.ts`**
+- Adicionar caso `coletas_sem_pendencia` com título e colunas correspondentes
 
-**Opcao B (Supabase Realtime)** e a melhor para o cenario atual:
-- Funciona em WebView
-- Notificacao instantanea (sem delay de polling)
-- Ja tem Supabase configurado
-- Implementacao apenas no frontend
-
-### Implementacao (Opcao B)
-
-1. **Criar hook `useRealtimeNotifications.tsx`** que:
-   - Escuta insercoes na tabela `servicos` e `servicos_nacional_gas` via Realtime
-   - Exibe um toast com os dados do novo servico
-   - Opcionalmente reproduz um som de alerta
-
-2. **Adicionar o hook no `ColetorMenu.tsx`** (onde ja esta o `usePushNotifications`)
-
-3. **Habilitar Realtime** nas tabelas `servicos` e `servicos_nacional_gas` no Supabase (configuracao no dashboard)
-
-### Arquivos alterados
-- Novo: `src/hooks/useRealtimeNotifications.tsx`
-- Editado: `src/pages/ColetorMenu.tsx` (substituir `usePushNotifications` pelo novo hook)
+### Nenhuma alteração de banco necessária
+Os dados já existem em `servicos_nacional_gas`. Apenas leitura (SELECT).
 
