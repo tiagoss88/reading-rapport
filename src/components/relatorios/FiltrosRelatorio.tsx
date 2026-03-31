@@ -8,6 +8,7 @@ import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
 import { useRelatorioLeituras } from '@/hooks/useRelatorioLeituras';
 import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
 import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
+import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Loader2 } from 'lucide-react';
