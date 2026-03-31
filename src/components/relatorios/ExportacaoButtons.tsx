@@ -44,11 +44,22 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
     case 'rdo_servicos':
       headers = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status'];
       rows = dados.map((item) => [
-        item.data ? format(new Date(item.data), 'dd/MM/yyyy', { locale: ptBR }) : '',
+        item.data ? format(new Date(item.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '',
         item.condominio || '',
         item.tipo_servico?.toUpperCase(),
         item.tecnico || '',
         item.status,
+      ]);
+      break;
+
+    case 'coletas_sem_pendencia':
+      headers = ['Condomínio', 'UF', 'Técnico', 'Data Coleta', 'Observação'];
+      rows = dados.map((item) => [
+        item.condominio || '',
+        item.uf || '',
+        item.tecnico || '',
+        item.data_coleta ? format(new Date(item.data_coleta + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '',
+        item.observacao || '',
       ]);
       break;
   }
