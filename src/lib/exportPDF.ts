@@ -29,7 +29,7 @@ export function exportarPDF(
     } else {
       doc.text('Todas as UFs', 14, 28);
     }
-  } else if (tipoRelatorio === 'condominios_competencia' && filtros.competencia) {
+  } else if ((tipoRelatorio === 'condominios_competencia' || tipoRelatorio === 'coletas_sem_pendencia') && filtros.competencia) {
     const [ano, mes] = filtros.competencia.split('-');
     doc.text(`Competência: ${mes}/${ano}`, 14, 28);
   } else {
