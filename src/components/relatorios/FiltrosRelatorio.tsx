@@ -85,6 +85,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioServicos(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf') {
         dados = await gerarRelatorioCadastroCondominios(filtros);
+      } else if (tipoRelatorio === 'coletas_sem_pendencia') {
+        dados = await gerarRelatorioColetasSemPendencia(filtros);
       }
 
       if (dados.length === 0) {
