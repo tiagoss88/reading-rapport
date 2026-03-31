@@ -40,6 +40,16 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead>Status</TableHead>
           </>
         );
+      case 'coletas_sem_pendencia':
+        return (
+          <>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>UF</TableHead>
+            <TableHead>Técnico</TableHead>
+            <TableHead>Data Coleta</TableHead>
+            <TableHead>Observação</TableHead>
+          </>
+        );
       default:
         return <TableHead>Dados</TableHead>;
     }
