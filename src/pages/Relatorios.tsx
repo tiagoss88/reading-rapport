@@ -7,7 +7,7 @@ import FiltrosRelatorio from '@/components/relatorios/FiltrosRelatorio';
 import TabelaRelatorio from '@/components/relatorios/TabelaRelatorio';
 import ExportacaoButtons from '@/components/relatorios/ExportacaoButtons';
 
-export type TipoRelatorio = 'condominios_competencia' | 'rdo_servicos' | 'cadastro_condominios_uf';
+export type TipoRelatorio = 'condominios_competencia' | 'rdo_servicos' | 'cadastro_condominios_uf' | 'coletas_sem_pendencia';
 
 export interface FiltrosRelatorioType {
   competencia?: string; // formato YYYY-MM

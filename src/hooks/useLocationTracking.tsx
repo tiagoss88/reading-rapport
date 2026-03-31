@@ -9,7 +9,7 @@ export const useLocationTracking = (enabled: boolean = true) => {
   const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSendingRef = useRef(false);
 
   const getAddressFromCoordinates = async (lat: number, lng: number): Promise<string | null> => {
