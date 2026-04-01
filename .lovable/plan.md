@@ -1,16 +1,19 @@
 
 
-## Simplificar cards de serviços no coletor
+## Corrigir datas no coletor (fuso horário)
 
-### Alteração: `src/pages/ColetorServicosTerceirizados.tsx` (linhas 438-471)
+Mesmo problema já corrigido na tabela de Serviços: `new Date("2026-04-01")` é interpretado como UTC meia-noite, que no Brasil (UTC-3) vira 31/03.
 
-Reduzir o conteúdo de cada card na lista para exibir apenas:
-- **Linha 1:** Tipo do serviço (título, ex: "RELIGAÇÃO") + badge de status
-- **Linha 2:** Nome do condomínio + bloco e unidade na mesma linha (ex: "Monte Carlo - Bloco A, Apto 101")
+### Correção: adicionar `+ 'T00:00:00'` em 3 pontos
 
-Remover do card:
-- Badge de UF
-- Linha do nome do morador (`morador_nome`)
+**1. `src/pages/ColetorServicosTerceirizados.tsx` (linha 321)**
+- Detalhe do serviço: `new Date(selectedServico.data_agendamento + 'T00:00:00')`
 
-O card ficará mais compacto, com apenas 2 linhas de informação. A seta (`ChevronRight`) permanece para indicar que é clicável. Padding `p-4` mantido conforme design system.
+**2. `src/pages/ColetorServicos.tsx` (linha 315)**
+- Lista de serviços internos: `new Date(servico.data_agendamento + 'T00:00:00')`
+
+**3. `src/pages/ColetorServicos.tsx` (linhas 160-161)**
+- Ordenação: `new Date(a.data_agendamento + 'T00:00:00' ...)` e `new Date(b.data_agendamento + 'T00:00:00' ...)`
+
+Correção pontual em 2 arquivos, 4 linhas.
 
