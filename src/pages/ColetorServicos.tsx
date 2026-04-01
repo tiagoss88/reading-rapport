@@ -157,8 +157,8 @@ export default function ColetorServicos() {
       // Combinar e ordenar todos os serviços
       const todosServicos = [...servicosInternosFormatados, ...servicosExternosFormatados]
       todosServicos.sort((a, b) => {
-        const dateA = new Date(`${a.data_agendamento} ${a.hora_agendamento || '00:00'}`)
-        const dateB = new Date(`${b.data_agendamento} ${b.hora_agendamento || '00:00'}`)
+        const dateA = new Date(`${a.data_agendamento}T${a.hora_agendamento || '00:00'}`)
+        const dateB = new Date(`${b.data_agendamento}T${b.hora_agendamento || '00:00'}`)
         return dateA.getTime() - dateB.getTime()
       })
 
@@ -312,7 +312,7 @@ export default function ColetorServicos() {
                   {/* Data e Hora */}
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2" />
-                    <span>{format(new Date(servico.data_agendamento), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                    <span>{format(new Date(servico.data_agendamento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}</span>
                     {servico.hora_agendamento && (
                       <>
                         <Clock className="w-4 h-4 ml-4 mr-2" />

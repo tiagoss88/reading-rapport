@@ -318,7 +318,7 @@ export default function ColetorServicosTerceirizados() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">Agendamento</p>
                     <p className="font-medium">
-                      {format(new Date(selectedServico.data_agendamento), "dd/MM/yyyy", { locale: ptBR })}
+                      {format(new Date(selectedServico.data_agendamento + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
                       {selectedServico.turno && ` - ${getTurnoLabel(selectedServico.turno)}`}
                     </p>
                   </div>
