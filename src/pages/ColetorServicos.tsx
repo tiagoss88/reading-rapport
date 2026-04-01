@@ -312,7 +312,7 @@ export default function ColetorServicos() {
                   {/* Data e Hora */}
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2" />
-                    <span>{format(new Date(servico.data_agendamento), 'dd/MM/yyyy', { locale: ptBR })}</span>
+                    <span>{format(new Date(servico.data_agendamento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}</span>
                     {servico.hora_agendamento && (
                       <>
                         <Clock className="w-4 h-4 ml-4 mr-2" />
