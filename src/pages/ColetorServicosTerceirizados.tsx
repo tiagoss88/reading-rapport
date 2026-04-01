@@ -443,27 +443,20 @@ export default function ColetorServicosTerceirizados() {
           >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex-1 min-w-0 space-y-0.5">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-primary truncate">
                       {servico.tipo_servico.toUpperCase()}
                     </p>
                     {getStatusBadge(servico.status_atendimento)}
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm truncate">{servico.condominio_nome_original}</p>
-                    {servico.uf && <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{servico.uf}</Badge>}
-                  </div>
-                  {(servico.bloco || servico.apartamento) && (
-                    <p className="text-xs text-muted-foreground">
-                      {servico.bloco && `Bloco ${servico.bloco}`}
-                      {servico.bloco && servico.apartamento && ' - '}
-                      {servico.apartamento && `Apto ${servico.apartamento}`}
-                    </p>
-                  )}
-                  {servico.morador_nome && (
-                    <p className="text-sm text-muted-foreground truncate">{servico.morador_nome}</p>
-                  )}
+                  <p className="text-sm text-muted-foreground truncate">
+                    {servico.condominio_nome_original}
+                    {(servico.bloco || servico.apartamento) && ' - '}
+                    {servico.bloco && `Bloco ${servico.bloco}`}
+                    {servico.bloco && servico.apartamento && ', '}
+                    {servico.apartamento && `Apto ${servico.apartamento}`}
+                  </p>
                 </div>
                 <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
               </div>
