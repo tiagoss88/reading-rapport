@@ -157,8 +157,8 @@ export default function ColetorServicos() {
       // Combinar e ordenar todos os serviços
       const todosServicos = [...servicosInternosFormatados, ...servicosExternosFormatados]
       todosServicos.sort((a, b) => {
-        const dateA = new Date(`${a.data_agendamento} ${a.hora_agendamento || '00:00'}`)
-        const dateB = new Date(`${b.data_agendamento} ${b.hora_agendamento || '00:00'}`)
+        const dateA = new Date(`${a.data_agendamento}T${a.hora_agendamento || '00:00'}`)
+        const dateB = new Date(`${b.data_agendamento}T${b.hora_agendamento || '00:00'}`)
         return dateA.getTime() - dateB.getTime()
       })
 
