@@ -60,6 +60,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
 
   // Signature canvas
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
 
