@@ -187,12 +187,22 @@ export default function ColetorServicosTerceirizados() {
     )
   }
 
-  const handleConfirmExecutar = () => {
-    if (selectedServico) {
-      updateStatus(selectedServico.id, 'executado')
-    }
-    setShowConfirmDialog(false)
+  // Show execution screen
+  if (showExecucao && selectedServico && operadorId) {
+    return (
+      <ExecucaoServicoTerceirizado
+        servico={selectedServico}
+        operadorId={operadorId}
+        onSuccess={() => {
+          setShowExecucao(false)
+          setSelectedServico(null)
+          fetchServicos()
+        }}
+        onCancel={() => setShowExecucao(false)}
+      />
+    )
   }
+
 
   if (!operadorId && !loading) {
     return (
