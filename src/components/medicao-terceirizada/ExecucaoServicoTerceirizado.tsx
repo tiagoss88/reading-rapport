@@ -5,7 +5,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Camera, Upload, X, Loader2, CheckCircle, Building2, User, Phone } from 'lucide-react'
+import { ArrowLeft, Camera, X, Loader2, CheckCircle, Building2, User, Phone, Mail, MapPin, FileText } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { smartCompress } from '@/lib/imageCompression'
@@ -208,11 +209,12 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
           <CardHeader className="pb-2">
             <CardTitle className="text-base text-primary">Resumo da Atividade</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            <p className="font-semibold">{servico.tipo_servico.toUpperCase()}</p>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Building2 className="w-4 h-4 shrink-0" />
-              <span>{servico.condominio_nome_original}</span>
+          <CardContent className="space-y-3 text-sm">
+            <Badge className="text-xs">{servico.tipo_servico.toUpperCase()}</Badge>
+
+            <div className="flex items-center gap-2 text-foreground">
+              <Building2 className="w-4 h-4 shrink-0 text-primary" />
+              <span className="font-medium">{servico.condominio_nome_original}</span>
             </div>
             {(servico.bloco || servico.apartamento) && (
               <p className="text-muted-foreground pl-6">
@@ -221,16 +223,39 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
                 {servico.apartamento && `Apto ${servico.apartamento}`}
               </p>
             )}
+
+            {servico.uf && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="w-4 h-4 shrink-0 text-primary" />
+                <span>{servico.uf}</span>
+              </div>
+            )}
+
             {servico.morador_nome && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <User className="w-4 h-4 shrink-0" />
+                <User className="w-4 h-4 shrink-0 text-primary" />
                 <span>{servico.morador_nome}</span>
               </div>
             )}
+
             {servico.telefone && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="w-4 h-4 shrink-0" />
-                <a href={`tel:${servico.telefone}`} className="text-primary">{servico.telefone}</a>
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 shrink-0 text-primary" />
+                <a href={`tel:${servico.telefone}`} className="text-primary font-medium hover:underline">{servico.telefone}</a>
+              </div>
+            )}
+
+            {servico.email && (
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 shrink-0 text-primary" />
+                <a href={`mailto:${servico.email}`} className="text-primary font-medium hover:underline">{servico.email}</a>
+              </div>
+            )}
+
+            {servico.observacao && (
+              <div className="flex items-start gap-2 text-muted-foreground">
+                <FileText className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+                <span>{servico.observacao}</span>
               </div>
             )}
           </CardContent>
