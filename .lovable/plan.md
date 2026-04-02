@@ -1,31 +1,69 @@
 
 
-## Corrigir "Erro ao salvar" — colunas ausentes no banco de produção
+## Gerar PDF "Registro de Atendimento" a partir dos detalhes da execução
 
-### Problema
+### O que muda
 
-O app conecta ao banco de produção (`mxoflglqsxupkzrbodkm`) via `vite.config.ts`. As colunas `assinatura_url`, `forma_pagamento`, `valor_servico` e `cpf_cnpj` existem no backend do Lovable Cloud, mas **não existem** no banco de produção. O erro confirma: `Could not find the 'assinatura_url' column`.
+Adicionar um botão **"Gerar Relatório PDF"** no `DetalhesExecucaoDialog`. Ao clicar, gera um PDF no estilo do documento de referência (Registro de Atendimento), com os dados do serviço executado, e faz download automático.
 
-### Solução
+### Arquivos impactados
 
-Você precisa executar o seguinte SQL no **SQL Editor do seu Supabase de produção** (projeto `mxoflglqsxupkzrbodkm`):
+**1. `src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`**
 
-```sql
-ALTER TABLE public.servicos_nacional_gas
-ADD COLUMN IF NOT EXISTS forma_pagamento TEXT,
-ADD COLUMN IF NOT EXISTS valor_servico NUMERIC,
-ADD COLUMN IF NOT EXISTS cpf_cnpj TEXT,
-ADD COLUMN IF NOT EXISTS assinatura_url TEXT;
+- Ampliar a query para trazer mais campos do serviço (endereço do empreendimento, dados do cliente/morador, UF, etc.)
+- Adicionar botão "Gerar Relatório" com ícone `Download` no header do dialog
+- Chamar função de geração de PDF ao clicar
+
+**2. Novo: `src/lib/exportRegistroAtendimento.ts`**
+
+Função que recebe os dados do serviço e gera um PDF usando `jsPDF` (já instalado no projeto):
+
+- **Cabeçalho**: "REGISTRO DE ATENDIMENTO" com dados da empresa
+- **Dados do consumidor**: nome do morador, condomínio, endereço, bloco/apartamento
+- **Dados do serviço**: tipo de serviço, data de agendamento, data de execução, turno, status
+- **Técnico responsável**: nome do operador
+- **Observações**: texto do técnico
+- **Forma de pagamento e valor**
+- **CPF/CNPJ**
+- **Assinatura do cliente**: imagem embutida no PDF (carregada via fetch da URL)
+- **Rodapé**: data/hora de geração
+
+### Layout do PDF
+
+```text
+┌──────────────────────────────────────┐
+│       REGISTRO DE ATENDIMENTO        │
+├──────────────────────────────────────┤
+│ Consumidor: [morador_nome]           │
+│ Ponto de Consumo: [condomínio]       │
+│ Endereço: [endereço empreendimento]  │
+│ Bloco: [bloco]  Apt: [apartamento]   │
+│ UF: [uf]                             │
+├──────────────────────────────────────┤
+│ Tipo de Serviço: [tipo_servico]      │
+│ Data Agendamento: [data]             │
+│ Turno: [turno]                       │
+│ Técnico: [nome operador]             │
+│ Status: [status_atendimento]         │
+├──────────────────────────────────────┤
+│ OBSERVAÇÕES                          │
+│ [texto observação]                   │
+├──────────────────────────────────────┤
+│ Forma Pagamento: [forma_pagamento]   │
+│ Valor: R$ [valor_servico]            │
+│ CPF/CNPJ: [cpf_cnpj]                │
+├──────────────────────────────────────┤
+│ Assinatura do Cliente:               │
+│ [imagem assinatura]                  │
+│                                      │
+│ Data: [data geração]                 │
+└──────────────────────────────────────┘
 ```
 
-### Como acessar
+### Detalhes técnicos
 
-1. Acesse [supabase.com/dashboard](https://supabase.com/dashboard)
-2. Selecione o projeto de produção
-3. Vá em **SQL Editor** no menu lateral
-4. Cole e execute o SQL acima
-
-### Nenhuma alteração de código necessária
-
-O código já está correto. O problema é exclusivamente de estrutura do banco de produção.
+- Usa `jsPDF` + `jspdf-autotable` já disponíveis no projeto
+- A assinatura é carregada como imagem via `fetch` da URL e convertida para base64 antes de inserir no PDF
+- Fotos do registro fotográfico serão listadas como links no PDF (não embutidas, para manter o arquivo leve)
+- Download automático com nome: `registro_atendimento_[data]_[condominio].pdf`
 
