@@ -9,16 +9,7 @@ import { ArrowLeft, User, Building2, Calendar, Clock, CheckCircle, Loader2, Aler
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import ExecucaoServicoTerceirizado from '@/components/medicao-terceirizada/ExecucaoServicoTerceirizado'
 
 interface ServicoTerceirizado {
   id: string
@@ -48,9 +39,9 @@ export default function ColetorServicosTerceirizados() {
   const [loading, setLoading] = useState(true)
   const [selectedUF, setSelectedUF] = useState<'todos' | 'BA' | 'CE'>('todos')
   const [operadorId, setOperadorId] = useState<string | null>(null)
-  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  
   const [selectedServico, setSelectedServico] = useState<ServicoTerceirizado | null>(null)
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showExecucao, setShowExecucao] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -118,41 +109,6 @@ export default function ColetorServicosTerceirizados() {
     }
   }
 
-  const updateStatus = async (servicoId: string, novoStatus: string) => {
-    try {
-      setUpdatingId(servicoId)
-      const turnoAtual = new Date().getHours() < 12 ? 'manha' : 'tarde'
-      const { error } = await supabase
-        .from('servicos_nacional_gas')
-        .update({
-          status_atendimento: novoStatus,
-          ...(novoStatus === 'executado' && {
-            tecnico_id: operadorId,
-            turno: turnoAtual
-          })
-        })
-        .eq('id', servicoId)
-
-      if (error) throw error
-
-      toast({
-        title: 'Status atualizado',
-        description: `Serviço marcado como ${novoStatus === 'executado' ? 'executado' : novoStatus}.`
-      })
-
-      setSelectedServico(null)
-      fetchServicos()
-    } catch (error) {
-      console.error('Erro ao atualizar status:', error)
-      toast({
-        title: 'Erro ao atualizar',
-        description: 'Não foi possível atualizar o status do serviço.',
-        variant: 'destructive'
-      })
-    } finally {
-      setUpdatingId(null)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -196,12 +152,22 @@ export default function ColetorServicosTerceirizados() {
     )
   }
 
-  const handleConfirmExecutar = () => {
-    if (selectedServico) {
-      updateStatus(selectedServico.id, 'executado')
-    }
-    setShowConfirmDialog(false)
+  // Show execution screen
+  if (showExecucao && selectedServico && operadorId) {
+    return (
+      <ExecucaoServicoTerceirizado
+        servico={selectedServico}
+        operadorId={operadorId}
+        onSuccess={() => {
+          setShowExecucao(false)
+          setSelectedServico(null)
+          fetchServicos()
+        }}
+        onCancel={() => setShowExecucao(false)}
+      />
+    )
   }
+
 
   if (!operadorId && !loading) {
     return (
@@ -340,38 +306,15 @@ export default function ColetorServicosTerceirizados() {
               <div className="pt-4">
                 <Button
                   className="w-full"
-                  onClick={() => setShowConfirmDialog(true)}
-                  disabled={updatingId === selectedServico.id}
+                  onClick={() => setShowExecucao(true)}
                 >
-                  {updatingId === selectedServico.id ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                  )}
-                  Marcar como Executado
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Iniciar Atividade
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Confirmation Dialog */}
-        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar execução</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja marcar este serviço como executado? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmExecutar}>
-                Confirmar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     )
   }
