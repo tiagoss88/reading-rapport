@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays, Plus, ChevronLeft, ChevronRight, Eye } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -18,6 +18,7 @@ import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHis
 import AgendaSemanal from '@/components/medicao-terceirizada/AgendaSemanal'
 import NovoServicoNacionalGasDialog from '@/components/medicao-terceirizada/NovoServicoNacionalGasDialog'
 import PainelUrgencias, { getServicosUrgentes } from '@/components/medicao-terceirizada/PainelUrgencias'
+import DetalhesExecucaoDialog from '@/components/medicao-terceirizada/DetalhesExecucaoDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
@@ -73,6 +74,8 @@ export default function ServicosNacionalGas() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [detalhesDialogOpen, setDetalhesDialogOpen] = useState(false)
+  const [detalhesServicoId, setDetalhesServicoId] = useState<string | null>(null)
   const [selectedServico, setSelectedServico] = useState<ServicoNacionalGas | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
@@ -387,6 +390,11 @@ export default function ServicosNacionalGas() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
+                                  {servico.status_atendimento === 'executado' && (
+                                    <Button variant="ghost" size="icon" onClick={() => { setDetalhesServicoId(servico.id); setDetalhesDialogOpen(true) }} title="Ver detalhes da execução">
+                                      <Eye className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  )}
                                   <Button variant="ghost" size="icon" onClick={() => handleEdit(servico)}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
@@ -495,6 +503,11 @@ export default function ServicosNacionalGas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <DetalhesExecucaoDialog
+        open={detalhesDialogOpen}
+        onOpenChange={setDetalhesDialogOpen}
+        servicoId={detalhesServicoId}
+      />
     </Layout>
   )
 }
