@@ -698,14 +698,17 @@ export type Database = {
       servicos_nacional_gas: {
         Row: {
           apartamento: string | null
+          assinatura_url: string | null
           bloco: string | null
           condominio_nome_original: string
+          cpf_cnpj: string | null
           created_at: string
           data_agendamento: string | null
           data_solicitacao: string | null
           email: string | null
           empreendimento_id: string | null
           fonte: string | null
+          forma_pagamento: string | null
           id: string
           morador_nome: string | null
           observacao: string | null
@@ -716,17 +719,21 @@ export type Database = {
           turno: string | null
           uf: string
           updated_at: string
+          valor_servico: number | null
         }
         Insert: {
           apartamento?: string | null
+          assinatura_url?: string | null
           bloco?: string | null
           condominio_nome_original: string
+          cpf_cnpj?: string | null
           created_at?: string
           data_agendamento?: string | null
           data_solicitacao?: string | null
           email?: string | null
           empreendimento_id?: string | null
           fonte?: string | null
+          forma_pagamento?: string | null
           id?: string
           morador_nome?: string | null
           observacao?: string | null
@@ -737,17 +744,21 @@ export type Database = {
           turno?: string | null
           uf: string
           updated_at?: string
+          valor_servico?: number | null
         }
         Update: {
           apartamento?: string | null
+          assinatura_url?: string | null
           bloco?: string | null
           condominio_nome_original?: string
+          cpf_cnpj?: string | null
           created_at?: string
           data_agendamento?: string | null
           data_solicitacao?: string | null
           email?: string | null
           empreendimento_id?: string | null
           fonte?: string | null
+          forma_pagamento?: string | null
           id?: string
           morador_nome?: string | null
           observacao?: string | null
@@ -758,6 +769,7 @@ export type Database = {
           turno?: string | null
           uf?: string
           updated_at?: string
+          valor_servico?: number | null
         }
         Relationships: [
           {
