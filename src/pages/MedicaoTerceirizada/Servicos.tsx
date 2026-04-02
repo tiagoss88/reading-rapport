@@ -503,6 +503,11 @@ export default function ServicosNacionalGas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <DetalhesExecucaoDialog
+        open={detalhesDialogOpen}
+        onOpenChange={setDetalhesDialogOpen}
+        servicoId={detalhesServicoId}
+      />
     </Layout>
   )
 }
