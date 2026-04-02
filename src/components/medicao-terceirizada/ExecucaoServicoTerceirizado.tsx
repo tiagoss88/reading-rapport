@@ -199,9 +199,16 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
 
       toast({ title: 'Serviço concluído', description: 'Registro salvo com sucesso.' })
       onSuccess()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error)
-      toast({ title: 'Erro ao salvar', description: 'Tente novamente.', variant: 'destructive' })
+      const msg = error?.message || error?.details || 'Erro desconhecido'
+      toast({ 
+        title: 'Erro ao salvar serviço', 
+        description: msg.includes('column') 
+          ? 'Estrutura do banco desatualizada. Contate o administrador para aplicar as migrations pendentes.'
+          : `Detalhes: ${msg}`, 
+        variant: 'destructive' 
+      })
     } finally {
       setSaving(false)
     }
