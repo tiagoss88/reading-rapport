@@ -253,20 +253,12 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         <Card>
           <CardContent className="pt-4 space-y-3">
             <Label>Registro Fotográfico</Label>
-            <div className="flex gap-2">
-              <label className="flex-1">
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
-                <Button variant="outline" className="w-full" asChild>
-                  <span><Camera className="w-4 h-4 mr-2" />Câmera</span>
-                </Button>
-              </label>
-              <label className="flex-1">
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
-                <Button variant="outline" className="w-full" asChild>
-                  <span><Upload className="w-4 h-4 mr-2" />Galeria</span>
-                </Button>
-              </label>
-            </div>
+            <label className="block">
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+              <Button variant="outline" className="w-full" asChild>
+                <span><Camera className="w-4 h-4 mr-2" />Adicionar Foto</span>
+              </Button>
+            </label>
             {fotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {fotos.map((foto, i) => (
