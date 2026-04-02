@@ -74,6 +74,8 @@ export default function ServicosNacionalGas() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [historicoDialogOpen, setHistoricoDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [detalhesDialogOpen, setDetalhesDialogOpen] = useState(false)
+  const [detalhesServicoId, setDetalhesServicoId] = useState<string | null>(null)
   const [selectedServico, setSelectedServico] = useState<ServicoNacionalGas | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
