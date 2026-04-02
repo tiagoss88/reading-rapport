@@ -60,6 +60,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
 
   // Signature canvas
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
 
@@ -291,12 +292,10 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         <Card>
           <CardContent className="pt-4 space-y-3">
             <Label>Registro Fotográfico</Label>
-            <label className="block">
-              <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
-              <Button variant="outline" className="w-full" asChild>
-                <span><Camera className="w-4 h-4 mr-2" />Adicionar Foto</span>
-              </Button>
-            </label>
+            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+            <Button variant="outline" className="w-full" onClick={() => fileRef.current?.click()}>
+              <Camera className="w-4 h-4 mr-2" />Adicionar Foto
+            </Button>
             {fotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {fotos.map((foto, i) => (
