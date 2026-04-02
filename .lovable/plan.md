@@ -1,15 +1,27 @@
 
 
-## Unificar botões de registro fotográfico
+## Melhorar o Resumo da Atividade na tela de execução
 
 ### Alteração: `src/components/medicao-terceirizada/ExecucaoServicoTerceirizado.tsx`
 
-Substituir os dois botões separados (Câmera e Galeria) por um único botão "Adicionar Foto". O input usará `accept="image/*"` sem o atributo `capture`, o que faz o sistema operacional do celular oferecer automaticamente as duas opções (câmera ou galeria) ao usuário. Também mantém `multiple` para permitir seleção de várias fotos de uma vez.
+**O que muda no card "Resumo da Atividade" (linhas 206-237):**
 
-### Detalhes técnicos
+Exibir **todos** os dados disponíveis do serviço com ícones interativos:
 
-- Remover os dois `<label>` com inputs separados (câmera com `capture="environment"` e galeria com `multiple`)
-- Criar um único `<label>` com `<input type="file" accept="image/*" multiple>` (sem `capture`)
-- Botão com ícone de câmera e texto "Adicionar Foto"
-- Largura total (`w-full`) para manter visual limpo
+1. **Tipo de serviço** — Badge colorido com o tipo (ex: "VISITA TÉCNICA")
+2. **Condomínio** — ícone `Building2`, nome do condomínio
+3. **Bloco/Apto** — indentado abaixo do condomínio (já existe, manter)
+4. **UF** — ícone `MapPin`, estado
+5. **Morador** — ícone `User`, nome do cliente
+6. **Telefone** — ícone `Phone`, número clicável (`tel:`) com cor primária
+7. **Email** — ícone `Mail`, endereço clicável (`mailto:`) com cor primária
+8. **Observação original** — ícone `FileText`, exibir `servico.observacao` se existir (observação que veio da solicitação, não a do técnico)
+
+Todos os campos condicionais (só aparecem se o dado existir). Ícones clicáveis no telefone e email para facilitar a interação do operador.
+
+### Imports a adicionar
+- `Mail`, `MapPin`, `FileText` do lucide-react (alguns já importados)
+
+### Resultado visual
+Card compacto com todas as informações organizadas verticalmente, cada linha com ícone + dado, telefone e email clicáveis. Semelhante ao screenshot de referência mas com email e UF adicionados.
 
