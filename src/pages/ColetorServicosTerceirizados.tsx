@@ -9,16 +9,7 @@ import { ArrowLeft, User, Building2, Calendar, Clock, CheckCircle, Loader2, Aler
 import { useToast } from '@/hooks/use-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import ExecucaoServicoTerceirizado from '@/components/medicao-terceirizada/ExecucaoServicoTerceirizado'
 
 interface ServicoTerceirizado {
   id: string
