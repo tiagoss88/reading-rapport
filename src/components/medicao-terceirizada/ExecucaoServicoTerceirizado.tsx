@@ -36,12 +36,25 @@ interface FotoItem {
   preview: string
 }
 
+const VALORES_PADRAO: Record<string, string> = {
+  'religacao': '61.15',
+  'religacao automatica': '61.15',
+  'religacao emergencial': '88.94',
+  'desligamento': '36.55',
+  'visita tecnica': '88.94',
+}
+
+function getValorPadrao(tipo: string): string {
+  const normalizado = tipo.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  return VALORES_PADRAO[normalizado] || ''
+}
+
 export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuccess, onCancel }: Props) {
   const { toast } = useToast()
   const [observacao, setObservacao] = useState('')
   const [fotos, setFotos] = useState<FotoItem[]>([])
   const [formaPagamento, setFormaPagamento] = useState('')
-  const [valorServico, setValorServico] = useState('')
+  const [valorServico, setValorServico] = useState(() => getValorPadrao(servico.tipo_servico))
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [saving, setSaving] = useState(false)
 
