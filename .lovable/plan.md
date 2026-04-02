@@ -1,18 +1,20 @@
+## Preencher valor do serviço automaticamente por tipo
 
+### Alteração: `src/components/medicao-terceirizada/ExecucaoServicoTerceirizado.tsx`
 
-## Remover link mailto do email
+Adicionar um mapeamento de valores fixos por tipo de serviço e pré-preencher o campo "Valor do Serviço" ao carregar a tela de execução:
 
-### Alteração: `src/components/medicao-terceirizada/ExecucaoServicoTerceirizado.tsx` (linha 251)
+**Mapeamento:**
 
-Substituir o `<a href="mailto:...">` por um `<span>` simples, mantendo o ícone e o texto do email mas sem ser clicável:
+- `religacao` / `religacao automatica` → R$ 61,15  
+`religacao` Emergencial  → R$ 88,94
+- `desligamento` → R$ 36,55
+- `visita tecnica` → R$ 88,94
 
-```tsx
-// De:
-<a href={`mailto:${servico.email}`} className="text-primary font-medium hover:underline">{servico.email}</a>
+**Implementação:**
 
-// Para:
-<span className="text-sm">{servico.email}</span>
-```
+1. Criar constante `VALORES_SERVICO` com o mapeamento tipo → valor
+2. No `useState` de `valorServico`, inicializar com o valor correspondente ao `servico.tipo_servico` (comparação case-insensitive, normalizando acentos)
+3. O operador ainda poderá editar o valor manualmente se necessário
 
-Alteração de 1 linha.
-
+Alteração pontual — apenas inicialização do estado.
