@@ -41,7 +41,7 @@ export default function ColetorServicosTerceirizados() {
   const [operadorId, setOperadorId] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [selectedServico, setSelectedServico] = useState<ServicoTerceirizado | null>(null)
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [showExecucao, setShowExecucao] = useState(false)
 
   useEffect(() => {
     if (user) {
