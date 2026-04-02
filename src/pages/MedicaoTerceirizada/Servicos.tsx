@@ -390,17 +390,17 @@ export default function ServicosNacionalGas() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
-                                  {servico.status_atendimento === 'executado' && (
-                                    <Button variant="ghost" size="icon" onClick={() => { setDetalhesServicoId(servico.id); setDetalhesDialogOpen(true) }} title="Ver detalhes da execução">
-                                      <Eye className="h-4 w-4 text-primary" />
-                                    </Button>
-                                  )}
                                   <Button variant="ghost" size="icon" onClick={() => handleEdit(servico)}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                   <Button variant="ghost" size="icon" onClick={() => handleHistorico(servico)}>
                                     <History className="h-4 w-4" />
                                   </Button>
+                                  {servico.status_atendimento === 'executado' && (
+                                    <Button variant="ghost" size="icon" onClick={() => { setDetalhesServicoId(servico.id); setDetalhesDialogOpen(true) }} title="Ver detalhes da execução">
+                                      <Eye className="h-4 w-4 text-primary" />
+                                    </Button>
+                                  )}
                                 </div>
                               </TableCell>
                             </TableRow>
