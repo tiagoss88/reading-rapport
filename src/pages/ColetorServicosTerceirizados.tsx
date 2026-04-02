@@ -341,38 +341,15 @@ export default function ColetorServicosTerceirizados() {
               <div className="pt-4">
                 <Button
                   className="w-full"
-                  onClick={() => setShowConfirmDialog(true)}
-                  disabled={updatingId === selectedServico.id}
+                  onClick={() => setShowExecucao(true)}
                 >
-                  {updatingId === selectedServico.id ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                  )}
-                  Marcar como Executado
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Iniciar Atividade
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Confirmation Dialog */}
-        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar execução</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza que deseja marcar este serviço como executado? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmExecutar}>
-                Confirmar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     )
   }
