@@ -248,7 +248,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
             {servico.email && (
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 shrink-0 text-primary" />
-                <a href={`mailto:${servico.email}`} className="text-primary font-medium hover:underline">{servico.email}</a>
+                <span className="text-muted-foreground">{servico.email}</span>
               </div>
             )}
 
