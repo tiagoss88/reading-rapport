@@ -18,6 +18,7 @@ import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHis
 import AgendaSemanal from '@/components/medicao-terceirizada/AgendaSemanal'
 import NovoServicoNacionalGasDialog from '@/components/medicao-terceirizada/NovoServicoNacionalGasDialog'
 import PainelUrgencias, { getServicosUrgentes } from '@/components/medicao-terceirizada/PainelUrgencias'
+import DetalhesExecucaoDialog from '@/components/medicao-terceirizada/DetalhesExecucaoDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
