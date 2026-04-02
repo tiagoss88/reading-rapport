@@ -185,7 +185,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         turno: turnoAtual,
         observacao: obsText || null,
         forma_pagamento: formaPagamento || null,
-        valor_servico: valorServico ? parseFloat(valorServico) : null,
+        valor_servico: valorServico ? parseFloat(valorServico.replace(',', '.')) : null,
         cpf_cnpj: cpfCnpj || null,
         assinatura_url: assinaturaUrl,
       }
