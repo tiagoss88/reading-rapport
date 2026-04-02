@@ -1,69 +1,38 @@
 
 
-## Gerar PDF "Registro de Atendimento" a partir dos detalhes da execução
+## Redesign do DetalhesExecucaoDialog — exibição completa e profissional
 
 ### O que muda
 
-Adicionar um botão **"Gerar Relatório PDF"** no `DetalhesExecucaoDialog`. Ao clicar, gera um PDF no estilo do documento de referência (Registro de Atendimento), com os dados do serviço executado, e faz download automático.
+Reorganizar o dialog para mostrar **todos os dados do serviço** (não apenas os dados de execução), divididos em seções visuais claras com cards, separadores e ícones. O layout atual mostra apenas observação, fotos, pagamento e assinatura. O novo layout terá:
 
-### Arquivos impactados
+### Estrutura das seções
 
-**1. `src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`**
+1. **Cabeçalho** — Badge com tipo de serviço + status colorido
+2. **Dados do Local** — Condomínio, endereço, bloco/apto, UF (ícones: `Building2`, `MapPin`, `Home`)
+3. **Dados do Cliente** — Nome do morador, telefone, email (ícones: `User`, `Phone`, `Mail`)
+4. **Dados do Serviço** — Data agendamento, turno, técnico responsável (ícones: `Calendar`, `Clock`, `Wrench`)
+5. **Execução do Técnico** — Observação do técnico (ícone: `FileText`)
+6. **Registro Fotográfico** — Grid de fotos (ícone: `Camera`)
+7. **Dados Financeiros** — Forma de pagamento (badge), valor, CPF/CNPJ (ícones: `CreditCard`, `DollarSign`, `User`)
+8. **Assinatura do Cliente** — Imagem da assinatura (ícone: `PenTool`)
 
-- Ampliar a query para trazer mais campos do serviço (endereço do empreendimento, dados do cliente/morador, UF, etc.)
-- Adicionar botão "Gerar Relatório" com ícone `Download` no header do dialog
-- Chamar função de geração de PDF ao clicar
+### Arquivo impactado
 
-**2. Novo: `src/lib/exportRegistroAtendimento.ts`**
+**`src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`**
 
-Função que recebe os dados do serviço e gera um PDF usando `jsPDF` (já instalado no projeto):
-
-- **Cabeçalho**: "REGISTRO DE ATENDIMENTO" com dados da empresa
-- **Dados do consumidor**: nome do morador, condomínio, endereço, bloco/apartamento
-- **Dados do serviço**: tipo de serviço, data de agendamento, data de execução, turno, status
-- **Técnico responsável**: nome do operador
-- **Observações**: texto do técnico
-- **Forma de pagamento e valor**
-- **CPF/CNPJ**
-- **Assinatura do cliente**: imagem embutida no PDF (carregada via fetch da URL)
-- **Rodapé**: data/hora de geração
-
-### Layout do PDF
-
-```text
-┌──────────────────────────────────────┐
-│       REGISTRO DE ATENDIMENTO        │
-├──────────────────────────────────────┤
-│ Consumidor: [morador_nome]           │
-│ Ponto de Consumo: [condomínio]       │
-│ Endereço: [endereço empreendimento]  │
-│ Bloco: [bloco]  Apt: [apartamento]   │
-│ UF: [uf]                             │
-├──────────────────────────────────────┤
-│ Tipo de Serviço: [tipo_servico]      │
-│ Data Agendamento: [data]             │
-│ Turno: [turno]                       │
-│ Técnico: [nome operador]             │
-│ Status: [status_atendimento]         │
-├──────────────────────────────────────┤
-│ OBSERVAÇÕES                          │
-│ [texto observação]                   │
-├──────────────────────────────────────┤
-│ Forma Pagamento: [forma_pagamento]   │
-│ Valor: R$ [valor_servico]            │
-│ CPF/CNPJ: [cpf_cnpj]                │
-├──────────────────────────────────────┤
-│ Assinatura do Cliente:               │
-│ [imagem assinatura]                  │
-│                                      │
-│ Data: [data geração]                 │
-└──────────────────────────────────────┘
-```
+- Manter a query existente (já traz todos os campos necessários via `*` + joins)
+- Redesenhar o conteúdo do ScrollArea com as 8 seções acima
+- Cada seção usa um card leve (`bg-muted/50 rounded-lg p-3`) com título em negrito + ícone
+- Dados do local e cliente em linhas compactas com ícones alinhados
+- Status com badge colorido (verde=executado, amarelo=pendente, etc.)
+- Separadores visuais (`Separator`) entre grupos de seções
+- Manter o botão "Gerar PDF" e toda a lógica existente
 
 ### Detalhes técnicos
 
-- Usa `jsPDF` + `jspdf-autotable` já disponíveis no projeto
-- A assinatura é carregada como imagem via `fetch` da URL e convertida para base64 antes de inserir no PDF
-- Fotos do registro fotográfico serão listadas como links no PDF (não embutidas, para manter o arquivo leve)
-- Download automático com nome: `registro_atendimento_[data]_[condominio].pdf`
+- Imports adicionais: `Building2`, `MapPin`, `Home`, `Phone`, `Mail`, `Calendar`, `Clock`, `Wrench`, `Separator` 
+- Usar `format` de `date-fns` para formatar datas em dd/MM/yyyy
+- Campos condicionais — só renderizam se o dado existir
+- Componente `Section` existente será reutilizado com leve ajuste visual (fundo sutil)
 
