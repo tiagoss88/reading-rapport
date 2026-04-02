@@ -1,11 +1,15 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { 
-  FileText, Camera, CreditCard, DollarSign, User, PenTool, Loader2 
+  FileText, Camera, CreditCard, DollarSign, User, PenTool, Loader2, Download 
 } from 'lucide-react'
+import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
+import { useToast } from '@/hooks/use-toast'
 
 interface DetalhesExecucaoDialogProps {
   open: boolean
@@ -33,13 +37,16 @@ function parseObservacao(obs: string | null): { fotos: string[]; texto: string }
 }
 
 export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }: DetalhesExecucaoDialogProps) {
+  const { toast } = useToast()
+  const [gerando, setGerando] = useState(false)
+
   const { data: servico, isLoading } = useQuery({
     queryKey: ['detalhes-execucao', servicoId],
     queryFn: async () => {
       if (!servicoId) return null
       const { data, error } = await supabase
         .from('servicos_nacional_gas')
-        .select('*, empreendimentos_terceirizados(nome), operadores:tecnico_id(nome)')
+        .select('*, empreendimentos_terceirizados(nome, endereco), operadores:tecnico_id(nome)')
         .eq('id', servicoId)
         .single()
       if (error) throw error
@@ -52,14 +59,56 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
 
   const { fotos, texto } = parseObservacao(servico?.observacao ?? null)
 
+  const handleGerarPDF = async () => {
+    if (!servico) return
+    setGerando(true)
+    try {
+      await exportarRegistroAtendimento({
+        morador_nome: servico.morador_nome,
+        condominio: servico.condominio_nome_original,
+        endereco: (servico.empreendimentos_terceirizados as any)?.endereco,
+        bloco: servico.bloco,
+        apartamento: servico.apartamento,
+        uf: servico.uf,
+        telefone: servico.telefone,
+        email: servico.email,
+        tipo_servico: servico.tipo_servico,
+        data_agendamento: servico.data_agendamento,
+        data_solicitacao: servico.data_solicitacao,
+        turno: servico.turno,
+        status_atendimento: servico.status_atendimento,
+        tecnico_nome: (servico.operadores as any)?.nome,
+        observacao_texto: texto,
+        forma_pagamento: servico.forma_pagamento,
+        valor_servico: servico.valor_servico,
+        cpf_cnpj: servico.cpf_cnpj,
+        assinatura_url: servico.assinatura_url,
+        fotos_urls: fotos,
+      })
+      toast({ title: 'PDF gerado com sucesso', description: 'O arquivo foi baixado.' })
+    } catch {
+      toast({ title: 'Erro ao gerar PDF', variant: 'destructive' })
+    } finally {
+      setGerando(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Detalhes da Execução
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Detalhes da Execução
+            </DialogTitle>
+            {servico && (
+              <Button variant="outline" size="sm" onClick={handleGerarPDF} disabled={gerando} className="mr-6">
+                {gerando ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Download className="w-4 h-4 mr-1" />}
+                Gerar PDF
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         {isLoading ? (
@@ -69,14 +118,12 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
         ) : servico ? (
           <ScrollArea className="max-h-[70vh] pr-4">
             <div className="space-y-5">
-              {/* Observação do técnico */}
               {texto && (
                 <Section icon={<FileText className="w-4 h-4 text-primary" />} title="Observação do Técnico">
                   <p className="text-sm whitespace-pre-wrap">{texto}</p>
                 </Section>
               )}
 
-              {/* Fotos */}
               {fotos.length > 0 && (
                 <Section icon={<Camera className="w-4 h-4 text-primary" />} title="Registro Fotográfico">
                   <div className="grid grid-cols-2 gap-2">
@@ -93,14 +140,12 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                 </Section>
               )}
 
-              {/* Forma de pagamento */}
               {servico.forma_pagamento && (
                 <Section icon={<CreditCard className="w-4 h-4 text-primary" />} title="Forma de Pagamento">
                   <Badge variant="secondary">{servico.forma_pagamento}</Badge>
                 </Section>
               )}
 
-              {/* Valor do serviço */}
               {servico.valor_servico != null && (
                 <Section icon={<DollarSign className="w-4 h-4 text-primary" />} title="Valor do Serviço">
                   <p className="text-sm font-semibold">
@@ -109,14 +154,12 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                 </Section>
               )}
 
-              {/* CPF/CNPJ */}
               {servico.cpf_cnpj && (
                 <Section icon={<User className="w-4 h-4 text-primary" />} title="CPF/CNPJ">
                   <p className="text-sm">{servico.cpf_cnpj}</p>
                 </Section>
               )}
 
-              {/* Assinatura */}
               {servico.assinatura_url && (
                 <Section icon={<PenTool className="w-4 h-4 text-primary" />} title="Assinatura do Cliente">
                   <div className="border rounded-lg p-2 bg-background">
@@ -129,7 +172,6 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                 </Section>
               )}
 
-              {/* Sem dados */}
               {!texto && fotos.length === 0 && !servico.forma_pagamento && servico.valor_servico == null && !servico.cpf_cnpj && !servico.assinatura_url && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhum dado de execução registrado.
