@@ -350,6 +350,9 @@ export default function ServicosNacionalGas() {
                                 />
                               </TableCell>
                               <TableCell>
+                                <span className="text-xs font-mono text-muted-foreground">{servico.numero_protocolo || '-'}</span>
+                              </TableCell>
+                              <TableCell>
                                 {servico.data_solicitacao
                                   ? format(new Date(servico.data_solicitacao + 'T00:00:00'), 'dd/MM/yyyy')
                                   : '-'
