@@ -1,38 +1,58 @@
 
-
-## Redesign do DetalhesExecucaoDialog — exibição completa e profissional
+## Adicionar número de protocolo único a cada serviço
 
 ### O que muda
 
-Reorganizar o dialog para mostrar **todos os dados do serviço** (não apenas os dados de execução), divididos em seções visuais claras com cards, separadores e ícones. O layout atual mostra apenas observação, fotos, pagamento e assinatura. O novo layout terá:
+Cada serviço na tabela `servicos_nacional_gas` terá um campo `numero_protocolo` gerado automaticamente na criação, com formato sequencial (ex: `NG-000001`, `NG-000002`). O número será visível na listagem e nos detalhes/PDF.
 
-### Estrutura das seções
+### 1. Migração de banco de dados
 
-1. **Cabeçalho** — Badge com tipo de serviço + status colorido
-2. **Dados do Local** — Condomínio, endereço, bloco/apto, UF (ícones: `Building2`, `MapPin`, `Home`)
-3. **Dados do Cliente** — Nome do morador, telefone, email (ícones: `User`, `Phone`, `Mail`)
-4. **Dados do Serviço** — Data agendamento, turno, técnico responsável (ícones: `Calendar`, `Clock`, `Wrench`)
-5. **Execução do Técnico** — Observação do técnico (ícone: `FileText`)
-6. **Registro Fotográfico** — Grid de fotos (ícone: `Camera`)
-7. **Dados Financeiros** — Forma de pagamento (badge), valor, CPF/CNPJ (ícones: `CreditCard`, `DollarSign`, `User`)
-8. **Assinatura do Cliente** — Imagem da assinatura (ícone: `PenTool`)
+Adicionar coluna e função de geração automática:
 
-### Arquivo impactado
+```sql
+ALTER TABLE servicos_nacional_gas
+ADD COLUMN numero_protocolo TEXT UNIQUE;
 
-**`src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`**
+-- Preencher registros existentes
+UPDATE servicos_nacional_gas 
+SET numero_protocolo = 'NG-' || LPAD(ROW_NUMBER::TEXT, 6, '0')
+FROM (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY created_at) 
+  FROM servicos_nacional_gas
+) sub 
+WHERE servicos_nacional_gas.id = sub.id;
 
-- Manter a query existente (já traz todos os campos necessários via `*` + joins)
-- Redesenhar o conteúdo do ScrollArea com as 8 seções acima
-- Cada seção usa um card leve (`bg-muted/50 rounded-lg p-3`) com título em negrito + ícone
-- Dados do local e cliente em linhas compactas com ícones alinhados
-- Status com badge colorido (verde=executado, amarelo=pendente, etc.)
-- Separadores visuais (`Separator`) entre grupos de seções
-- Manter o botão "Gerar PDF" e toda a lógica existente
+-- Função para gerar próximo protocolo
+CREATE OR REPLACE FUNCTION generate_protocolo_ng()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE next_num INT;
+BEGIN
+  SELECT COALESCE(MAX(CAST(SUBSTRING(numero_protocolo FROM 4) AS INT)), 0) + 1
+  INTO next_num FROM servicos_nacional_gas WHERE numero_protocolo IS NOT NULL;
+  NEW.numero_protocolo := 'NG-' || LPAD(next_num::TEXT, 6, '0');
+  RETURN NEW;
+END; $$;
 
-### Detalhes técnicos
+CREATE TRIGGER trg_protocolo_ng
+BEFORE INSERT ON servicos_nacional_gas
+FOR EACH ROW WHEN (NEW.numero_protocolo IS NULL)
+EXECUTE FUNCTION generate_protocolo_ng();
+```
 
-- Imports adicionais: `Building2`, `MapPin`, `Home`, `Phone`, `Mail`, `Calendar`, `Clock`, `Wrench`, `Separator` 
-- Usar `format` de `date-fns` para formatar datas em dd/MM/yyyy
-- Campos condicionais — só renderizam se o dado existir
-- Componente `Section` existente será reutilizado com leve ajuste visual (fundo sutil)
+### 2. Interface — `src/pages/MedicaoTerceirizada/Servicos.tsx`
 
+- Adicionar `numero_protocolo` à interface `ServicoNacionalGas`
+- Incluir na query de busca
+- Adicionar coluna "Protocolo" na tabela (primeira coluna após checkbox)
+
+### 3. Detalhes — `src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`
+
+- Exibir o número de protocolo no cabeçalho do dialog
+
+### 4. PDF — `src/lib/exportRegistroAtendimento.ts`
+
+- Incluir número de protocolo no cabeçalho do PDF
+
+### 5. Coletor — `src/pages/ColetorServicosTerceirizados.tsx`
+
+- Exibir protocolo na listagem e detalhes do serviço
