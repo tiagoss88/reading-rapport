@@ -49,6 +49,7 @@ interface ServicoNacionalGas {
   turno: string | null
   tecnico_id: string | null
   observacao: string | null
+  numero_protocolo: string | null
   created_at: string
   empreendimento?: { nome: string } | null
   tecnico?: { nome: string } | null
