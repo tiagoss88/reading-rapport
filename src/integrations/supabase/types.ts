@@ -711,6 +711,7 @@ export type Database = {
           forma_pagamento: string | null
           id: string
           morador_nome: string | null
+          numero_protocolo: string | null
           observacao: string | null
           status_atendimento: string
           tecnico_id: string | null
@@ -736,6 +737,7 @@ export type Database = {
           forma_pagamento?: string | null
           id?: string
           morador_nome?: string | null
+          numero_protocolo?: string | null
           observacao?: string | null
           status_atendimento?: string
           tecnico_id?: string | null
@@ -761,6 +763,7 @@ export type Database = {
           forma_pagamento?: string | null
           id?: string
           morador_nome?: string | null
+          numero_protocolo?: string | null
           observacao?: string | null
           status_atendimento?: string
           tecnico_id?: string | null
