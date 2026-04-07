@@ -128,6 +128,9 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
             <DialogTitle className="flex items-center gap-2 text-lg">
               <FileText className="w-5 h-5" />
               Detalhes do Serviço
+              {servico?.numero_protocolo && (
+                <span className="text-xs font-mono text-muted-foreground ml-2">({servico.numero_protocolo})</span>
+              )}
             </DialogTitle>
             {servico && (
               <Button variant="outline" size="sm" onClick={handleGerarPDF} disabled={gerando} className="mr-6">
