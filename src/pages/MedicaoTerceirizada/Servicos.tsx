@@ -49,6 +49,7 @@ interface ServicoNacionalGas {
   turno: string | null
   tecnico_id: string | null
   observacao: string | null
+  numero_protocolo: string | null
   created_at: string
   empreendimento?: { nome: string } | null
   tecnico?: { nome: string } | null
@@ -319,6 +320,7 @@ export default function ServicosNacionalGas() {
                               onCheckedChange={(checked) => toggleSelectAll(!!checked)}
                             />
                           </TableHead>
+                          <TableHead>Protocolo</TableHead>
                           <TableHead>Solicitação</TableHead>
                           <TableHead>Condomínio</TableHead>
                           <TableHead>Bloco/Apto</TableHead>
@@ -334,7 +336,7 @@ export default function ServicosNacionalGas() {
                       <TableBody>
                         {paginatedServicos?.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
                               Nenhum serviço encontrado
                             </TableCell>
                           </TableRow>
@@ -346,6 +348,9 @@ export default function ServicosNacionalGas() {
                                   checked={selectedIds.has(servico.id)}
                                   onCheckedChange={(checked) => toggleSelectOne(servico.id, !!checked)}
                                 />
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-xs font-mono text-muted-foreground">{servico.numero_protocolo || '-'}</span>
                               </TableCell>
                               <TableCell>
                                 {servico.data_solicitacao

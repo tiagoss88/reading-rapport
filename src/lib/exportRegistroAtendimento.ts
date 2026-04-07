@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface RegistroAtendimentoData {
+  numero_protocolo?: string | null;
   morador_nome?: string | null;
   condominio: string;
   endereco?: string | null;
@@ -67,6 +68,12 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.text('REGISTRO DE ATENDIMENTO', pageWidth / 2, y, { align: 'center' });
+  if (data.numero_protocolo) {
+    y += 6;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Protocolo: ${data.numero_protocolo}`, pageWidth / 2, y, { align: 'center' });
+  }
   y += 4;
   doc.setLineWidth(0.5);
   doc.line(14, y, pageWidth - 14, y);

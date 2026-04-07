@@ -13,6 +13,7 @@ import ExecucaoServicoTerceirizado from '@/components/medicao-terceirizada/Execu
 
 interface ServicoTerceirizado {
   id: string
+  numero_protocolo: string | null
   condominio_nome_original: string
   bloco: string | null
   apartamento: string | null
@@ -78,6 +79,7 @@ export default function ColetorServicosTerceirizados() {
         .from('servicos_nacional_gas')
         .select(`
           id,
+          numero_protocolo,
           condominio_nome_original,
           bloco,
           apartamento,
@@ -208,8 +210,11 @@ export default function ColetorServicosTerceirizados() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-primary">
+              <CardTitle className="text-lg text-primary flex items-center gap-2">
                 {selectedServico.tipo_servico.toUpperCase()}
+                {selectedServico.numero_protocolo && (
+                  <span className="text-xs font-mono text-muted-foreground">({selectedServico.numero_protocolo})</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
