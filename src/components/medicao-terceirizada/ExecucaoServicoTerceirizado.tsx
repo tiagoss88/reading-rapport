@@ -179,7 +179,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
 
       const turnoAtual = new Date().getHours() < 12 ? 'manha' : 'tarde'
 
-      const updateData: Record<string, unknown> = {
+      const updateData = {
         status_atendimento: 'executado',
         tecnico_id: operadorId,
         turno: turnoAtual,
