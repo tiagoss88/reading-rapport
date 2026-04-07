@@ -79,6 +79,7 @@ export default function ColetorServicosTerceirizados() {
         .from('servicos_nacional_gas')
         .select(`
           id,
+          numero_protocolo,
           condominio_nome_original,
           bloco,
           apartamento,
