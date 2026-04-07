@@ -209,8 +209,11 @@ export default function ColetorServicosTerceirizados() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg text-primary">
+              <CardTitle className="text-lg text-primary flex items-center gap-2">
                 {selectedServico.tipo_servico.toUpperCase()}
+                {selectedServico.numero_protocolo && (
+                  <span className="text-xs font-mono text-muted-foreground">({selectedServico.numero_protocolo})</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">

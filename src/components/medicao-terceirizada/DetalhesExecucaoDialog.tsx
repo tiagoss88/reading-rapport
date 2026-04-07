@@ -91,6 +91,7 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
     setGerando(true)
     try {
       await exportarRegistroAtendimento({
+        numero_protocolo: servico.numero_protocolo,
         morador_nome: servico.morador_nome,
         condominio: servico.condominio_nome_original,
         endereco: (servico.empreendimentos_terceirizados as any)?.endereco,
