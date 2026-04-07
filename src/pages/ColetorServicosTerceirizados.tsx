@@ -13,6 +13,7 @@ import ExecucaoServicoTerceirizado from '@/components/medicao-terceirizada/Execu
 
 interface ServicoTerceirizado {
   id: string
+  numero_protocolo: string | null
   condominio_nome_original: string
   bloco: string | null
   apartamento: string | null
