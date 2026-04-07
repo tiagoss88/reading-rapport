@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface RegistroAtendimentoData {
+  numero_protocolo?: string | null;
   morador_nome?: string | null;
   condominio: string;
   endereco?: string | null;
