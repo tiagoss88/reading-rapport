@@ -338,7 +338,7 @@ export default function ColetorServicosTerceirizados() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900 text-center">Lista de Serviços</h1>
+            <h1 className="text-xl font-bold text-gray-900 text-left">Lista de Serviços</h1>
             <p className="text-sm text-gray-600">
               Todos os serviços da Nacional Gás
             </p>
