@@ -62,6 +62,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+  const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
 
   useEffect(() => {
