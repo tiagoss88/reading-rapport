@@ -1,58 +1,32 @@
 
-## Adicionar número de protocolo único a cada serviço
 
-### O que muda
+## Corrigir câmera Android — separar inputs para Câmera e Galeria
 
-Cada serviço na tabela `servicos_nacional_gas` terá um campo `numero_protocolo` gerado automaticamente na criação, com formato sequencial (ex: `NG-000001`, `NG-000002`). O número será visível na listagem e nos detalhes/PDF.
+### Problema
 
-### 1. Migração de banco de dados
+O input atual usa `accept="image/*"` sem o atributo `capture`, o que no Android WebView pode não abrir a câmera diretamente. Em ambientes WebView, um único input sem `capture` tende a abrir apenas o seletor de arquivos/galeria.
 
-Adicionar coluna e função de geração automática:
+### Solução: `src/components/medicao-terceirizada/ExecucaoServicoTerceirizado.tsx`
 
-```sql
-ALTER TABLE servicos_nacional_gas
-ADD COLUMN numero_protocolo TEXT UNIQUE;
+Substituir o input único e o botão "Adicionar Foto" por **dois inputs ocultos** e **dois botões** (mesmo padrão já usado em `ColetorNotificacoes.tsx`):
 
--- Preencher registros existentes
-UPDATE servicos_nacional_gas 
-SET numero_protocolo = 'NG-' || LPAD(ROW_NUMBER::TEXT, 6, '0')
-FROM (
-  SELECT id, ROW_NUMBER() OVER (ORDER BY created_at) 
-  FROM servicos_nacional_gas
-) sub 
-WHERE servicos_nacional_gas.id = sub.id;
+1. Adicionar um segundo ref: `const cameraRef = useRef<HTMLInputElement>(null)`
+2. Substituir o input e botão atuais (linhas 302-305) por:
 
--- Função para gerar próximo protocolo
-CREATE OR REPLACE FUNCTION generate_protocolo_ng()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-DECLARE next_num INT;
-BEGIN
-  SELECT COALESCE(MAX(CAST(SUBSTRING(numero_protocolo FROM 4) AS INT)), 0) + 1
-  INTO next_num FROM servicos_nacional_gas WHERE numero_protocolo IS NOT NULL;
-  NEW.numero_protocolo := 'NG-' || LPAD(next_num::TEXT, 6, '0');
-  RETURN NEW;
-END; $$;
-
-CREATE TRIGGER trg_protocolo_ng
-BEFORE INSERT ON servicos_nacional_gas
-FOR EACH ROW WHEN (NEW.numero_protocolo IS NULL)
-EXECUTE FUNCTION generate_protocolo_ng();
+```tsx
+<input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+<input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
+<div className="flex gap-2">
+  <Button variant="outline" className="flex-1" onClick={() => cameraRef.current?.click()}>
+    <Camera className="w-4 h-4 mr-2" />Câmera
+  </Button>
+  <Button variant="outline" className="flex-1" onClick={() => fileRef.current?.click()}>
+    <ImagePlus className="w-4 h-4 mr-2" />Galeria
+  </Button>
+</div>
 ```
 
-### 2. Interface — `src/pages/MedicaoTerceirizada/Servicos.tsx`
+3. Adicionar `ImagePlus` ao import de `lucide-react`
 
-- Adicionar `numero_protocolo` à interface `ServicoNacionalGas`
-- Incluir na query de busca
-- Adicionar coluna "Protocolo" na tabela (primeira coluna após checkbox)
+O atributo `capture="environment"` força o Android a abrir a câmera traseira diretamente.
 
-### 3. Detalhes — `src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`
-
-- Exibir o número de protocolo no cabeçalho do dialog
-
-### 4. PDF — `src/lib/exportRegistroAtendimento.ts`
-
-- Incluir número de protocolo no cabeçalho do PDF
-
-### 5. Coletor — `src/pages/ColetorServicosTerceirizados.tsx`
-
-- Exibir protocolo na listagem e detalhes do serviço
