@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Camera, X, Loader2, CheckCircle, Building2, User, Phone, Mail, MapPin, FileText } from 'lucide-react'
+import { ArrowLeft, Camera, X, Loader2, CheckCircle, Building2, User, Phone, Mail, MapPin, FileText, ImagePlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
@@ -61,6 +61,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
   // Signature canvas
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
   const [hasSignature, setHasSignature] = useState(false)
 
@@ -299,10 +300,16 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         <Card>
           <CardContent className="pt-4 space-y-3">
             <Label>Registro Fotográfico</Label>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
-            <Button variant="outline" className="w-full" onClick={() => fileRef.current?.click()}>
-              <Camera className="w-4 h-4 mr-2" />Adicionar Foto
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => cameraRef.current?.click()}>
+                <Camera className="w-4 h-4 mr-2" />Câmera
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => fileRef.current?.click()}>
+                <ImagePlus className="w-4 h-4 mr-2" />Galeria
+              </Button>
+            </div>
             {fotos.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {fotos.map((foto, i) => (
