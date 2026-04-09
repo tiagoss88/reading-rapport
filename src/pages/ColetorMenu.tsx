@@ -1,19 +1,21 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BookOpen, LogOut, User, Building2, Calendar, ChevronRight, Bell } from 'lucide-react'
+import { Calendar, FileCheck, Wrench, Bell, Power, User } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications'
 import ProfileDialog from '@/components/ProfileDialog'
 import InstallAppBanner from '@/components/InstallAppBanner'
+import { useState } from 'react'
 
 export default function ColetorMenu() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { signOut, user } = useAuth()
   const { toast } = useToast()
+  const [profileOpen, setProfileOpen] = useState(false)
   useLocationTracking(true)
   useRealtimeNotifications()
 
@@ -34,143 +36,90 @@ export default function ColetorMenu() {
     }
   }
 
-  const goToCronograma = () => {
-    navigate('/coletor/cronograma')
+  const operadorNome = user?.user_metadata?.nome || user?.email || 'Operador'
+
+  const getInitials = (name: string) => {
+    return name
+      .split(/[\s@]/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(p => p[0]?.toUpperCase())
+      .join('')
   }
 
-  const goToLeituras = () => {
-    navigate('/coletor-sync')
-  }
-
-  const goToServicosTerceirizados = () => navigate('/coletor/servicos-terceirizados')
-  const goToNotificacoes = () => navigate('/coletor/notificacoes')
+  const menuItems = [
+    { label: 'Cronograma de Leitura', icon: Calendar, path: '/coletor/cronograma', permission: 'coletor_leituras' as const },
+    { label: 'Confirmação de Leitura', icon: FileCheck, path: '/coletor-sync', permission: 'coletor_leituras' as const },
+    { label: 'Serviços', icon: Wrench, path: '/coletor/servicos-terceirizados', permission: 'coletor_servicos' as const },
+    { label: 'Notificações', icon: Bell, path: '/coletor/notificacoes', permission: 'coletor_leituras' as const },
+  ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Menu Principal</h1>
-              <p className="text-sm text-gray-600">
-                {user?.email || 'Operador'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <ProfileDialog />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Install Banner */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
         <InstallAppBanner />
 
-        {/* Menu Options */}
-        <div className="space-y-3">
-          {/* Cronograma de Leitura */}
-          <ProtectedComponent permission="coletor_leituras">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToCronograma}>
-              <CardHeader className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base font-semibold">Cronograma de Leitura</CardTitle>
-                    <CardDescription className="text-xs">
-                      Planejamento das rotas por UF
-                    </CardDescription>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                </div>
-              </CardHeader>
-            </Card>
-          </ProtectedComponent>
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mt-3">
+          {/* Header */}
+          <div className="bg-[#E7F1FF] px-6 py-5 flex items-center gap-4">
+            <div className="w-[60px] h-[60px] rounded-full bg-[#007bff] flex items-center justify-center text-white text-xl font-bold shrink-0">
+              {getInitials(operadorNome)}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-[#003366] font-bold text-lg truncate">{operadorNome}</h2>
+              <button
+                onClick={() => setProfileOpen(true)}
+                className="text-[#007bff] text-sm hover:underline"
+              >
+                Ver perfil
+              </button>
+            </div>
+          </div>
 
-          {/* Leituras */}
-          <ProtectedComponent permission="coletor_leituras">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToLeituras}>
-              <CardHeader className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
-                    <BookOpen className="w-5 h-5 text-green-600" />
+          {/* Menu List */}
+          <div className="p-[15px] space-y-[5px]">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path
+              const Icon = item.icon
+              return (
+                <ProtectedComponent key={item.path} permission={item.permission}>
+                  <div
+                    onClick={() => navigate(item.path)}
+                    className={`flex items-center gap-3 px-4 py-[15px] rounded-lg cursor-pointer transition-colors
+                      ${isActive
+                        ? 'bg-[#E7F1FF] text-[#007bff] font-semibold'
+                        : 'text-gray-600 hover:bg-[#f8f9fa] hover:text-[#007bff]'
+                      }`}
+                  >
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#007bff]' : 'text-[#888]'}`} />
+                    <span className="text-sm">{item.label}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base font-semibold">Confirmação de Leituras</CardTitle>
-                    <CardDescription className="text-xs">
-                      Upload dos comprovantes sem pendência
-                    </CardDescription>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                </div>
-              </CardHeader>
-            </Card>
-          </ProtectedComponent>
+                </ProtectedComponent>
+              )
+            })}
+          </div>
 
-          {/* Serviços Terceirizados */}
-          <ProtectedComponent permission="coletor_servicos">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToServicosTerceirizados}>
-              <CardHeader className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                    <Building2 className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base font-semibold">Serviços</CardTitle>
-                    <CardDescription className="text-xs">
-                      Visualizar e executar serviços
-                    </CardDescription>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                </div>
-              </CardHeader>
-            </Card>
-          </ProtectedComponent>
-
-          {/* Notificações */}
-          <ProtectedComponent permission="coletor_leituras">
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={goToNotificacoes}>
-              <CardHeader className="p-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center shrink-0">
-                    <Bell className="w-5 h-5 text-yellow-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base font-semibold">Notificações</CardTitle>
-                    <CardDescription className="text-xs">
-                      Registrar notificação de medidor
-                    </CardDescription>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
-                </div>
-              </CardHeader>
-            </Card>
-          </ProtectedComponent>
+          {/* Logout */}
+          <div className="border-t border-gray-100 p-4 flex justify-center">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#F8D7DA] text-[#721C24] text-sm font-medium hover:bg-[#f5c6cb] transition-colors"
+            >
+              <Power className="w-4 h-4" />
+              Sair
+            </button>
+          </div>
         </div>
-
 
         {/* Footer Info */}
         <div className="text-center pt-4">
-          <p className="text-sm text-gray-500">
-            Sistema de Gestão de Leituras de Gás
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            v1.0 - Modo Coletor
-          </p>
+          <p className="text-sm text-gray-500">Sistema de Gestão de Leituras de Gás</p>
+          <p className="text-xs text-gray-400 mt-1">v1.0 - Modo Coletor</p>
         </div>
       </div>
+
+      {/* Profile Dialog controlled externally */}
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   )
 }
