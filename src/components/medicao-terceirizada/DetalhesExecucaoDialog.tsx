@@ -1,16 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { format } from 'date-fns'
-import { 
-  FileText, Camera, CreditCard, DollarSign, User, PenTool, Loader2, Download,
-  Building2, MapPin, Home, Phone, Mail, Calendar, Clock, Wrench
-} from 'lucide-react'
+import { Loader2, Download } from 'lucide-react'
 import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
 import { useToast } from '@/hooks/use-toast'
 
@@ -18,14 +13,6 @@ interface DetalhesExecucaoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   servicoId: string | null
-}
-
-const statusConfig: Record<string, { label: string; className: string }> = {
-  pendente: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 border-yellow-300' },
-  agendado: { label: 'Agendado', className: 'bg-blue-100 text-blue-800 border-blue-300' },
-  executado: { label: 'Executado', className: 'bg-green-100 text-green-800 border-green-300' },
-  cancelado: { label: 'Cancelado', className: 'bg-red-100 text-red-800 border-red-300' },
-  remarcado: { label: 'Remarcado', className: 'bg-orange-100 text-orange-800 border-orange-300' },
 }
 
 const turnoLabels: Record<string, string> = {
@@ -84,7 +71,6 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
   if (!servicoId) return null
 
   const { fotos, texto } = parseObservacao(servico?.observacao ?? null)
-  const status = statusConfig[servico?.status_atendimento ?? ''] ?? { label: servico?.status_atendimento, className: 'bg-muted text-muted-foreground' }
 
   const handleGerarPDF = async () => {
     if (!servico) return
@@ -121,162 +107,151 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
     }
   }
 
+  const tecnicoNome = (servico?.operadores as any)?.nome ?? '—'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh]">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <FileText className="w-5 h-5" />
-              Detalhes do Serviço
-              {servico?.numero_protocolo && (
-                <span className="text-xs font-mono text-muted-foreground ml-2">({servico.numero_protocolo})</span>
-              )}
-            </DialogTitle>
-            {servico && (
-              <Button variant="outline" size="sm" onClick={handleGerarPDF} disabled={gerando} className="mr-6">
-                {gerando ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Download className="w-4 h-4 mr-1" />}
-                Gerar PDF
-              </Button>
-            )}
-          </div>
-        </DialogHeader>
-
+      <DialogContent className="max-w-2xl max-h-[90vh] p-0 gap-0">
         {isLoading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : servico ? (
-          <ScrollArea className="max-h-[70vh] pr-4">
-            <div className="space-y-4">
+          <ScrollArea className="max-h-[88vh]">
+            <div className="p-6 space-y-5">
 
-              {/* 1. Cabeçalho — Tipo + Status */}
-              <div className="flex items-center justify-between">
-                <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
-                  {servico.tipo_servico}
-                </Badge>
-                <Badge className={`text-xs px-2.5 py-0.5 border ${status.className}`}>
-                  {status.label}
-                </Badge>
+              {/* === HEADER === */}
+              <div className="flex items-end justify-between border-b-2 border-blue-500 pb-3">
+                <div>
+                  <h2 className="text-xl font-bold text-blue-600 uppercase tracking-wide">
+                    Relatório de Atendimento
+                  </h2>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <p className="text-[10px] text-gray-400">
+                    Gerado em: {format(new Date(), 'dd/MM/yyyy')}
+                  </p>
+                  {servico.numero_protocolo && (
+                    <p className="text-[10px] text-gray-400">
+                      Protocolo: <span className="font-semibold text-gray-600">#{servico.numero_protocolo}</span>
+                    </p>
+                  )}
+                  <Button variant="outline" size="sm" onClick={handleGerarPDF} disabled={gerando} className="mt-1 h-7 text-xs">
+                    {gerando ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Download className="w-3 h-3 mr-1" />}
+                    Gerar PDF
+                  </Button>
+                </div>
               </div>
 
-              <Separator />
+              {/* === BADGE TIPO SERVIÇO === */}
+              <div>
+                <span className="inline-block bg-blue-600 text-white text-xs font-bold uppercase px-4 py-1.5 rounded-full tracking-wider">
+                  {servico.tipo_servico}
+                </span>
+              </div>
 
-              {/* 2. Dados do Local */}
-              <Section icon={<Building2 className="w-4 h-4 text-primary" />} title="Dados do Local">
-                <InfoRow icon={<Building2 className="w-3.5 h-3.5 text-muted-foreground" />} label="Condomínio" value={servico.condominio_nome_original} />
-                <InfoRow icon={<MapPin className="w-3.5 h-3.5 text-muted-foreground" />} label="Endereço" value={(servico.empreendimentos_terceirizados as any)?.endereco} />
-                <div className="flex gap-6">
-                  <InfoRow icon={<Home className="w-3.5 h-3.5 text-muted-foreground" />} label="Bloco" value={servico.bloco} />
-                  <InfoRow label="Apartamento" value={servico.apartamento} />
-                  <InfoRow label="UF" value={servico.uf} />
+              {/* === RESUMO DA ATIVIDADE === */}
+              <div>
+                <SectionTitle>Resumo da Atividade</SectionTitle>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3 bg-gray-50 rounded-md p-4 mt-2">
+                  <InfoItem label="Condomínio / Local" value={servico.condominio_nome_original} />
+                  <InfoItem label="Unidade" value={[servico.bloco && `Bloco ${servico.bloco}`, servico.apartamento && `Apto ${servico.apartamento}`].filter(Boolean).join(' - ') || '—'} />
+                  <InfoItem label="Estado" value={servico.uf} />
+                  <InfoItem label="Cliente" value={servico.morador_nome} />
+                  <InfoItem label="Telefone" value={servico.telefone} />
+                  <InfoItem label="E-mail" value={servico.email} />
+                  {servico.data_agendamento && (
+                    <InfoItem label="Agendamento" value={formatDate(servico.data_agendamento)} />
+                  )}
+                  {servico.turno && (
+                    <InfoItem label="Turno" value={turnoLabels[servico.turno] ?? servico.turno} />
+                  )}
+                  {servico.data_solicitacao && (
+                    <InfoItem label="Data Solicitação" value={formatDate(servico.data_solicitacao)} />
+                  )}
                 </div>
-              </Section>
+              </div>
 
-              <Separator />
-
-              {/* 3. Dados do Cliente */}
-              {(servico.morador_nome || servico.telefone || servico.email) && (
-                <>
-                  <Section icon={<User className="w-4 h-4 text-primary" />} title="Dados do Cliente">
-                    <InfoRow icon={<User className="w-3.5 h-3.5 text-muted-foreground" />} label="Morador" value={servico.morador_nome} />
-                    {servico.telefone && (
-                      <InfoRow icon={<Phone className="w-3.5 h-3.5 text-muted-foreground" />} label="Telefone" value={servico.telefone} />
-                    )}
-                    {servico.email && (
-                      <InfoRow icon={<Mail className="w-3.5 h-3.5 text-muted-foreground" />} label="Email" value={servico.email} />
-                    )}
-                  </Section>
-                  <Separator />
-                </>
-              )}
-
-              {/* 4. Dados do Serviço */}
-              <Section icon={<Wrench className="w-4 h-4 text-primary" />} title="Dados do Serviço">
-                {servico.data_solicitacao && (
-                  <InfoRow icon={<Calendar className="w-3.5 h-3.5 text-muted-foreground" />} label="Solicitação" value={formatDate(servico.data_solicitacao)} />
-                )}
-                <InfoRow icon={<Calendar className="w-3.5 h-3.5 text-muted-foreground" />} label="Agendamento" value={formatDate(servico.data_agendamento)} />
-                {servico.turno && (
-                  <InfoRow icon={<Clock className="w-3.5 h-3.5 text-muted-foreground" />} label="Turno" value={turnoLabels[servico.turno] ?? servico.turno} />
-                )}
-                <InfoRow icon={<Wrench className="w-3.5 h-3.5 text-muted-foreground" />} label="Técnico" value={(servico.operadores as any)?.nome} />
-              </Section>
-
-              {/* 5. Execução — Observação */}
+              {/* === OBSERVAÇÃO DO TÉCNICO === */}
               {texto && (
-                <>
-                  <Separator />
-                  <Section icon={<FileText className="w-4 h-4 text-primary" />} title="Observação do Técnico">
-                    <p className="text-sm whitespace-pre-wrap">{texto}</p>
-                  </Section>
-                </>
+                <div>
+                  <SectionTitle>Observação do Técnico</SectionTitle>
+                  <div className="mt-2 border border-gray-200 rounded-md p-4 bg-white min-h-[80px]">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{texto}</p>
+                  </div>
+                </div>
               )}
 
-              {/* 6. Registro Fotográfico */}
-              {fotos.length > 0 && (
-                <>
-                  <Separator />
-                  <Section icon={<Camera className="w-4 h-4 text-primary" />} title="Registro Fotográfico">
-                    <div className="grid grid-cols-2 gap-2">
-                      {fotos.map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                          <img
-                            src={url}
-                            alt={`Foto ${i + 1}`}
-                            className="w-full aspect-square object-cover rounded-lg border hover:opacity-80 transition-opacity"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  </Section>
-                </>
-              )}
-
-              {/* 7. Dados Financeiros */}
+              {/* === PAGAMENTO E CADASTRO === */}
               {(servico.forma_pagamento || servico.valor_servico != null || servico.cpf_cnpj) && (
-                <>
-                  <Separator />
-                  <Section icon={<DollarSign className="w-4 h-4 text-primary" />} title="Dados Financeiros">
+                <div>
+                  <SectionTitle>Informações de Pagamento e Cadastro</SectionTitle>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-3 bg-gray-50 rounded-md p-4 mt-2">
                     {servico.forma_pagamento && (
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Pagamento:</span>
-                        <Badge variant="secondary" className="text-xs">{servico.forma_pagamento}</Badge>
-                      </div>
+                      <InfoItem label="Forma de Pagamento" value={servico.forma_pagamento} />
                     )}
                     {servico.valor_servico != null && (
-                      <InfoRow icon={<DollarSign className="w-3.5 h-3.5 text-muted-foreground" />} label="Valor" value={`R$ ${Number(servico.valor_servico).toFixed(2).replace('.', ',')}`} bold />
+                      <InfoItem label="Valor do Serviço" value={`R$ ${Number(servico.valor_servico).toFixed(2).replace('.', ',')}`} />
                     )}
                     {servico.cpf_cnpj && (
-                      <InfoRow icon={<User className="w-3.5 h-3.5 text-muted-foreground" />} label="CPF/CNPJ" value={servico.cpf_cnpj} />
+                      <InfoItem label="CPF / CNPJ" value={servico.cpf_cnpj} />
                     )}
-                  </Section>
-                </>
+                  </div>
+                </div>
               )}
 
-              {/* 8. Assinatura */}
-              {servico.assinatura_url && (
-                <>
-                  <Separator />
-                  <Section icon={<PenTool className="w-4 h-4 text-primary" />} title="Assinatura do Cliente">
-                    <div className="border rounded-lg p-2 bg-background">
-                      <img
-                        src={servico.assinatura_url}
-                        alt="Assinatura do cliente"
-                        className="max-h-32 mx-auto"
-                      />
+              {/* === ASSINATURAS === */}
+              <div className="grid grid-cols-2 gap-8 mt-2">
+                {/* Assinatura do Cliente */}
+                <div className="text-center">
+                  {servico.assinatura_url ? (
+                    <div className="border border-gray-200 rounded-md p-3 bg-white mb-2 min-h-[80px] flex items-center justify-center">
+                      <img src={servico.assinatura_url} alt="Assinatura do cliente" className="max-h-24 mx-auto" />
                     </div>
-                  </Section>
-                </>
+                  ) : (
+                    <div className="min-h-[80px]" />
+                  )}
+                  <div className="border-t border-gray-400 pt-1.5 mx-4">
+                    <p className="text-[10px] text-gray-500 uppercase font-semibold">Assinatura do Cliente</p>
+                  </div>
+                </div>
+                {/* Responsável Técnico */}
+                <div className="text-center">
+                  <div className="min-h-[80px] flex items-end justify-center pb-2">
+                    <p className="text-sm font-semibold text-gray-700">{tecnicoNome}</p>
+                  </div>
+                  <div className="border-t border-gray-400 pt-1.5 mx-4">
+                    <p className="text-[10px] text-gray-500 uppercase font-semibold">Responsável Técnico</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* === REGISTRO FOTOGRÁFICO === */}
+              {fotos.length > 0 && (
+                <div>
+                  <SectionTitle>Registro Fotográfico</SectionTitle>
+                  <div className="grid grid-cols-2 gap-4 mt-2">
+                    {fotos.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                          <img src={url} alt={`Registro ${String(i + 1).padStart(2, '0')}`} className="w-full aspect-[4/3] object-cover" />
+                          <p className="text-center text-[10px] text-gray-500 py-1.5 font-medium">
+                            Registro {String(i + 1).padStart(2, '0')}
+                          </p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
               )}
 
-              {/* Nenhum dado */}
-              {!texto && fotos.length === 0 && !servico.forma_pagamento && servico.valor_servico == null && !servico.cpf_cnpj && !servico.assinatura_url && !servico.morador_nome && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum dado de execução registrado.
+              {/* === FOOTER === */}
+              <div className="text-center pt-4 border-t border-gray-200">
+                <p className="text-[9px] text-gray-400">
+                  Relatório de Atendimento Gerado via Sistema
                 </p>
-              )}
+              </div>
+
             </div>
           </ScrollArea>
         ) : null}
@@ -285,25 +260,19 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
   )
 }
 
-function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-      <div className="flex items-center gap-2">
-        {icon}
-        <h4 className="text-sm font-semibold">{title}</h4>
-      </div>
-      <div className="space-y-1.5 pl-6">{children}</div>
-    </div>
+    <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider border-b border-gray-200 pb-1">
+      {children}
+    </h3>
   )
 }
 
-function InfoRow({ icon, label, value, bold }: { icon?: React.ReactNode; label: string; value?: string | null; bold?: boolean }) {
-  if (!value) return null
+function InfoItem({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex items-center gap-2">
-      {icon}
-      <span className="text-xs text-muted-foreground">{label}:</span>
-      <span className={`text-sm ${bold ? 'font-semibold' : ''}`}>{value}</span>
+    <div>
+      <p className="text-[8pt] uppercase text-gray-400 font-bold tracking-wide">{label}</p>
+      <p className="text-sm text-gray-800 font-medium">{value || '—'}</p>
     </div>
   )
 }
