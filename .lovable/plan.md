@@ -1,47 +1,46 @@
 
 
-## Redesign dos cards da Lista de Serviços conforme modelo HTML
+## Redesign do Menu do Coletor conforme modelo HTML
 
 ### O que muda
 
-Atualizar a view de listagem em `src/pages/ColetorServicosTerceirizados.tsx` para:
+Reescrever `src/pages/ColetorMenu.tsx` para adotar o design do mockup fornecido — container centralizado com cantos arredondados, header azul claro com avatar/nome do operador, itens de menu em lista limpa (sem cards), e botão "Sair" vermelho suave no rodapé.
 
-1. **Barra de busca** — Input de texto acima dos filtros de UF para filtrar por nome do condomínio, endereço ou morador em tempo real
-2. **Novo layout dos cards** — Seguindo a hierarquia do HTML anexo:
-   - Header do card: ícone por tipo de serviço + tipo em uppercase + badge de status colorido
-   - Body: nome do condomínio em destaque (bold, maior) + detalhes da unidade (Bloco/Apto) em cinza abaixo
-   - Footer: horário/turno à esquerda + botão "Ver Endereço" à direita (abre Google Maps)
-3. **Badges de status com cores semânticas fixas** — Agendado: azul `#007bff`, Pendente: laranja `#ff9800`, Atrasado/Cancelado: vermelho `#f44336`
-4. **Botão "Ver Endereço"** — Abre `https://www.google.com/maps/search/?api=1&query=ENDERECO` no app de mapas do dispositivo
+### Arquivo: `src/pages/ColetorMenu.tsx`
 
-### Arquivo: `src/pages/ColetorServicosTerceirizados.tsx`
+**Layout geral:**
+- Container branco centralizado (`max-w-sm`, `rounded-2xl`, `shadow-lg`, borda sutil)
+- Fundo da página mantém o gradiente existente
 
-**Imports adicionais**: `Search`, `MapPin`, `Wrench`, `ClipboardList`, `AlertTriangle`, `Eye` de `lucide-react`; `Input` de `@/components/ui/input`
+**Header (`bg-[#E7F1FF]`):**
+- Avatar circular (60px) com iniciais do usuário (ou ícone User)
+- Nome do operador extraído de `user?.user_metadata?.nome` ou email
+- Link "Ver perfil" em `text-[#007bff]` que abre o `ProfileDialog`
+- Texto do nome em `text-[#003366]` bold
 
-**Estado novo**: `searchTerm` (string) para a busca
+**Lista de itens:**
+- Cada item é um `div` clicável com ícone + texto (sem cards, sem descrições)
+- Ícones: `Calendar` (Cronograma), `FileCheck` (Confirmação), `Wrench` (Serviços), `Bell` (Notificações)
+- Estado padrão: ícone e texto em `text-[#888]`/`text-gray-600`
+- Hover: `bg-[#f8f9fa]` com `text-[#007bff]`
+- Item ativo (baseado na rota atual): `bg-[#E7F1FF]`, `text-[#007bff]`, `font-semibold`
+- Cada item envolvido em `ProtectedComponent` conforme permissões existentes
+- Gap de 5px entre itens, padding de 15px no container da lista
 
-**Função helper**: `getServiceIcon(tipo: string)` — retorna ícone Lucide conforme tipo de serviço (ClipboardList para visita, Wrench para troca, AlertTriangle para inspeção, etc.)
+**Botão Sair (rodapé):**
+- Centralizado, `rounded-full`, `bg-[#F8D7DA]`, `text-[#721C24]`
+- Ícone `Power` + texto "Sair"
+- Hover: `bg-[#f5c6cb]`
+- Borda superior sutil (`border-t border-gray-100`)
 
-**Filtragem**: Combinar filtro de UF com busca textual (condomínio, endereço do empreendimento, morador)
+**Mantido:**
+- `useLocationTracking`, `useRealtimeNotifications`, `InstallAppBanner`
+- Toda lógica de navegação e logout
+- `ProtectedComponent` para cada item
 
-**Card redesenhado** (list view, linhas 386-413):
-```text
-┌─────────────────────────────────────┐
-│ 📋 VISITA TÉCNICA        [Agendado]│  ← header: ícone + tipo + badge
-│                                     │
-│ CONDOMÍNIO SANTA ISABELLA           │  ← body: nome bold
-│ Bloco B, Apto 102                   │  ← unit details em cinza
-│─────────────────────────────────────│
-│ Horário: 09:30        [Ver Endereço]│  ← footer: turno + botão mapa
-└─────────────────────────────────────┘
-```
-
-**Botão "Ver Endereço"**: `onClick` com `stopPropagation` abre `window.open(googleMapsUrl, '_blank')` usando o endereço do empreendimento vinculado
-
-**Badges atualizados**:
-- `agendado` → `bg-[#007bff] text-white`
-- `pendente` → `bg-[#ff9800] text-white`
-- `cancelado` → `bg-[#f44336] text-white`
+**Imports atualizados:**
+- Adicionar: `FileCheck`, `Wrench`, `Power` de `lucide-react`
+- Remover: `Card*`, `BookOpen`, `Building2`, `ChevronRight`, `LogOut`
 
 ### Nenhum outro arquivo alterado
 
