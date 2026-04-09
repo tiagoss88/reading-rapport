@@ -1,5 +1,4 @@
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -27,6 +26,13 @@ interface RegistroAtendimentoData {
   fotos_urls?: string[];
 }
 
+// Colors
+const BLUE: [number, number, number] = [0, 123, 255];
+const DARK: [number, number, number] = [33, 37, 41];
+const GRAY: [number, number, number] = [102, 102, 102];
+const LIGHT_GRAY: [number, number, number] = [200, 200, 200];
+const BG_GRAY: [number, number, number] = [248, 249, 250];
+
 async function getBase64FromUrl(url: string): Promise<string | null> {
   try {
     const response = await fetch(url);
@@ -42,187 +48,318 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
   }
 }
 
-function getTurnoLabel(turno: string | null): string {
-  if (!turno) return '-';
-  const map: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', integral: 'Integral' };
-  return map[turno] || turno;
+function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefined) {
+  const pw = doc.internal.pageSize.getWidth();
+  const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...BLUE);
+  doc.text(title, 20, 22);
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  const rightX = pw - 20;
+  doc.text(`Data: ${now}`, rightX, 16, { align: 'right' });
+  if (protocolo) {
+    doc.text(`Protocolo: ${protocolo}`, rightX, 22, { align: 'right' });
+  }
+
+  doc.setDrawColor(...BLUE);
+  doc.setLineWidth(0.8);
+  doc.line(20, 28, pw - 20, 28);
 }
 
-function getStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    pendente: 'Pendente',
-    agendado: 'Agendado',
-    executado: 'Executado',
-    cancelado: 'Cancelado',
-    reagendado: 'Reagendado',
-  };
-  return map[status] || status;
+function drawFooter(doc: jsPDF, pageNum: number, totalPages: number, subtitle: string) {
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const y = ph - 12;
+
+  doc.setDrawColor(...LIGHT_GRAY);
+  doc.setLineWidth(0.3);
+  doc.line(20, y - 4, pw - 20, y - 4);
+
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text(`Página ${pageNum} de ${totalPages} — ${subtitle}`, pw / 2, y, { align: 'center' });
+}
+
+function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...BLUE);
+  doc.text(title, 20, y);
+  y += 2;
+  doc.setDrawColor(...BLUE);
+  doc.setLineWidth(0.3);
+  doc.line(20, y, 80, y);
+  return y + 6;
+}
+
+function drawLabelValue(doc: jsPDF, label: string, value: string, x: number, y: number, maxW: number): number {
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...GRAY);
+  doc.text(label.toUpperCase(), x, y);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...DARK);
+  const lines = doc.splitTextToSize(value || '—', maxW);
+  doc.text(lines, x, y + 5);
+  return y + 5 + lines.length * 4;
+}
+
+function drawBadge(doc: jsPDF, text: string, y: number): number {
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  const tw = doc.getTextWidth(text) + 12;
+  const h = 8;
+
+  doc.setFillColor(...BLUE);
+  doc.roundedRect(20, y - 5.5, tw, h, 2, 2, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.text(text, 26, y);
+
+  return y + h + 4;
 }
 
 export async function exportarRegistroAtendimento(data: RegistroAtendimentoData) {
   const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 15;
+  const pw = doc.internal.pageSize.getWidth();
+  const contentW = pw - 40;
+  const colW = contentW / 2 - 4;
+  const hasPhotos = data.fotos_urls && data.fotos_urls.length > 0;
+  const totalPages = hasPhotos ? 2 : 1;
 
-  // Header
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('REGISTRO DE ATENDIMENTO', pageWidth / 2, y, { align: 'center' });
-  if (data.numero_protocolo) {
-    y += 6;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Protocolo: ${data.numero_protocolo}`, pageWidth / 2, y, { align: 'center' });
-  }
-  y += 4;
-  doc.setLineWidth(0.5);
-  doc.line(14, y, pageWidth - 14, y);
-  y += 8;
+  // ===== PAGE 1 =====
+  drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+  let y = 36;
 
-  // Consumer data
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DADOS DO CONSUMIDOR', 14, y);
-  y += 2;
+  // Badge tipo serviço
+  y = drawBadge(doc, data.tipo_servico.toUpperCase(), y);
 
-  autoTable(doc, {
-    startY: y,
-    theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 3 },
-    headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
-    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } },
-    body: [
-      ['Consumidor', data.morador_nome || '-'],
-      ['Ponto de Consumo', data.condominio],
-      ['Endereço', data.endereco || '-'],
-      ['Bloco / Apt', `${data.bloco || '-'} / ${data.apartamento || '-'}`],
-      ['UF', data.uf || '-'],
-      ['Telefone', data.telefone || '-'],
-      ['E-mail', data.email || '-'],
-    ],
-    margin: { left: 14, right: 14 },
-  });
+  // Resumo da Atividade
+  y = drawSectionTitle(doc, 'RESUMO DA ATIVIDADE', y);
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  // Background box
+  const resumoStartY = y - 2;
+  const col1X = 24;
+  const col2X = pw / 2 + 4;
 
-  // Service data
-  doc.setFont('helvetica', 'bold');
-  doc.text('DADOS DO SERVIÇO', 14, y);
-  y += 2;
+  // Row 1: Condomínio | Unidade
+  const unidade = [data.bloco, data.apartamento].filter(Boolean).join(' / ') || '—';
+  const r1Left = drawLabelValue(doc, 'Condomínio / Local', data.condominio, col1X, y, colW);
+  const r1Right = drawLabelValue(doc, 'Unidade (Bloco / Apto)', unidade, col2X, y, colW);
+  y = Math.max(r1Left, r1Right) + 4;
 
-  const dataAgendamento = data.data_agendamento
+  // Row 2: Estado | Cliente
+  const r2Left = drawLabelValue(doc, 'Estado', data.uf || '—', col1X, y, colW);
+  const r2Right = drawLabelValue(doc, 'Cliente', data.morador_nome || '—', col2X, y, colW);
+  y = Math.max(r2Left, r2Right) + 4;
+
+  // Row 3: Telefone | Email
+  const r3Left = drawLabelValue(doc, 'Telefone', data.telefone || '—', col1X, y, colW);
+  const r3Right = drawLabelValue(doc, 'E-mail', data.email || '—', col2X, y, colW);
+  y = Math.max(r3Left, r3Right) + 4;
+
+  // Row 4: Data Agendamento | Turno
+  const dataAg = data.data_agendamento
     ? format(new Date(data.data_agendamento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
-    : '-';
+    : '—';
+  const turnoMap: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', integral: 'Integral' };
+  const r4Left = drawLabelValue(doc, 'Data Agendamento', dataAg, col1X, y, colW);
+  const r4Right = drawLabelValue(doc, 'Turno', turnoMap[data.turno ?? ''] || data.turno || '—', col2X, y, colW);
+  y = Math.max(r4Left, r4Right) + 2;
 
-  autoTable(doc, {
-    startY: y,
-    theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 3 },
-    headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
-    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } },
-    body: [
-      ['Tipo de Serviço', data.tipo_servico.toUpperCase()],
-      ['Data Agendamento', dataAgendamento],
-      ['Turno', getTurnoLabel(data.turno ?? null)],
-      ['Técnico', data.tecnico_nome || '-'],
-      ['Status', getStatusLabel(data.status_atendimento)],
-    ],
-    margin: { left: 14, right: 14 },
-  });
+  // Draw background behind resumo
+  doc.setFillColor(...BG_GRAY);
+  doc.setDrawColor(...LIGHT_GRAY);
+  doc.roundedRect(20, resumoStartY, contentW + 0, y - resumoStartY, 2, 2, 'FD');
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  // Redraw labels/values on top of background (jsPDF draws in order so we re-render)
+  // Instead of re-rendering, let's draw background first next time.
+  // For simplicity, we'll restructure: draw bg first, then content.
 
-  // Observations
+  // Actually jsPDF doesn't support z-index. Let's rebuild page 1 properly.
+  // We'll calculate heights first, then draw.
+
+  // --- RESTART page 1 with proper layering ---
+  doc.deletePage(1);
+  doc.addPage();
+  // jsPDF adds pages at end, we need page 1. Actually deletePage + addPage leaves us at page 1.
+
+  drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+  y = 36;
+  y = drawBadge(doc, data.tipo_servico.toUpperCase(), y);
+  y = drawSectionTitle(doc, 'RESUMO DA ATIVIDADE', y);
+
+  // Draw bg box first (estimate height)
+  const boxY = y - 2;
+  const boxH = 62;
+  doc.setFillColor(...BG_GRAY);
+  doc.setDrawColor(...LIGHT_GRAY);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(20, boxY, contentW, boxH, 2, 2, 'FD');
+
+  // Content on top
+  let cy = y;
+  drawLabelValue(doc, 'Condomínio / Local', data.condominio, col1X, cy, colW);
+  drawLabelValue(doc, 'Unidade (Bloco / Apto)', unidade, col2X, cy, colW);
+  cy += 14;
+  drawLabelValue(doc, 'Estado', data.uf || '—', col1X, cy, colW);
+  drawLabelValue(doc, 'Cliente', data.morador_nome || '—', col2X, cy, colW);
+  cy += 14;
+  drawLabelValue(doc, 'Telefone', data.telefone || '—', col1X, cy, colW);
+  drawLabelValue(doc, 'E-mail', data.email || '—', col2X, cy, colW);
+  cy += 14;
+  drawLabelValue(doc, 'Data Agendamento', dataAg, col1X, cy, colW);
+  drawLabelValue(doc, 'Turno', turnoMap[data.turno ?? ''] || data.turno || '—', col2X, cy, colW);
+
+  y = boxY + boxH + 8;
+
+  // Observação do Técnico
   if (data.observacao_texto) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('OBSERVAÇÕES', 14, y);
-    y += 2;
+    y = drawSectionTitle(doc, 'OBSERVAÇÃO DO TÉCNICO', y);
+    const obsLines = doc.splitTextToSize(data.observacao_texto, contentW - 8);
+    const obsH = Math.max(obsLines.length * 4.5 + 8, 16);
 
-    autoTable(doc, {
-      startY: y,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 4 },
-      body: [[data.observacao_texto]],
-      margin: { left: 14, right: 14 },
-    });
+    doc.setDrawColor(...LIGHT_GRAY);
+    doc.setFillColor(255, 255, 255);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(20, y - 2, contentW, obsH, 2, 2, 'FD');
 
-    y = (doc as any).lastAutoTable.finalY + 8;
-  }
-
-  // Payment
-  if (data.forma_pagamento || data.valor_servico != null || data.cpf_cnpj) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('DADOS FINANCEIROS', 14, y);
-    y += 2;
-
-    const finRows: string[][] = [];
-    if (data.forma_pagamento) finRows.push(['Forma de Pagamento', data.forma_pagamento]);
-    if (data.valor_servico != null) finRows.push(['Valor do Serviço', `R$ ${Number(data.valor_servico).toFixed(2).replace('.', ',')}`]);
-    if (data.cpf_cnpj) finRows.push(['CPF/CNPJ', data.cpf_cnpj]);
-
-    autoTable(doc, {
-      startY: y,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3 },
-      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 45 } },
-      body: finRows,
-      margin: { left: 14, right: 14 },
-    });
-
-    y = (doc as any).lastAutoTable.finalY + 8;
-  }
-
-  // Photo links
-  if (data.fotos_urls && data.fotos_urls.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('REGISTRO FOTOGRÁFICO', 14, y);
-    y += 6;
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    data.fotos_urls.forEach((url, i) => {
-      doc.textWithLink(`Foto ${i + 1}: ${url}`, 14, y, { url });
-      y += 5;
-    });
-    y += 4;
+    doc.setTextColor(...DARK);
+    doc.text(obsLines, 24, y + 4);
+
+    y += obsH + 8;
   }
 
-  // Signature
-  if (data.assinatura_url) {
-    if (y > 220) {
-      doc.addPage();
-      y = 20;
-    }
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('ASSINATURA DO CLIENTE', 14, y);
-    y += 4;
+  // Informações de Pagamento
+  if (data.forma_pagamento || data.valor_servico != null || data.cpf_cnpj) {
+    y = drawSectionTitle(doc, 'INFORMAÇÕES DE PAGAMENTO E CADASTRO', y);
 
+    const payBoxY = y - 2;
+    const payBoxH = 18;
+    doc.setFillColor(...BG_GRAY);
+    doc.setDrawColor(...LIGHT_GRAY);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(20, payBoxY, contentW, payBoxH, 2, 2, 'FD');
+
+    const valorStr = data.valor_servico != null
+      ? `R$ ${Number(data.valor_servico).toFixed(2).replace('.', ',')}`
+      : '—';
+
+    drawLabelValue(doc, 'Forma de Pagamento', data.forma_pagamento || '—', col1X, y, colW);
+    drawLabelValue(doc, 'Valor do Serviço', valorStr, col2X, y, colW);
+    y += payBoxH + 2;
+
+    if (data.cpf_cnpj) {
+      drawLabelValue(doc, 'CPF / CNPJ', data.cpf_cnpj, col1X, y, colW);
+      y += 14;
+    } else {
+      y += 4;
+    }
+  }
+
+  // Assinatura
+  if (y > 220) {
+    doc.addPage();
+    drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+    y = 36;
+  }
+
+  y = drawSectionTitle(doc, 'ASSINATURAS', y);
+
+  const sigY = y;
+  const sigColW = contentW / 2 - 8;
+
+  // Left: Client signature
+  if (data.assinatura_url) {
     const imgData = await getBase64FromUrl(data.assinatura_url);
     if (imgData) {
-      doc.addImage(imgData, 'PNG', 14, y, 80, 30);
-      y += 34;
+      doc.addImage(imgData, 'PNG', col1X, sigY, 70, 25);
     }
-    doc.setLineWidth(0.3);
-    doc.line(14, y, 94, y);
-    y += 5;
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Assinatura do cliente', 54, y, { align: 'center' });
+  }
+  const lineY = sigY + 28;
+  doc.setDrawColor(...DARK);
+  doc.setLineWidth(0.3);
+  doc.line(col1X, lineY, col1X + sigColW, lineY);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text('Assinatura do Cliente', col1X + sigColW / 2, lineY + 5, { align: 'center' });
+
+  // Right: Technician
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...DARK);
+  doc.text(data.tecnico_nome || '—', col2X + sigColW / 2, sigY + 14, { align: 'center' });
+
+  doc.setDrawColor(...DARK);
+  doc.line(col2X, lineY, col2X + sigColW, lineY);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...GRAY);
+  doc.text('Responsável Técnico', col2X + sigColW / 2, lineY + 5, { align: 'center' });
+
+  // ===== PAGE 2 — Fotos =====
+  if (hasPhotos && data.fotos_urls) {
+    doc.addPage();
+    drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
+    let fy = 36;
+    fy = drawSectionTitle(doc, 'REGISTROS REALIZADOS DURANTE O ATENDIMENTO', fy);
+
+    const imgW = (contentW - 8) / 2;
+    const imgH = 70;
+    let col = 0;
+
+    for (let i = 0; i < data.fotos_urls.length; i++) {
+      const imgData = await getBase64FromUrl(data.fotos_urls[i]);
+      const ix = col === 0 ? 20 : 20 + imgW + 8;
+
+      if (imgData) {
+        doc.setDrawColor(...LIGHT_GRAY);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(ix, fy, imgW, imgH, 2, 2, 'D');
+        try {
+          doc.addImage(imgData, 'JPEG', ix + 2, fy + 2, imgW - 4, imgH - 12);
+        } catch {
+          doc.setFontSize(8);
+          doc.setTextColor(...GRAY);
+          doc.text('Imagem indisponível', ix + imgW / 2, fy + imgH / 2, { align: 'center' });
+        }
+      }
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...DARK);
+      doc.text(`Registro ${String(i + 1).padStart(2, '0')}`, ix + imgW / 2, fy + imgH - 4, { align: 'center' });
+
+      col++;
+      if (col >= 2) {
+        col = 0;
+        fy += imgH + 6;
+        if (fy + imgH > doc.internal.pageSize.getHeight() - 20) {
+          doc.addPage();
+          drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
+          fy = 36;
+        }
+      }
+    }
   }
 
-  // Footer
-  const totalPages = (doc as any).internal.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
+  // Draw footers on all pages
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    const footerY = doc.internal.pageSize.getHeight() - 8;
-    doc.text(
-      `Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-      14,
-      footerY
-    );
-    doc.text(`Página ${i} de ${totalPages}`, pageWidth - 14, footerY, { align: 'right' });
+    const sub = i === 1 ? 'Relatório de Atendimento Gerado via Sistema' : 'Anexo Fotográfico';
+    drawFooter(doc, i, pages, sub);
   }
 
   const nomeCondominio = data.condominio.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
