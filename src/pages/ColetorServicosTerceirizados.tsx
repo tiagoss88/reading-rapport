@@ -41,6 +41,7 @@ export default function ColetorServicosTerceirizados() {
   const [loading, setLoading] = useState(true)
   const [selectedUF, setSelectedUF] = useState<'todos' | 'BA' | 'CE'>('todos')
   const [operadorId, setOperadorId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
   
   const [selectedServico, setSelectedServico] = useState<ServicoTerceirizado | null>(null)
   const [showExecucao, setShowExecucao] = useState(false)
