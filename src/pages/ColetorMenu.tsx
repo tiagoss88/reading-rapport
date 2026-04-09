@@ -8,14 +8,14 @@ import { useLocationTracking } from '@/hooks/useLocationTracking'
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications'
 import ProfileDialog from '@/components/ProfileDialog'
 import InstallAppBanner from '@/components/InstallAppBanner'
-import { useState } from 'react'
+import { useRef } from 'react'
 
 export default function ColetorMenu() {
   const navigate = useNavigate()
   const location = useLocation()
   const { signOut, user } = useAuth()
   const { toast } = useToast()
-  const [profileOpen, setProfileOpen] = useState(false)
+  const profileTriggerRef = useRef<HTMLButtonElement>(null)
   useLocationTracking(true)
   useRealtimeNotifications()
 
@@ -68,7 +68,7 @@ export default function ColetorMenu() {
             <div className="min-w-0">
               <h2 className="text-[#003366] font-bold text-lg truncate">{operadorNome}</h2>
               <button
-                onClick={() => setProfileOpen(true)}
+                onClick={() => profileTriggerRef.current?.click()}
                 className="text-[#007bff] text-sm hover:underline"
               >
                 Ver perfil
@@ -118,8 +118,10 @@ export default function ColetorMenu() {
         </div>
       </div>
 
-      {/* Profile Dialog controlled externally */}
-      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} />
+      {/* Hidden ProfileDialog trigger */}
+      <div className="hidden">
+        <ProfileDialog />
+      </div>
     </div>
   )
 }
