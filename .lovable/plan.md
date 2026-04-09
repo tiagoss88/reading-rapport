@@ -1,57 +1,45 @@
 
 
-## Redesign do DetalhesExecucaoDialog conforme modelo HTML
+## Corrigir alinhamento do PDF — reescrita do exportRegistroAtendimento
 
-### O que muda
+### Problemas identificados no PDF atual
 
-Reescrever o layout do `DetalhesExecucaoDialog` para espelhar visualmente o HTML enviado — com header azul, badge do tipo de serviço, grid 2 colunas com labels uppercase cinza, caixa de observação, seção de pagamento, área de assinaturas lado a lado, e grid de fotos com legendas.
+1. **Box do Resumo com altura fixa** (62mm) — gera espaço vazio excessivo quando os dados são curtos
+2. **Box de Pagamento com altura fixa** (18mm) — CPF/CNPJ fica fora da caixa
+3. **Hack de deletar/recriar página** (linhas 190-192) para resolver z-index — abordagem frágil que causa desalinhamentos
+4. **Espaçamentos inconsistentes** entre seções
 
-### Arquivo: `src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`
+### Solução
 
-**1. Header estilo relatório**
-- Título "RELATÓRIO DE ATENDIMENTO" em azul (`text-blue-600`) à esquerda
-- Data de geração e protocolo à direita em cinza pequeno
-- Linha azul separadora (`border-b-2 border-blue-500`)
+Reescrever `src/lib/exportRegistroAtendimento.ts` com uma abordagem de **duas passadas**:
+1. Calcular a altura real de cada seção primeiro
+2. Desenhar background, depois conteúdo — sem deletar/recriar páginas
 
-**2. Badge do tipo de serviço**
-- Retângulo azul arredondado com texto branco (ex: "TROCA DE MEDIDOR")
+### Mudanças específicas
 
-**3. Seção "Resumo da Atividade"**
-- Título de seção em azul uppercase com borda inferior cinza
-- Grid 2 colunas (`grid grid-cols-2 gap-4`) com:
-  - Label: `text-[8pt] uppercase text-gray-500 font-bold`
-  - Valor: `text-sm text-black`
-  - Campos: Condomínio/Local, Unidade, Estado, Cliente, Telefone, E-mail
+**1. Eliminar o hack de deletePage/addPage** (linhas 138-221)
+- Desenhar o background box ANTES do conteúdo, usando altura calculada dinamicamente
+- Cada row tem altura fixa de 14mm, então `boxH = numRows * 14 + padding`
 
-**4. Seção "Observação do Técnico"**
-- Caixa com borda cinza, fundo branco, min-height, texto pre-wrap
+**2. Resumo da Atividade — altura dinâmica**
+- 4 rows x 14mm + 8mm padding = calcular conforme dados presentes
+- Background desenhado primeiro, conteúdo por cima
 
-**5. Seção "Informações de Pagamento e Cadastro"**
-- Grid 2 colunas: Forma de Pagamento, Valor, CPF/CNPJ (condicional)
+**3. Pagamento — altura dinâmica**
+- Se tem CPF/CNPJ: 2 rows (forma+valor, cpf) dentro do mesmo box
+- Se não tem: 1 row apenas
+- Background ajustado ao conteúdo real
 
-**6. Área de Assinaturas**
-- Duas colunas lado a lado:
-  - Esquerda: imagem da assinatura digital + linha + "Assinatura do Cliente"
-  - Direita: nome do técnico + linha + "Responsável Técnico"
+**4. Espaçamento uniforme**
+- 6mm entre seções (em vez de valores mistos 2/4/8)
+- Margens internas consistentes (4mm padding)
 
-**7. Registro Fotográfico**
-- Grid 2 colunas com fotos em containers com borda arredondada
-- Legenda abaixo de cada foto: "Registro 01", "Registro 02", etc.
-
-**8. Footer**
-- Texto centralizado cinza pequeno: "Relatório de Atendimento Gerado via Sistema"
-
-**9. Botão Gerar PDF** — permanece no topo, sem alteração de lógica
-
-### Dialog expandido
-- `max-w-2xl` (mais largo que o atual `max-w-lg`) para acomodar o grid 2 colunas
-
-### Componentes auxiliares
-- Remover `Section` e `InfoRow` antigos
-- Criar `SectionTitle` (título azul uppercase com borda) e `InfoItem` (label/value empilhados)
+### Arquivo impactado
+- `src/lib/exportRegistroAtendimento.ts` — reescrita da função principal, helpers mantidos
 
 ### Detalhes técnicos
-- Apenas 1 arquivo alterado: `DetalhesExecucaoDialog.tsx`
-- Sem mudança na query, lógica de PDF, ou interface de dados
-- Layout puramente CSS com Tailwind, sem dependências novas
+- Remover linhas 138-221 (primeiro desenho + hack de delete)
+- Substituir por: calcular alturas → desenhar bg → desenhar conteúdo, tudo sequencial
+- Manter `drawHeader`, `drawFooter`, `drawSectionTitle`, `drawLabelValue`, `drawBadge` sem mudança
+- Manter interface `RegistroAtendimentoData` intacta
 
