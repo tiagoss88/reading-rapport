@@ -339,6 +339,20 @@ export default function ColetorServicosTerceirizados() {
     )
   }
 
+  // Filtered list
+  const filteredServicos = servicos.filter(s => {
+    const matchUF = selectedUF === 'todos' || s.uf === selectedUF
+    if (!matchUF) return false
+    if (!searchTerm.trim()) return true
+    const term = searchTerm.toLowerCase()
+    return (
+      s.condominio_nome_original.toLowerCase().includes(term) ||
+      (s.morador_nome && s.morador_nome.toLowerCase().includes(term)) ||
+      (s.empreendimento?.endereco && s.empreendimento.endereco.toLowerCase().includes(term)) ||
+      (s.tipo_servico && s.tipo_servico.toLowerCase().includes(term))
+    )
+  })
+
   // List view
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -358,6 +372,17 @@ export default function ColetorServicosTerceirizados() {
               Todos os serviços da Nacional Gás
             </p>
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por condomínio, morador ou endereço..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
         </div>
 
         {/* UF Filter */}
@@ -383,14 +408,14 @@ export default function ColetorServicosTerceirizados() {
         )}
 
         {/* Empty State */}
-        {!loading && servicos.filter(s => selectedUF === 'todos' || s.uf === selectedUF).length === 0 && (
+        {!loading && filteredServicos.length === 0 && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center py-8 text-gray-500">
                 <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="font-medium">Nenhum serviço agendado</p>
+                <p className="font-medium">Nenhum serviço encontrado</p>
                 <p className="text-sm mt-1">
-                  Você não tem serviços terceirizados pendentes no momento.
+                  {searchTerm ? 'Tente buscar com outros termos.' : 'Você não tem serviços terceirizados pendentes no momento.'}
                 </p>
               </div>
             </CardContent>
@@ -398,34 +423,68 @@ export default function ColetorServicosTerceirizados() {
         )}
 
         {/* Services List */}
-        {!loading && servicos.filter(s => selectedUF === 'todos' || s.uf === selectedUF).map((servico) => (
-          <Card
-            key={servico.id}
-            className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setSelectedServico(servico)}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0 space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-primary truncate">
-                      {servico.tipo_servico.toUpperCase()}
-                    </p>
-                    {getStatusBadge(servico.status_atendimento)}
+        {!loading && filteredServicos.map((servico) => {
+          const endereco = servico.empreendimento?.endereco || servico.condominio_nome_original
+          return (
+            <Card
+              key={servico.id}
+              className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setSelectedServico(servico)}
+            >
+              <CardContent className="p-0">
+                {/* Card Header */}
+                <div className="flex items-center justify-between px-4 pt-3 pb-2">
+                  <div className="flex items-center gap-2 text-primary">
+                    {getServiceIcon(servico.tipo_servico)}
+                    <span className="font-semibold text-sm uppercase truncate">
+                      {servico.tipo_servico}
+                    </span>
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {servico.condominio_nome_original}
-                    {(servico.bloco || servico.apartamento) && ' - '}
-                    {servico.bloco && `Bloco ${servico.bloco}`}
-                    {servico.bloco && servico.apartamento && ', '}
-                    {servico.apartamento && `Apto ${servico.apartamento}`}
-                  </p>
+                  {getStatusBadge(servico.status_atendimento)}
                 </div>
-                <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0 ml-2" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+
+                {/* Card Body */}
+                <div className="px-4 pb-2">
+                  <p className="font-bold text-foreground truncate">
+                    {servico.condominio_nome_original}
+                  </p>
+                  {(servico.bloco || servico.apartamento) && (
+                    <p className="text-sm text-muted-foreground">
+                      {servico.bloco && `Bloco ${servico.bloco}`}
+                      {servico.bloco && servico.apartamento && ', '}
+                      {servico.apartamento && `Apto ${servico.apartamento}`}
+                    </p>
+                  )}
+                </div>
+
+                {/* Card Footer */}
+                <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>
+                      {servico.data_agendamento
+                        ? format(new Date(servico.data_agendamento + 'T00:00:00'), "dd/MM", { locale: ptBR })
+                        : 'Sem data'}
+                      {servico.turno && ` · ${getTurnoLabel(servico.turno)}`}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs gap-1"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openMaps(endereco)
+                    }}
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    Ver Endereço
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
     </div>
   )
