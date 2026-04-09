@@ -26,12 +26,16 @@ interface RegistroAtendimentoData {
   fotos_urls?: string[];
 }
 
-// Colors
 const BLUE: [number, number, number] = [0, 123, 255];
 const DARK: [number, number, number] = [33, 37, 41];
 const GRAY: [number, number, number] = [102, 102, 102];
 const LIGHT_GRAY: [number, number, number] = [200, 200, 200];
 const BG_GRAY: [number, number, number] = [248, 249, 250];
+
+const LEFT = 20;
+const ROW_H = 14;
+const SECTION_GAP = 6;
+const BOX_PAD = 4;
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
   try {
@@ -55,12 +59,12 @@ function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefi
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...BLUE);
-  doc.text(title, 20, 22);
+  doc.text(title, LEFT, 22);
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY);
-  const rightX = pw - 20;
+  const rightX = pw - LEFT;
   doc.text(`Data: ${now}`, rightX, 16, { align: 'right' });
   if (protocolo) {
     doc.text(`Protocolo: ${protocolo}`, rightX, 22, { align: 'right' });
@@ -68,7 +72,7 @@ function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefi
 
   doc.setDrawColor(...BLUE);
   doc.setLineWidth(0.8);
-  doc.line(20, 28, pw - 20, 28);
+  doc.line(LEFT, 28, pw - LEFT, 28);
 }
 
 function drawFooter(doc: jsPDF, pageNum: number, totalPages: number, subtitle: string) {
@@ -78,7 +82,7 @@ function drawFooter(doc: jsPDF, pageNum: number, totalPages: number, subtitle: s
 
   doc.setDrawColor(...LIGHT_GRAY);
   doc.setLineWidth(0.3);
-  doc.line(20, y - 4, pw - 20, y - 4);
+  doc.line(LEFT, y - 4, pw - LEFT, y - 4);
 
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
@@ -90,12 +94,12 @@ function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...BLUE);
-  doc.text(title, 20, y);
+  doc.text(title, LEFT, y);
   y += 2;
   doc.setDrawColor(...BLUE);
   doc.setLineWidth(0.3);
-  doc.line(20, y, 80, y);
-  return y + 6;
+  doc.line(LEFT, y, 80, y);
+  return y + SECTION_GAP;
 }
 
 function drawLabelValue(doc: jsPDF, label: string, value: string, x: number, y: number, maxW: number): number {
@@ -119,173 +123,134 @@ function drawBadge(doc: jsPDF, text: string, y: number): number {
   const h = 8;
 
   doc.setFillColor(...BLUE);
-  doc.roundedRect(20, y - 5.5, tw, h, 2, 2, 'F');
+  doc.roundedRect(LEFT, y - 5.5, tw, h, 2, 2, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.text(text, 26, y);
+  doc.text(text, LEFT + 6, y);
 
-  return y + h + 4;
+  return y + h + BOX_PAD;
+}
+
+function drawBox(doc: jsPDF, x: number, y: number, w: number, h: number, fill: [number, number, number] = BG_GRAY) {
+  doc.setFillColor(...fill);
+  doc.setDrawColor(...LIGHT_GRAY);
+  doc.setLineWidth(0.2);
+  doc.roundedRect(x, y, w, h, 2, 2, 'FD');
+}
+
+function checkPageBreak(doc: jsPDF, y: number, needed: number, data: RegistroAtendimentoData): number {
+  const ph = doc.internal.pageSize.getHeight();
+  if (y + needed > ph - 20) {
+    doc.addPage();
+    drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+    return 36;
+  }
+  return y;
 }
 
 export async function exportarRegistroAtendimento(data: RegistroAtendimentoData) {
   const doc = new jsPDF();
   const pw = doc.internal.pageSize.getWidth();
-  const contentW = pw - 40;
+  const contentW = pw - LEFT * 2;
   const colW = contentW / 2 - 4;
-  const hasPhotos = data.fotos_urls && data.fotos_urls.length > 0;
-  const totalPages = hasPhotos ? 2 : 1;
+  const col1X = LEFT + BOX_PAD;
+  const col2X = pw / 2 + 4;
+
+  const turnoMap: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', integral: 'Integral' };
+  const unidade = [data.bloco, data.apartamento].filter(Boolean).join(' / ') || '—';
+  const dataAg = data.data_agendamento
+    ? format(new Date(data.data_agendamento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
+    : '—';
 
   // ===== PAGE 1 =====
   drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
   let y = 36;
 
-  // Badge tipo serviço
+  // Badge
   y = drawBadge(doc, data.tipo_servico.toUpperCase(), y);
 
-  // Resumo da Atividade
+  // === RESUMO DA ATIVIDADE ===
   y = drawSectionTitle(doc, 'RESUMO DA ATIVIDADE', y);
 
-  // Background box
-  const resumoStartY = y - 2;
-  const col1X = 24;
-  const col2X = pw / 2 + 4;
+  const resumoRows = 4; // condomínio/unidade, estado/cliente, tel/email, agendamento/turno
+  const resumoBoxH = resumoRows * ROW_H + BOX_PAD * 2;
+  const resumoBoxY = y - 2;
 
-  // Row 1: Condomínio | Unidade
-  const unidade = [data.bloco, data.apartamento].filter(Boolean).join(' / ') || '—';
-  const r1Left = drawLabelValue(doc, 'Condomínio / Local', data.condominio, col1X, y, colW);
-  const r1Right = drawLabelValue(doc, 'Unidade (Bloco / Apto)', unidade, col2X, y, colW);
-  y = Math.max(r1Left, r1Right) + 4;
+  drawBox(doc, LEFT, resumoBoxY, contentW, resumoBoxH);
 
-  // Row 2: Estado | Cliente
-  const r2Left = drawLabelValue(doc, 'Estado', data.uf || '—', col1X, y, colW);
-  const r2Right = drawLabelValue(doc, 'Cliente', data.morador_nome || '—', col2X, y, colW);
-  y = Math.max(r2Left, r2Right) + 4;
-
-  // Row 3: Telefone | Email
-  const r3Left = drawLabelValue(doc, 'Telefone', data.telefone || '—', col1X, y, colW);
-  const r3Right = drawLabelValue(doc, 'E-mail', data.email || '—', col2X, y, colW);
-  y = Math.max(r3Left, r3Right) + 4;
-
-  // Row 4: Data Agendamento | Turno
-  const dataAg = data.data_agendamento
-    ? format(new Date(data.data_agendamento + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
-    : '—';
-  const turnoMap: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', integral: 'Integral' };
-  const r4Left = drawLabelValue(doc, 'Data Agendamento', dataAg, col1X, y, colW);
-  const r4Right = drawLabelValue(doc, 'Turno', turnoMap[data.turno ?? ''] || data.turno || '—', col2X, y, colW);
-  y = Math.max(r4Left, r4Right) + 2;
-
-  // Draw background behind resumo
-  doc.setFillColor(...BG_GRAY);
-  doc.setDrawColor(...LIGHT_GRAY);
-  doc.roundedRect(20, resumoStartY, contentW + 0, y - resumoStartY, 2, 2, 'FD');
-
-  // Redraw labels/values on top of background (jsPDF draws in order so we re-render)
-  // Instead of re-rendering, let's draw background first next time.
-  // For simplicity, we'll restructure: draw bg first, then content.
-
-  // Actually jsPDF doesn't support z-index. Let's rebuild page 1 properly.
-  // We'll calculate heights first, then draw.
-
-  // --- RESTART page 1 with proper layering ---
-  doc.deletePage(1);
-  doc.addPage();
-  // jsPDF adds pages at end, we need page 1. Actually deletePage + addPage leaves us at page 1.
-
-  drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
-  y = 36;
-  y = drawBadge(doc, data.tipo_servico.toUpperCase(), y);
-  y = drawSectionTitle(doc, 'RESUMO DA ATIVIDADE', y);
-
-  // Draw bg box first (estimate height)
-  const boxY = y - 2;
-  const boxH = 62;
-  doc.setFillColor(...BG_GRAY);
-  doc.setDrawColor(...LIGHT_GRAY);
-  doc.setLineWidth(0.2);
-  doc.roundedRect(20, boxY, contentW, boxH, 2, 2, 'FD');
-
-  // Content on top
-  let cy = y;
+  let cy = resumoBoxY + BOX_PAD + 2;
   drawLabelValue(doc, 'Condomínio / Local', data.condominio, col1X, cy, colW);
   drawLabelValue(doc, 'Unidade (Bloco / Apto)', unidade, col2X, cy, colW);
-  cy += 14;
+  cy += ROW_H;
   drawLabelValue(doc, 'Estado', data.uf || '—', col1X, cy, colW);
   drawLabelValue(doc, 'Cliente', data.morador_nome || '—', col2X, cy, colW);
-  cy += 14;
+  cy += ROW_H;
   drawLabelValue(doc, 'Telefone', data.telefone || '—', col1X, cy, colW);
   drawLabelValue(doc, 'E-mail', data.email || '—', col2X, cy, colW);
-  cy += 14;
+  cy += ROW_H;
   drawLabelValue(doc, 'Data Agendamento', dataAg, col1X, cy, colW);
   drawLabelValue(doc, 'Turno', turnoMap[data.turno ?? ''] || data.turno || '—', col2X, cy, colW);
 
-  y = boxY + boxH + 8;
+  y = resumoBoxY + resumoBoxH + SECTION_GAP;
 
-  // Observação do Técnico
+  // === OBSERVAÇÃO DO TÉCNICO ===
   if (data.observacao_texto) {
+    y = checkPageBreak(doc, y, 30, data);
     y = drawSectionTitle(doc, 'OBSERVAÇÃO DO TÉCNICO', y);
-    const obsLines = doc.splitTextToSize(data.observacao_texto, contentW - 8);
-    const obsH = Math.max(obsLines.length * 4.5 + 8, 16);
-
-    doc.setDrawColor(...LIGHT_GRAY);
-    doc.setFillColor(255, 255, 255);
-    doc.setLineWidth(0.2);
-    doc.roundedRect(20, y - 2, contentW, obsH, 2, 2, 'FD');
 
     doc.setFontSize(9);
+    const obsLines = doc.splitTextToSize(data.observacao_texto, contentW - BOX_PAD * 2);
+    const obsH = Math.max(obsLines.length * 4.5 + BOX_PAD * 2, 16);
+
+    drawBox(doc, LEFT, y - 2, contentW, obsH, [255, 255, 255]);
+
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...DARK);
-    doc.text(obsLines, 24, y + 4);
+    doc.text(obsLines, col1X, y + BOX_PAD);
 
-    y += obsH + 8;
+    y += obsH + SECTION_GAP;
   }
 
-  // Informações de Pagamento
+  // === INFORMAÇÕES DE PAGAMENTO ===
   if (data.forma_pagamento || data.valor_servico != null || data.cpf_cnpj) {
+    y = checkPageBreak(doc, y, 40, data);
     y = drawSectionTitle(doc, 'INFORMAÇÕES DE PAGAMENTO E CADASTRO', y);
 
+    const payRows = data.cpf_cnpj ? 2 : 1;
+    const payBoxH = payRows * ROW_H + BOX_PAD * 2;
     const payBoxY = y - 2;
-    const payBoxH = 18;
-    doc.setFillColor(...BG_GRAY);
-    doc.setDrawColor(...LIGHT_GRAY);
-    doc.setLineWidth(0.2);
-    doc.roundedRect(20, payBoxY, contentW, payBoxH, 2, 2, 'FD');
 
+    drawBox(doc, LEFT, payBoxY, contentW, payBoxH);
+
+    let py = payBoxY + BOX_PAD + 2;
     const valorStr = data.valor_servico != null
       ? `R$ ${Number(data.valor_servico).toFixed(2).replace('.', ',')}`
       : '—';
-
-    drawLabelValue(doc, 'Forma de Pagamento', data.forma_pagamento || '—', col1X, y, colW);
-    drawLabelValue(doc, 'Valor do Serviço', valorStr, col2X, y, colW);
-    y += payBoxH + 2;
+    drawLabelValue(doc, 'Forma de Pagamento', data.forma_pagamento || '—', col1X, py, colW);
+    drawLabelValue(doc, 'Valor do Serviço', valorStr, col2X, py, colW);
 
     if (data.cpf_cnpj) {
-      drawLabelValue(doc, 'CPF / CNPJ', data.cpf_cnpj, col1X, y, colW);
-      y += 14;
-    } else {
-      y += 4;
+      py += ROW_H;
+      drawLabelValue(doc, 'CPF / CNPJ', data.cpf_cnpj, col1X, py, colW);
     }
+
+    y = payBoxY + payBoxH + SECTION_GAP;
   }
 
-  // Assinatura
-  if (y > 220) {
-    doc.addPage();
-    drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
-    y = 36;
-  }
-
+  // === ASSINATURAS ===
+  y = checkPageBreak(doc, y, 50, data);
   y = drawSectionTitle(doc, 'ASSINATURAS', y);
 
   const sigY = y;
   const sigColW = contentW / 2 - 8;
 
-  // Left: Client signature
   if (data.assinatura_url) {
     const imgData = await getBase64FromUrl(data.assinatura_url);
     if (imgData) {
       doc.addImage(imgData, 'PNG', col1X, sigY, 70, 25);
     }
   }
+
   const lineY = sigY + 28;
   doc.setDrawColor(...DARK);
   doc.setLineWidth(0.3);
@@ -295,7 +260,6 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   doc.setTextColor(...GRAY);
   doc.text('Assinatura do Cliente', col1X + sigColW / 2, lineY + 5, { align: 'center' });
 
-  // Right: Technician
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...DARK);
@@ -308,7 +272,8 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   doc.setTextColor(...GRAY);
   doc.text('Responsável Técnico', col2X + sigColW / 2, lineY + 5, { align: 'center' });
 
-  // ===== PAGE 2 — Fotos =====
+  // ===== FOTOS =====
+  const hasPhotos = data.fotos_urls && data.fotos_urls.length > 0;
   if (hasPhotos && data.fotos_urls) {
     doc.addPage();
     drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
@@ -321,7 +286,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
     for (let i = 0; i < data.fotos_urls.length; i++) {
       const imgData = await getBase64FromUrl(data.fotos_urls[i]);
-      const ix = col === 0 ? 20 : 20 + imgW + 8;
+      const ix = col === 0 ? LEFT : LEFT + imgW + 8;
 
       if (imgData) {
         doc.setDrawColor(...LIGHT_GRAY);
@@ -354,7 +319,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     }
   }
 
-  // Draw footers on all pages
+  // Footers
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
