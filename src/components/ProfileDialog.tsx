@@ -9,7 +9,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
-export default function ProfileDialog() {
+interface ProfileDialogProps {
+  triggerLabel?: string
+  triggerClassName?: string
+}
+
+export default function ProfileDialog({ triggerLabel, triggerClassName }: ProfileDialogProps = {}) {
   const { user } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -71,13 +76,17 @@ export default function ProfileDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-              {getUserInitials()}
-            </AvatarFallback>
-          </Avatar>
-        </Button>
+        {triggerLabel ? (
+          <button className={triggerClassName}>{triggerLabel}</button>
+        ) : (
+          <Button variant="ghost" size="icon" className="relative">
+            <Avatar className="h-8 w-8">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                {getUserInitials()}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
