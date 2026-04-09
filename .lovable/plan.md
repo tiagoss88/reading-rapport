@@ -1,45 +1,47 @@
 
 
-## Corrigir alinhamento do PDF — reescrita do exportRegistroAtendimento
+## Redesign dos cards da Lista de Serviços conforme modelo HTML
 
-### Problemas identificados no PDF atual
+### O que muda
 
-1. **Box do Resumo com altura fixa** (62mm) — gera espaço vazio excessivo quando os dados são curtos
-2. **Box de Pagamento com altura fixa** (18mm) — CPF/CNPJ fica fora da caixa
-3. **Hack de deletar/recriar página** (linhas 190-192) para resolver z-index — abordagem frágil que causa desalinhamentos
-4. **Espaçamentos inconsistentes** entre seções
+Atualizar a view de listagem em `src/pages/ColetorServicosTerceirizados.tsx` para:
 
-### Solução
+1. **Barra de busca** — Input de texto acima dos filtros de UF para filtrar por nome do condomínio, endereço ou morador em tempo real
+2. **Novo layout dos cards** — Seguindo a hierarquia do HTML anexo:
+   - Header do card: ícone por tipo de serviço + tipo em uppercase + badge de status colorido
+   - Body: nome do condomínio em destaque (bold, maior) + detalhes da unidade (Bloco/Apto) em cinza abaixo
+   - Footer: horário/turno à esquerda + botão "Ver Endereço" à direita (abre Google Maps)
+3. **Badges de status com cores semânticas fixas** — Agendado: azul `#007bff`, Pendente: laranja `#ff9800`, Atrasado/Cancelado: vermelho `#f44336`
+4. **Botão "Ver Endereço"** — Abre `https://www.google.com/maps/search/?api=1&query=ENDERECO` no app de mapas do dispositivo
 
-Reescrever `src/lib/exportRegistroAtendimento.ts` com uma abordagem de **duas passadas**:
-1. Calcular a altura real de cada seção primeiro
-2. Desenhar background, depois conteúdo — sem deletar/recriar páginas
+### Arquivo: `src/pages/ColetorServicosTerceirizados.tsx`
 
-### Mudanças específicas
+**Imports adicionais**: `Search`, `MapPin`, `Wrench`, `ClipboardList`, `AlertTriangle`, `Eye` de `lucide-react`; `Input` de `@/components/ui/input`
 
-**1. Eliminar o hack de deletePage/addPage** (linhas 138-221)
-- Desenhar o background box ANTES do conteúdo, usando altura calculada dinamicamente
-- Cada row tem altura fixa de 14mm, então `boxH = numRows * 14 + padding`
+**Estado novo**: `searchTerm` (string) para a busca
 
-**2. Resumo da Atividade — altura dinâmica**
-- 4 rows x 14mm + 8mm padding = calcular conforme dados presentes
-- Background desenhado primeiro, conteúdo por cima
+**Função helper**: `getServiceIcon(tipo: string)` — retorna ícone Lucide conforme tipo de serviço (ClipboardList para visita, Wrench para troca, AlertTriangle para inspeção, etc.)
 
-**3. Pagamento — altura dinâmica**
-- Se tem CPF/CNPJ: 2 rows (forma+valor, cpf) dentro do mesmo box
-- Se não tem: 1 row apenas
-- Background ajustado ao conteúdo real
+**Filtragem**: Combinar filtro de UF com busca textual (condomínio, endereço do empreendimento, morador)
 
-**4. Espaçamento uniforme**
-- 6mm entre seções (em vez de valores mistos 2/4/8)
-- Margens internas consistentes (4mm padding)
+**Card redesenhado** (list view, linhas 386-413):
+```text
+┌─────────────────────────────────────┐
+│ 📋 VISITA TÉCNICA        [Agendado]│  ← header: ícone + tipo + badge
+│                                     │
+│ CONDOMÍNIO SANTA ISABELLA           │  ← body: nome bold
+│ Bloco B, Apto 102                   │  ← unit details em cinza
+│─────────────────────────────────────│
+│ Horário: 09:30        [Ver Endereço]│  ← footer: turno + botão mapa
+└─────────────────────────────────────┘
+```
 
-### Arquivo impactado
-- `src/lib/exportRegistroAtendimento.ts` — reescrita da função principal, helpers mantidos
+**Botão "Ver Endereço"**: `onClick` com `stopPropagation` abre `window.open(googleMapsUrl, '_blank')` usando o endereço do empreendimento vinculado
 
-### Detalhes técnicos
-- Remover linhas 138-221 (primeiro desenho + hack de delete)
-- Substituir por: calcular alturas → desenhar bg → desenhar conteúdo, tudo sequencial
-- Manter `drawHeader`, `drawFooter`, `drawSectionTitle`, `drawLabelValue`, `drawBadge` sem mudança
-- Manter interface `RegistroAtendimentoData` intacta
+**Badges atualizados**:
+- `agendado` → `bg-[#007bff] text-white`
+- `pendente` → `bg-[#ff9800] text-white`
+- `cancelado` → `bg-[#f44336] text-white`
+
+### Nenhum outro arquivo alterado
 
