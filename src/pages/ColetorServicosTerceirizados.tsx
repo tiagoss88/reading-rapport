@@ -117,16 +117,29 @@ export default function ColetorServicosTerceirizados() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pendente':
-        return <Badge variant="secondary">Pendente</Badge>
+        return <Badge className="bg-[#ff9800] hover:bg-[#e68a00] text-white border-0">Pendente</Badge>
       case 'agendado':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Agendado</Badge>
+        return <Badge className="bg-[#007bff] hover:bg-[#0069d9] text-white border-0">Agendado</Badge>
       case 'executado':
-        return <Badge className="bg-green-500 hover:bg-green-600">Executado</Badge>
+        return <Badge className="bg-green-500 hover:bg-green-600 text-white border-0">Executado</Badge>
       case 'cancelado':
-        return <Badge variant="destructive">Cancelado</Badge>
+        return <Badge className="bg-[#f44336] hover:bg-[#d32f2f] text-white border-0">Cancelado</Badge>
       default:
         return <Badge variant="outline">{status}</Badge>
     }
+  }
+
+  const getServiceIcon = (tipo: string) => {
+    const t = tipo.toLowerCase()
+    if (t.includes('troca') || t.includes('medidor')) return <Wrench className="w-4 h-4" />
+    if (t.includes('inspe') || t.includes('vistoria')) return <AlertTriangle className="w-4 h-4" />
+    if (t.includes('religa')) return <Flame className="w-4 h-4" />
+    if (t.includes('corte') || t.includes('desliga')) return <Settings className="w-4 h-4" />
+    return <ClipboardList className="w-4 h-4" />
+  }
+
+  const openMaps = (endereco: string) => {
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`, '_blank')
   }
 
   const getTurnoLabel = (turno: string | null) => {
