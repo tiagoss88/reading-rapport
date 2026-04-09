@@ -1,46 +1,57 @@
 
 
-## Redesign do PDF "Registro de Atendimento" conforme modelo HTML
+## Redesign do DetalhesExecucaoDialog conforme modelo HTML
 
 ### O que muda
 
-Reescrever `src/lib/exportRegistroAtendimento.ts` para gerar um PDF com o layout profissional do modelo enviado:
+Reescrever o layout do `DetalhesExecucaoDialog` para espelhar visualmente o HTML enviado — com header azul, badge do tipo de serviço, grid 2 colunas com labels uppercase cinza, caixa de observação, seção de pagamento, área de assinaturas lado a lado, e grid de fotos com legendas.
 
-### Página 1 — Relatório de Atendimento
+### Arquivo: `src/components/medicao-terceirizada/DetalhesExecucaoDialog.tsx`
 
-1. **Header**: Título "RELATÓRIO DE ATENDIMENTO" à esquerda em azul (#007bff), data de geração e protocolo à direita. Linha azul separadora abaixo.
+**1. Header estilo relatório**
+- Título "RELATÓRIO DE ATENDIMENTO" em azul (`text-blue-600`) à esquerda
+- Data de geração e protocolo à direita em cinza pequeno
+- Linha azul separadora (`border-b-2 border-blue-500`)
 
-2. **Badge do tipo de serviço**: Retângulo azul arredondado com o tipo (ex: "TROCA DE MEDIDOR").
+**2. Badge do tipo de serviço**
+- Retângulo azul arredondado com texto branco (ex: "TROCA DE MEDIDOR")
 
-3. **Seção "Resumo da Atividade"**: Grid 2 colunas com label cinza uppercase em cima e valor em preto embaixo:
-   - Condomínio/Local | Unidade (Bloco + Apto)
-   - Estado | Cliente (morador)
-   - Telefone | E-mail
+**3. Seção "Resumo da Atividade"**
+- Título de seção em azul uppercase com borda inferior cinza
+- Grid 2 colunas (`grid grid-cols-2 gap-4`) com:
+  - Label: `text-[8pt] uppercase text-gray-500 font-bold`
+  - Valor: `text-sm text-black`
+  - Campos: Condomínio/Local, Unidade, Estado, Cliente, Telefone, E-mail
 
-4. **Seção "Observação do Técnico"**: Caixa com borda cinza, fundo branco, texto da observação com `splitTextToSize` para quebra automática.
+**4. Seção "Observação do Técnico"**
+- Caixa com borda cinza, fundo branco, min-height, texto pre-wrap
 
-5. **Seção "Informações de Pagamento e Cadastro"**: Grid 2 colunas — Forma de Pagamento, Valor, CPF/CNPJ (condicional, só aparece se houver dados).
+**5. Seção "Informações de Pagamento e Cadastro"**
+- Grid 2 colunas: Forma de Pagamento, Valor, CPF/CNPJ (condicional)
 
-6. **Área de assinatura**: Duas colunas lado a lado:
-   - Esquerda: imagem da assinatura digital do cliente (carregada via fetch/base64) + linha + "Assinatura do Cliente"
-   - Direita: nome do técnico + linha + "Responsável Técnico"
+**6. Área de Assinaturas**
+- Duas colunas lado a lado:
+  - Esquerda: imagem da assinatura digital + linha + "Assinatura do Cliente"
+  - Direita: nome do técnico + linha + "Responsável Técnico"
 
-7. **Footer**: "Página X de Y — Relatório de Atendimento Gerado via Sistema Lovable"
+**7. Registro Fotográfico**
+- Grid 2 colunas com fotos em containers com borda arredondada
+- Legenda abaixo de cada foto: "Registro 01", "Registro 02", etc.
 
-### Página 2 — Anexo Fotográfico (condicional)
+**8. Footer**
+- Texto centralizado cinza pequeno: "Relatório de Atendimento Gerado via Sistema"
 
-Só é gerada se houver fotos. Layout:
-- Header igual à página 1, mas título "ANEXO FOTOGRÁFICO"
-- Seção "Registros Realizados Durante o Atendimento"
-- Grid 2x2 com fotos embutidas (carregadas como base64) com legenda "Registro 01", "Registro 02", etc.
-- Footer com "Página 2 de 2 — Anexo Fotográfico"
+**9. Botão Gerar PDF** — permanece no topo, sem alteração de lógica
+
+### Dialog expandido
+- `max-w-2xl` (mais largo que o atual `max-w-lg`) para acomodar o grid 2 colunas
+
+### Componentes auxiliares
+- Remover `Section` e `InfoRow` antigos
+- Criar `SectionTitle` (título azul uppercase com borda) e `InfoItem` (label/value empilhados)
 
 ### Detalhes técnicos
-
-- **Arquivo**: `src/lib/exportRegistroAtendimento.ts` — reescrita completa
-- Usa `jsPDF` diretamente (canvas drawing) em vez de `autoTable` para ter controle visual preciso
-- Cores: azul `#007bff` (RGB 0,123,255) para títulos/badges/linhas, cinza `#666666` para labels
-- Fotos são carregadas como base64 via `getBase64FromUrl` existente e embutidas com `doc.addImage`
-- Interface `RegistroAtendimentoData` permanece igual (sem quebra de contrato)
-- Nenhum outro arquivo precisa ser alterado
+- Apenas 1 arquivo alterado: `DetalhesExecucaoDialog.tsx`
+- Sem mudança na query, lógica de PDF, ou interface de dados
+- Layout puramente CSS com Tailwind, sem dependências novas
 
