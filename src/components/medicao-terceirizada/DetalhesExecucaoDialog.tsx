@@ -130,7 +130,7 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                 </div>
                 <div className="text-right space-y-0.5">
                   <p className="text-[10px] text-gray-400">
-                    Gerado em: {format(new Date(), 'dd/MM/yyyy')}
+                    Gerado em: {servico.updated_at ? format(new Date(servico.updated_at), 'dd/MM/yyyy') : format(new Date(), 'dd/MM/yyyy')}
                   </p>
                   {servico.numero_protocolo && (
                     <p className="text-[10px] text-gray-400">
