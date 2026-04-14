@@ -212,12 +212,12 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
   // === OBSERVAÇÃO DO TÉCNICO ===
   if (data.observacao_texto) {
-    y = checkPageBreak(doc, y, 50, data);
+    y = checkPageBreak(doc, y, 50, data, dataGerado);
     y = drawSectionTitle(doc, 'OBSERVAÇÃO DO TÉCNICO', y);
 
     doc.setFontSize(9);
     const obsLines = doc.splitTextToSize(data.observacao_texto, contentW - BOX_PAD * 2);
-    const obsH = Math.max(obsLines.length * 4.5 + BOX_PAD * 2, 40);
+    const obsH = Math.max(obsLines.length * 4.5 + BOX_PAD * 2, 18);
 
     drawBox(doc, LEFT, y - 2, contentW, obsH, [255, 255, 255]);
 
@@ -230,7 +230,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
   // === INFORMAÇÕES DE PAGAMENTO ===
   if (data.forma_pagamento || data.valor_servico != null || data.cpf_cnpj) {
-    y = checkPageBreak(doc, y, 40, data);
+    y = checkPageBreak(doc, y, 40, data, dataGerado);
     y = drawSectionTitle(doc, 'INFORMAÇÕES DE PAGAMENTO E CADASTRO', y);
 
     const hasCpf = !!data.cpf_cnpj;
@@ -256,7 +256,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   }
 
   // === ASSINATURAS ===
-  y = checkPageBreak(doc, y, 65, data);
+  y = checkPageBreak(doc, y, 50, data, dataGerado);
   y = drawSectionTitle(doc, 'ASSINATURAS', y);
 
   const sigY = y;
