@@ -168,6 +168,11 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   const col2X = pw / 2 + 4;
   const startY = MARGIN + 16;
 
+  // Use data_execucao (when operator filled the form) for "Gerado em"
+  const dataGerado = data.data_execucao
+    ? format(new Date(data.data_execucao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+    : format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
   const turnoMap: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', integral: 'Integral' };
   const unidade = [data.bloco, data.apartamento].filter(Boolean).join(' / ') || '—';
   const dataAg = data.data_agendamento
@@ -175,7 +180,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     : '—';
 
   // ===== PAGE 1 =====
-  drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+  drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo, dataGerado);
   let y = startY;
 
   // Badge
