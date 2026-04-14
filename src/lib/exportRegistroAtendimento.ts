@@ -33,10 +33,14 @@ const LIGHT_GRAY: [number, number, number] = [200, 200, 200];
 const BG_GRAY: [number, number, number] = [248, 249, 250];
 const LINE_GRAY: [number, number, number] = [238, 238, 238];
 
-const LEFT = 20;
+// ~2cm margins (≈22.7mm, using 22 for clean number)
+const MARGIN = 22;
+const LEFT = MARGIN;
 const ROW_H = 12;
 const SECTION_GAP = 10;
 const BOX_PAD = 4;
+const FOOTER_FONT = 9;
+const FOOTER_BOTTOM_PAD = 16; // ~1cm from bottom edge
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
   try {
@@ -60,32 +64,33 @@ function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefi
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...BLUE);
-  doc.text(title, LEFT, 22);
+  doc.text(title, LEFT, MARGIN + 2);
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY);
   const rightX = pw - LEFT;
-  doc.text(`Data: ${now}`, rightX, 16, { align: 'right' });
+  doc.text(`Data: ${now}`, rightX, MARGIN - 4, { align: 'right' });
   if (protocolo) {
-    doc.text(`Protocolo: ${protocolo}`, rightX, 22, { align: 'right' });
+    doc.text(`Protocolo: ${protocolo}`, rightX, MARGIN + 2, { align: 'right' });
   }
 
+  const lineY = MARGIN + 8;
   doc.setDrawColor(...BLUE);
   doc.setLineWidth(0.8);
-  doc.line(LEFT, 28, pw - LEFT, 28);
+  doc.line(LEFT, lineY, pw - LEFT, lineY);
 }
 
 function drawFooter(doc: jsPDF, pageNum: number, totalPages: number, subtitle: string) {
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
-  const y = ph - 12;
+  const y = ph - FOOTER_BOTTOM_PAD;
 
   doc.setDrawColor(...LIGHT_GRAY);
   doc.setLineWidth(0.3);
-  doc.line(LEFT, y - 4, pw - LEFT, y - 4);
+  doc.line(LEFT, y - 5, pw - LEFT, y - 5);
 
-  doc.setFontSize(7);
+  doc.setFontSize(FOOTER_FONT);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY);
   doc.text(`Página ${pageNum} de ${totalPages} — ${subtitle}`, pw / 2, y, { align: 'center' });
@@ -140,23 +145,27 @@ function drawBox(doc: jsPDF, x: number, y: number, w: number, h: number, fill: [
   doc.roundedRect(x, y, w, h, 2, 2, 'FD');
 }
 
+function getContentBottom(doc: jsPDF): number {
+  return doc.internal.pageSize.getHeight() - FOOTER_BOTTOM_PAD - 8;
+}
+
 function checkPageBreak(doc: jsPDF, y: number, needed: number, data: RegistroAtendimentoData): number {
-  const ph = doc.internal.pageSize.getHeight();
-  if (y + needed > ph - 20) {
+  if (y + needed > getContentBottom(doc)) {
     doc.addPage();
     drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
-    return 36;
+    return MARGIN + 16;
   }
   return y;
 }
 
 export async function exportarRegistroAtendimento(data: RegistroAtendimentoData) {
-  const doc = new jsPDF();
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pw = doc.internal.pageSize.getWidth();
-  const contentW = pw - LEFT * 2;
+  const contentW = pw - MARGIN * 2;
   const colW = contentW / 2 - 4;
   const col1X = LEFT + BOX_PAD;
   const col2X = pw / 2 + 4;
+  const startY = MARGIN + 16;
 
   const turnoMap: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', integral: 'Integral' };
   const unidade = [data.bloco, data.apartamento].filter(Boolean).join(' / ') || '—';
@@ -166,7 +175,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
   // ===== PAGE 1 =====
   drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
-  let y = 36;
+  let y = startY;
 
   // Badge
   y = drawBadge(doc, data.tipo_servico.toUpperCase(), y);
@@ -241,7 +250,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   }
 
   // === ASSINATURAS ===
-  y = checkPageBreak(doc, y, 60, data);
+  y = checkPageBreak(doc, y, 65, data);
   y = drawSectionTitle(doc, 'ASSINATURAS', y);
 
   const sigY = y;
@@ -280,12 +289,13 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   if (hasPhotos && data.fotos_urls) {
     doc.addPage();
     drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
-    let fy = 36;
+    let fy = startY;
     fy = drawSectionTitle(doc, 'REGISTROS REALIZADOS DURANTE O ATENDIMENTO', fy);
 
     const imgW = (contentW - 8) / 2;
     const imgH = 70;
     let col = 0;
+    const maxY = getContentBottom(doc);
 
     for (let i = 0; i < data.fotos_urls.length; i++) {
       const imgData = await getBase64FromUrl(data.fotos_urls[i]);
@@ -314,10 +324,10 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
       if (col >= 2) {
         col = 0;
         fy += imgH + 8;
-        if (fy + imgH > doc.internal.pageSize.getHeight() - 20) {
+        if (fy + imgH > maxY) {
           doc.addPage();
           drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
-          fy = 36;
+          fy = startY;
         }
       }
     }
