@@ -24,6 +24,7 @@ interface RegistroAtendimentoData {
   cpf_cnpj?: string | null;
   assinatura_url?: string | null;
   fotos_urls?: string[];
+  data_execucao?: string | null;
 }
 
 const BLUE: [number, number, number] = [0, 123, 255];
@@ -57,9 +58,9 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
   }
 }
 
-function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefined) {
+function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefined, dataGerado?: string) {
   const pw = doc.internal.pageSize.getWidth();
-  const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  const geradoText = dataGerado || format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
 
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
@@ -70,7 +71,7 @@ function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefi
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY);
   const rightX = pw - LEFT;
-  doc.text(`Data: ${now}`, rightX, MARGIN - 4, { align: 'right' });
+  doc.text(`Gerado em: ${geradoText}`, rightX, MARGIN - 4, { align: 'right' });
   if (protocolo) {
     doc.text(`Protocolo: ${protocolo}`, rightX, MARGIN + 2, { align: 'right' });
   }
