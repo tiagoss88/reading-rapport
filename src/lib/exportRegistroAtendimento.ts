@@ -24,6 +24,7 @@ interface RegistroAtendimentoData {
   cpf_cnpj?: string | null;
   assinatura_url?: string | null;
   fotos_urls?: string[];
+  data_execucao?: string | null;
 }
 
 const BLUE: [number, number, number] = [0, 123, 255];
@@ -57,9 +58,9 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
   }
 }
 
-function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefined) {
+function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefined, dataGerado?: string) {
   const pw = doc.internal.pageSize.getWidth();
-  const now = format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  const geradoText = dataGerado || format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
 
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
@@ -70,7 +71,7 @@ function drawHeader(doc: jsPDF, title: string, protocolo: string | null | undefi
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...GRAY);
   const rightX = pw - LEFT;
-  doc.text(`Data: ${now}`, rightX, MARGIN - 4, { align: 'right' });
+  doc.text(`Gerado em: ${geradoText}`, rightX, MARGIN - 4, { align: 'right' });
   if (protocolo) {
     doc.text(`Protocolo: ${protocolo}`, rightX, MARGIN + 2, { align: 'right' });
   }
@@ -149,10 +150,10 @@ function getContentBottom(doc: jsPDF): number {
   return doc.internal.pageSize.getHeight() - FOOTER_BOTTOM_PAD - 8;
 }
 
-function checkPageBreak(doc: jsPDF, y: number, needed: number, data: RegistroAtendimentoData): number {
+function checkPageBreak(doc: jsPDF, y: number, needed: number, data: RegistroAtendimentoData, dataGerado?: string): number {
   if (y + needed > getContentBottom(doc)) {
     doc.addPage();
-    drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+    drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo, dataGerado);
     return MARGIN + 16;
   }
   return y;
@@ -167,6 +168,11 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   const col2X = pw / 2 + 4;
   const startY = MARGIN + 16;
 
+  // Use data_execucao (when operator filled the form) for "Gerado em"
+  const dataGerado = data.data_execucao
+    ? format(new Date(data.data_execucao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+    : format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+
   const turnoMap: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', integral: 'Integral' };
   const unidade = [data.bloco, data.apartamento].filter(Boolean).join(' / ') || '—';
   const dataAg = data.data_agendamento
@@ -174,7 +180,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     : '—';
 
   // ===== PAGE 1 =====
-  drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+  drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo, dataGerado);
   let y = startY;
 
   // Badge
@@ -206,12 +212,12 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
   // === OBSERVAÇÃO DO TÉCNICO ===
   if (data.observacao_texto) {
-    y = checkPageBreak(doc, y, 50, data);
+    y = checkPageBreak(doc, y, 50, data, dataGerado);
     y = drawSectionTitle(doc, 'OBSERVAÇÃO DO TÉCNICO', y);
 
     doc.setFontSize(9);
     const obsLines = doc.splitTextToSize(data.observacao_texto, contentW - BOX_PAD * 2);
-    const obsH = Math.max(obsLines.length * 4.5 + BOX_PAD * 2, 40);
+    const obsH = Math.max(obsLines.length * 4.5 + BOX_PAD * 2, 18);
 
     drawBox(doc, LEFT, y - 2, contentW, obsH, [255, 255, 255]);
 
@@ -224,7 +230,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
   // === INFORMAÇÕES DE PAGAMENTO ===
   if (data.forma_pagamento || data.valor_servico != null || data.cpf_cnpj) {
-    y = checkPageBreak(doc, y, 40, data);
+    y = checkPageBreak(doc, y, 40, data, dataGerado);
     y = drawSectionTitle(doc, 'INFORMAÇÕES DE PAGAMENTO E CADASTRO', y);
 
     const hasCpf = !!data.cpf_cnpj;
@@ -250,7 +256,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   }
 
   // === ASSINATURAS ===
-  y = checkPageBreak(doc, y, 65, data);
+  y = checkPageBreak(doc, y, 50, data, dataGerado);
   y = drawSectionTitle(doc, 'ASSINATURAS', y);
 
   const sigY = y;
@@ -288,7 +294,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   const hasPhotos = data.fotos_urls && data.fotos_urls.length > 0;
   if (hasPhotos && data.fotos_urls) {
     doc.addPage();
-    drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
+    drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo, dataGerado);
     let fy = startY;
     fy = drawSectionTitle(doc, 'REGISTROS REALIZADOS DURANTE O ATENDIMENTO', fy);
 
@@ -326,7 +332,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
         fy += imgH + 8;
         if (fy + imgH > maxY) {
           doc.addPage();
-          drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
+          drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo, dataGerado);
           fy = startY;
         }
       }
