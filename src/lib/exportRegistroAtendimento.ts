@@ -150,10 +150,10 @@ function getContentBottom(doc: jsPDF): number {
   return doc.internal.pageSize.getHeight() - FOOTER_BOTTOM_PAD - 8;
 }
 
-function checkPageBreak(doc: jsPDF, y: number, needed: number, data: RegistroAtendimentoData): number {
+function checkPageBreak(doc: jsPDF, y: number, needed: number, data: RegistroAtendimentoData, dataGerado?: string): number {
   if (y + needed > getContentBottom(doc)) {
     doc.addPage();
-    drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo);
+    drawHeader(doc, 'RELATÓRIO DE ATENDIMENTO', data.numero_protocolo, dataGerado);
     return MARGIN + 16;
   }
   return y;
