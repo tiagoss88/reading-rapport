@@ -294,7 +294,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   const hasPhotos = data.fotos_urls && data.fotos_urls.length > 0;
   if (hasPhotos && data.fotos_urls) {
     doc.addPage();
-    drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
+    drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo, dataGerado);
     let fy = startY;
     fy = drawSectionTitle(doc, 'REGISTROS REALIZADOS DURANTE O ATENDIMENTO', fy);
 
@@ -332,7 +332,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
         fy += imgH + 8;
         if (fy + imgH > maxY) {
           doc.addPage();
-          drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
+          drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo, dataGerado);
           fy = startY;
         }
       }
