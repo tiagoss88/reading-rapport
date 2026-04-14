@@ -98,6 +98,7 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
         cpf_cnpj: servico.cpf_cnpj,
         assinatura_url: servico.assinatura_url,
         fotos_urls: fotos,
+        data_execucao: servico.updated_at,
       })
       toast({ title: 'PDF gerado com sucesso', description: 'O arquivo foi baixado.' })
     } catch {
