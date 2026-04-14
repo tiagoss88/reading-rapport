@@ -31,10 +31,11 @@ const DARK: [number, number, number] = [33, 37, 41];
 const GRAY: [number, number, number] = [102, 102, 102];
 const LIGHT_GRAY: [number, number, number] = [200, 200, 200];
 const BG_GRAY: [number, number, number] = [248, 249, 250];
+const LINE_GRAY: [number, number, number] = [238, 238, 238];
 
 const LEFT = 20;
-const ROW_H = 14;
-const SECTION_GAP = 6;
+const ROW_H = 12;
+const SECTION_GAP = 10;
 const BOX_PAD = 4;
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
@@ -91,14 +92,15 @@ function drawFooter(doc: jsPDF, pageNum: number, totalPages: number, subtitle: s
 }
 
 function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
-  doc.setFontSize(9);
+  const pw = doc.internal.pageSize.getWidth();
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...BLUE);
   doc.text(title, LEFT, y);
   y += 2;
-  doc.setDrawColor(...BLUE);
-  doc.setLineWidth(0.3);
-  doc.line(LEFT, y, 80, y);
+  doc.setDrawColor(...LINE_GRAY);
+  doc.setLineWidth(0.2);
+  doc.line(LEFT, y, pw - LEFT, y);
   return y + SECTION_GAP;
 }
 
@@ -119,21 +121,21 @@ function drawLabelValue(doc: jsPDF, label: string, value: string, x: number, y: 
 function drawBadge(doc: jsPDF, text: string, y: number): number {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  const tw = doc.getTextWidth(text) + 12;
+  const tw = doc.getTextWidth(text) + 14;
   const h = 8;
 
   doc.setFillColor(...BLUE);
-  doc.roundedRect(LEFT, y - 5.5, tw, h, 2, 2, 'F');
+  doc.roundedRect(LEFT, y - 5.5, tw, h, 4, 4, 'F');
 
   doc.setTextColor(255, 255, 255);
-  doc.text(text, LEFT + 6, y);
+  doc.text(text, LEFT + 7, y);
 
   return y + h + BOX_PAD;
 }
 
 function drawBox(doc: jsPDF, x: number, y: number, w: number, h: number, fill: [number, number, number] = BG_GRAY) {
   doc.setFillColor(...fill);
-  doc.setDrawColor(...LIGHT_GRAY);
+  doc.setDrawColor(...LINE_GRAY);
   doc.setLineWidth(0.2);
   doc.roundedRect(x, y, w, h, 2, 2, 'FD');
 }
@@ -172,7 +174,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   // === RESUMO DA ATIVIDADE ===
   y = drawSectionTitle(doc, 'RESUMO DA ATIVIDADE', y);
 
-  const resumoRows = 4; // condomínio/unidade, estado/cliente, tel/email, agendamento/turno
+  const resumoRows = 4;
   const resumoBoxH = resumoRows * ROW_H + BOX_PAD * 2;
   const resumoBoxY = y - 2;
 
@@ -195,12 +197,12 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
   // === OBSERVAÇÃO DO TÉCNICO ===
   if (data.observacao_texto) {
-    y = checkPageBreak(doc, y, 30, data);
+    y = checkPageBreak(doc, y, 50, data);
     y = drawSectionTitle(doc, 'OBSERVAÇÃO DO TÉCNICO', y);
 
     doc.setFontSize(9);
     const obsLines = doc.splitTextToSize(data.observacao_texto, contentW - BOX_PAD * 2);
-    const obsH = Math.max(obsLines.length * 4.5 + BOX_PAD * 2, 16);
+    const obsH = Math.max(obsLines.length * 4.5 + BOX_PAD * 2, 40);
 
     drawBox(doc, LEFT, y - 2, contentW, obsH, [255, 255, 255]);
 
@@ -216,7 +218,8 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     y = checkPageBreak(doc, y, 40, data);
     y = drawSectionTitle(doc, 'INFORMAÇÕES DE PAGAMENTO E CADASTRO', y);
 
-    const payRows = data.cpf_cnpj ? 2 : 1;
+    const hasCpf = !!data.cpf_cnpj;
+    const payRows = hasCpf ? 2 : 1;
     const payBoxH = payRows * ROW_H + BOX_PAD * 2;
     const payBoxY = y - 2;
 
@@ -229,16 +232,16 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     drawLabelValue(doc, 'Forma de Pagamento', data.forma_pagamento || '—', col1X, py, colW);
     drawLabelValue(doc, 'Valor do Serviço', valorStr, col2X, py, colW);
 
-    if (data.cpf_cnpj) {
+    if (hasCpf) {
       py += ROW_H;
-      drawLabelValue(doc, 'CPF / CNPJ', data.cpf_cnpj, col1X, py, colW);
+      drawLabelValue(doc, 'CPF / CNPJ', data.cpf_cnpj!, col1X, py, colW);
     }
 
     y = payBoxY + payBoxH + SECTION_GAP;
   }
 
   // === ASSINATURAS ===
-  y = checkPageBreak(doc, y, 50, data);
+  y = checkPageBreak(doc, y, 60, data);
   y = drawSectionTitle(doc, 'ASSINATURAS', y);
 
   const sigY = y;
@@ -251,7 +254,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     }
   }
 
-  const lineY = sigY + 28;
+  const lineY = sigY + 34;
   doc.setDrawColor(...DARK);
   doc.setLineWidth(0.3);
   doc.line(col1X, lineY, col1X + sigColW, lineY);
@@ -293,7 +296,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
         doc.setLineWidth(0.2);
         doc.roundedRect(ix, fy, imgW, imgH, 2, 2, 'D');
         try {
-          doc.addImage(imgData, 'JPEG', ix + 2, fy + 2, imgW - 4, imgH - 12);
+          doc.addImage(imgData, 'JPEG', ix + 2, fy + 2, imgW - 4, imgH - 14);
         } catch {
           doc.setFontSize(8);
           doc.setTextColor(...GRAY);
@@ -301,15 +304,16 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
         }
       }
 
+      // Caption
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...DARK);
+      doc.setTextColor(...GRAY);
       doc.text(`Registro ${String(i + 1).padStart(2, '0')}`, ix + imgW / 2, fy + imgH - 4, { align: 'center' });
 
       col++;
       if (col >= 2) {
         col = 0;
-        fy += imgH + 6;
+        fy += imgH + 8;
         if (fy + imgH > doc.internal.pageSize.getHeight() - 20) {
           doc.addPage();
           drawHeader(doc, 'ANEXO FOTOGRÁFICO', data.numero_protocolo);
@@ -323,7 +327,9 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
-    const sub = i === 1 ? 'Relatório de Atendimento Gerado via Sistema' : 'Anexo Fotográfico';
+    const sub = i === 1
+      ? 'Relatório de Atendimento Gerado via Sistema Lovable'
+      : 'Anexo Fotográfico';
     drawFooter(doc, i, pages, sub);
   }
 
