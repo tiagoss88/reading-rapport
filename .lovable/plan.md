@@ -1,46 +1,41 @@
 
 
-## Redesign do Menu do Coletor conforme modelo HTML
+## Ajuste do PDF para fidelidade visual com o HTML v3
 
 ### O que muda
 
-Reescrever `src/pages/ColetorMenu.tsx` para adotar o design do mockup fornecido — container centralizado com cantos arredondados, header azul claro com avatar/nome do operador, itens de menu em lista limpa (sem cards), e botão "Sair" vermelho suave no rodapé.
+Reescrever `src/lib/exportRegistroAtendimento.ts` para que o PDF gerado via jsPDF reproduza fielmente o layout do HTML v3 — corrigindo espaçamentos, proporções e detalhes visuais que divergem entre a tela (dialog) e o PDF exportado.
 
-### Arquivo: `src/pages/ColetorMenu.tsx`
+### Correções específicas
 
-**Layout geral:**
-- Container branco centralizado (`max-w-sm`, `rounded-2xl`, `shadow-lg`, borda sutil)
-- Fundo da página mantém o gradiente existente
+| Problema atual | Correção |
+|---|---|
+| Linha do `drawSectionTitle` vai só até x=80 | Estender até `pw - LEFT` (largura completa como no HTML `border-bottom: 1px solid #eee`) |
+| Caixa de observação muito curta | Aplicar altura mínima equivalente a ~40mm (150px do HTML) |
+| Fotos sem legenda descritiva | Adicionar caption abaixo de cada foto ("Registro 01") com fonte 8pt cinza |
+| Footer genérico | Atualizar para "Relatório de Atendimento Gerado via Sistema Lovable" |
+| Seção de pagamento com grid 2 colunas sem CPF na mesma grid | CPF/CNPJ como 3º item na mesma grid (sem box separado) |
+| Badge arredondamento insuficiente | Aumentar raio de `2` para `4` (pill shape como no HTML `border-radius: 20px`) |
+| Espaçamento entre seções inconsistente | Padronizar `SECTION_GAP` para 10mm (equivalente ao `margin-bottom: 25px` do HTML) |
+| Assinatura: espaço acima da linha muito curto | Aumentar gap de assinatura para 22mm (equivalente ao `margin-top: 60px` do HTML) |
 
-**Header (`bg-[#E7F1FF]`):**
-- Avatar circular (60px) com iniciais do usuário (ou ícone User)
-- Nome do operador extraído de `user?.user_metadata?.nome` ou email
-- Link "Ver perfil" em `text-[#007bff]` que abre o `ProfileDialog`
-- Texto do nome em `text-[#003366]` bold
+### Arquivo: `src/lib/exportRegistroAtendimento.ts`
 
-**Lista de itens:**
-- Cada item é um `div` clicável com ícone + texto (sem cards, sem descrições)
-- Ícones: `Calendar` (Cronograma), `FileCheck` (Confirmação), `Wrench` (Serviços), `Bell` (Notificações)
-- Estado padrão: ícone e texto em `text-[#888]`/`text-gray-600`
-- Hover: `bg-[#f8f9fa]` com `text-[#007bff]`
-- Item ativo (baseado na rota atual): `bg-[#E7F1FF]`, `text-[#007bff]`, `font-semibold`
-- Cada item envolvido em `ProtectedComponent` conforme permissões existentes
-- Gap de 5px entre itens, padding de 15px no container da lista
+**Constantes atualizadas:**
+- `SECTION_GAP = 10` (era 6)
+- `ROW_H = 12` (era 14, ajuste para grid mais compacta)
 
-**Botão Sair (rodapé):**
-- Centralizado, `rounded-full`, `bg-[#F8D7DA]`, `text-[#721C24]`
-- Ícone `Power` + texto "Sair"
-- Hover: `bg-[#f5c6cb]`
-- Borda superior sutil (`border-t border-gray-100`)
+**`drawSectionTitle`:** Linha azul fina (`0.2`) de `LEFT` até `pw - LEFT` em vez de parar em `x=80`
 
-**Mantido:**
-- `useLocationTracking`, `useRealtimeNotifications`, `InstallAppBanner`
-- Toda lógica de navegação e logout
-- `ProtectedComponent` para cada item
+**`drawBadge`:** `roundedRect` com raio `4` (pill)
 
-**Imports atualizados:**
-- Adicionar: `FileCheck`, `Wrench`, `Power` de `lucide-react`
-- Remover: `Card*`, `BookOpen`, `Building2`, `ChevronRight`, `LogOut`
+**Observação:** `min-height` de `Math.max(obsH, 40)` para garantir caixa visível mesmo com texto curto
+
+**Fotos:** Caption com `doc.text("Registro XX", ...)` em font 8pt cinza abaixo da imagem, dentro do container arredondado
+
+**Footer:** Texto atualizado para incluir "Lovable"
 
 ### Nenhum outro arquivo alterado
+- O dialog (`DetalhesExecucaoDialog.tsx`) permanece intacto
+- A interface `RegistroAtendimentoData` não muda
 
