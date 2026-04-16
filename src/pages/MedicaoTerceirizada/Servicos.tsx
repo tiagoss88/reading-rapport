@@ -323,6 +323,7 @@ export default function ServicosNacionalGas() {
                             />
                           </TableHead>
                           <TableHead>Protocolo</TableHead>
+                          <TableHead>Origem</TableHead>
                           <TableHead>Solicitação</TableHead>
                           <TableHead>Condomínio</TableHead>
                           <TableHead>Bloco/Apto</TableHead>
@@ -338,7 +339,7 @@ export default function ServicosNacionalGas() {
                       <TableBody>
                         {paginatedServicos?.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
                               Nenhum serviço encontrado
                             </TableCell>
                           </TableRow>
@@ -353,6 +354,15 @@ export default function ServicosNacionalGas() {
                               </TableCell>
                               <TableCell>
                                 <span className="text-xs font-mono text-muted-foreground">{servico.numero_protocolo || '-'}</span>
+                              </TableCell>
+                              <TableCell>
+                                {(() => {
+                                  const f = servico.fonte?.toLowerCase()
+                                  if (f === 'particular') return <Badge variant="secondary">Particular</Badge>
+                                  if (f === 'bg') return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">BG</Badge>
+                                  if (f === 'ngd') return <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">NGD</Badge>
+                                  return <span className="text-muted-foreground">—</span>
+                                })()}
                               </TableCell>
                               <TableCell>
                                 {servico.data_solicitacao
