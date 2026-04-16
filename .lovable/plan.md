@@ -1,26 +1,36 @@
 
 
-## Adicionar campo "Origem" (Particular / BG / NGD) ao formulário de Novo Serviço
+## Filtrar serviços tipo "leitura" da listagem de Serviços
 
-### O que muda
+### Mudança
 
-Adicionar um campo `Select` chamado **"Origem"** ao formulário `NovoServicoNacionalGasDialog.tsx` para que o usuário possa informar se o serviço é **Particular**, **BG** ou **NGD**. Esse valor será salvo na coluna `fonte` da tabela `servicos_nacional_gas`, que já existe.
+Adicionar filtro na query do Supabase e/ou na lógica de `filteredServicos` para excluir serviços com `tipo_servico` contendo "leitura" (case-insensitive).
 
-### Arquivo: `src/components/medicao-terceirizada/NovoServicoNacionalGasDialog.tsx`
+### Arquivo: `src/pages/MedicaoTerceirizada/Servicos.tsx`
 
-**Schema Zod:** Adicionar campo `fonte` com `z.enum(['particular', 'bg', 'ngd'], { required_error: 'Selecione a origem' })`
+**Linha ~131-142:** Adicionar condição ao filtro existente:
 
-**Default value:** `fonte: undefined` (obrigatório selecionar)
+```typescript
+const filteredServicos = servicos?.filter(servico => {
+  // Não exibir serviços tipo "leitura"
+  if (servico.tipo_servico?.toLowerCase().includes('leitura')) return false
+  
+  const matchesSearch = 
+    servico.condominio_nome_original.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    servico.morador_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    servico.apartamento?.toLowerCase().includes(searchTerm.toLowerCase())
+  
+  const matchesUf = ufFilter === 'all' || servico.uf === ufFilter
+  const matchesStatus = statusFilter === 'all' || servico.status_atendimento === statusFilter
+  const matchesTipo = tipoFilter === 'all' || servico.tipo_servico === tipoFilter
+  
+  return matchesSearch && matchesUf && matchesStatus && matchesTipo
+})
+```
 
-**UI:** Novo `FormField` com `Select` na mesma linha do campo UF e Tipo de Serviço (grid de 3 colunas), com as opções:
-- `particular` → "Particular"
-- `bg` → "BG"  
-- `ngd` → "NGD"
+### Impacto
 
-**Insert:** Substituir `fonte: 'manual'` por `fonte: data.fonte`
-
-### Nenhuma migração necessária
-A coluna `fonte` (text, nullable) já existe na tabela `servicos_nacional_gas`.
-
-### Nenhum outro arquivo alterado
+- Serviços com tipo "leitura", "Leitura", "LEITURA" ou qualquer variação ficam ocultos na aba Serviços
+- Não afeta os contadores de urgências ou a agenda semanal
+- Lógica de paginação e filtros permanece intacta
 
