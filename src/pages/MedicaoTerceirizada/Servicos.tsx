@@ -124,11 +124,13 @@ export default function ServicosNacionalGas() {
     }
   })
 
-  const tiposServico = servicos 
-    ? [...new Set(servicos.map(s => s.tipo_servico))].filter(Boolean).sort()
+  const servicosSemLeitura = servicos?.filter(s => !s.tipo_servico?.toLowerCase().includes('leitura'))
+
+  const tiposServico = servicosSemLeitura
+    ? [...new Set(servicosSemLeitura.map(s => s.tipo_servico))].filter(Boolean).sort()
     : []
 
-  const filteredServicos = servicos?.filter(servico => {
+  const filteredServicos = servicosSemLeitura?.filter(servico => {
     const matchesSearch = 
       servico.condominio_nome_original.toLowerCase().includes(searchTerm.toLowerCase()) ||
       servico.morador_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
