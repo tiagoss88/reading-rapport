@@ -17,6 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 
 const formSchema = z.object({
   uf: z.enum(['BA', 'CE'], { required_error: 'Selecione a UF' }),
+  fonte: z.enum(['particular', 'bg', 'ngd'], { required_error: 'Selecione a origem' }),
   condominio_nome_original: z.string().trim().min(1, 'Informe o condomínio').max(255),
   empreendimento_id: z.string().optional().nullable(),
   bloco: z.string().max(50).optional().nullable(),
@@ -90,6 +91,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
     resolver: zodResolver(formSchema),
     defaultValues: {
       uf: undefined,
+      fonte: undefined,
       condominio_nome_original: '',
       empreendimento_id: '',
       bloco: '',
@@ -135,7 +137,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
           tecnico_id: data.tecnico_id || null,
           status_atendimento: data.status_atendimento,
           observacao: data.observacao || null,
-          fonte: 'manual'
+          fonte: data.fonte
         })
       if (error) throw error
     },
@@ -182,7 +184,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
         <ScrollArea className="max-h-[70vh] pr-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="uf"
@@ -198,6 +200,29 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                         <SelectContent>
                           <SelectItem value="BA">BA</SelectItem>
                           <SelectItem value="CE">CE</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="fonte"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Origem *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="particular">Particular</SelectItem>
+                          <SelectItem value="bg">BG</SelectItem>
+                          <SelectItem value="ngd">NGD</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
