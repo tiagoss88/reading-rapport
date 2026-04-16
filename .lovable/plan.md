@@ -1,36 +1,29 @@
 
+Adicionar coluna "Origem" ao lado de "Protocolo" na listagem e atualizar dados existentes onde fonte = 'vinculado' para 'ngd'.
 
-## Filtrar serviços tipo "leitura" da listagem de Serviços
+## Mudanças
 
-### Mudança
+### 1. `src/pages/MedicaoTerceirizada/Servicos.tsx`
+- Adicionar coluna `<TableHead>Origem</TableHead>` logo após "Protocolo"
+- Adicionar `<TableCell>` exibindo badge com a `fonte`:
+  - `particular` → "Particular" (badge cinza)
+  - `bg` → "BG" (badge azul)
+  - `ngd` → "NGD" (badge verde)
+  - vazio/null → "—"
+- Atualizar `colSpan` da linha "Nenhum serviço encontrado" (+1)
 
-Adicionar filtro na query do Supabase e/ou na lógica de `filteredServicos` para excluir serviços com `tipo_servico` contendo "leitura" (case-insensitive).
-
-### Arquivo: `src/pages/MedicaoTerceirizada/Servicos.tsx`
-
-**Linha ~131-142:** Adicionar condição ao filtro existente:
-
-```typescript
-const filteredServicos = servicos?.filter(servico => {
-  // Não exibir serviços tipo "leitura"
-  if (servico.tipo_servico?.toLowerCase().includes('leitura')) return false
-  
-  const matchesSearch = 
-    servico.condominio_nome_original.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    servico.morador_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    servico.apartamento?.toLowerCase().includes(searchTerm.toLowerCase())
-  
-  const matchesUf = ufFilter === 'all' || servico.uf === ufFilter
-  const matchesStatus = statusFilter === 'all' || servico.status_atendimento === statusFilter
-  const matchesTipo = tipoFilter === 'all' || servico.tipo_servico === tipoFilter
-  
-  return matchesSearch && matchesUf && matchesStatus && matchesTipo
-})
+### 2. Banco de dados (via insert tool)
+```sql
+UPDATE servicos_nacional_gas 
+SET fonte = 'ngd' 
+WHERE fonte = 'vinculado';
 ```
 
-### Impacto
+E normalizar variações comuns (case-insensitive) para os 3 valores padrão:
+```sql
+UPDATE servicos_nacional_gas SET fonte = 'ngd' WHERE LOWER(fonte) IN ('vinculado','vinculada');
+UPDATE servicos_nacional_gas SET fonte = 'particular' WHERE LOWER(fonte) = 'particular';
+UPDATE servicos_nacional_gas SET fonte = 'bg' WHERE LOWER(fonte) = 'bg';
+```
 
-- Serviços com tipo "leitura", "Leitura", "LEITURA" ou qualquer variação ficam ocultos na aba Serviços
-- Não afeta os contadores de urgências ou a agenda semanal
-- Lógica de paginação e filtros permanece intacta
-
+Sem alteração de schema (coluna `fonte` já existe).
