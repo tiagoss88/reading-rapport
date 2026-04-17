@@ -334,6 +334,7 @@ export default function ColetorEmpreendimentoDetalhe() {
               ref={galleryInputRef}
               type="file"
               accept="image/*"
+              multiple
               onChange={handleFotoCapture}
               className="hidden"
             />
