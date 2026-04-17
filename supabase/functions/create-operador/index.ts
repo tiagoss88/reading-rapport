@@ -36,17 +36,18 @@ serve(async (req) => {
       )
     }
 
-    // Create client with user's auth token to verify identity
+    // Extract token and verify identity
+    const token = authHeader.replace('Bearer ', '')
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token)
     if (authError || !user) {
+      console.error('Auth error:', authError)
       return new Response(
-        JSON.stringify({ error: 'Não autorizado' }),
+        JSON.stringify({ error: 'Não autorizado', details: authError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
