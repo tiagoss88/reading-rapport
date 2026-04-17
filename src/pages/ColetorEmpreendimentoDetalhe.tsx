@@ -42,37 +42,58 @@ export default function ColetorEmpreendimentoDetalhe() {
   })
 
   const handleFotoCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const files = event.target.files
+    if (!files || files.length === 0) return
 
-    // Reset input so same file can be re-selected
+    const filesArray = Array.from(files)
+    // Reset input so same files can be re-selected
     event.target.value = ''
 
-    if (!isValidImageFile(file)) {
+    const validFiles = filesArray.filter(f => isValidImageFile(f))
+    if (validFiles.length === 0) {
       toast({ title: "Arquivo inválido", description: "Selecione apenas arquivos de imagem.", variant: "destructive" })
       return
     }
 
-    try {
+    if (validFiles.length > 1) {
+      toast({ title: `Processando ${validFiles.length} imagens...`, description: "Otimizando as fotos." })
+    } else {
       toast({ title: "Processando imagem...", description: "Otimizando a foto." })
-      const fileSizeKB = file.size / 1024
-      const compressionOptions = getOptimalCompressionOptions(fileSizeKB)
-      const compressedFile = await compressImage(file, compressionOptions)
-
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setFotos(prev => [...prev, { file: compressedFile, preview: reader.result as string }])
-      }
-      reader.readAsDataURL(compressedFile)
-
-      toast({ title: "Foto adicionada", description: `${fileSizeKB.toFixed(0)}KB → ${(compressedFile.size / 1024).toFixed(0)}KB` })
-    } catch {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setFotos(prev => [...prev, { file, preview: reader.result as string }])
-      }
-      reader.readAsDataURL(file)
     }
+
+    let adicionadas = 0
+    for (const file of validFiles) {
+      try {
+        const fileSizeKB = file.size / 1024
+        const compressionOptions = getOptimalCompressionOptions(fileSizeKB)
+        const compressedFile = await compressImage(file, compressionOptions)
+
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            setFotos(prev => [...prev, { file: compressedFile, preview: reader.result as string }])
+            resolve()
+          }
+          reader.readAsDataURL(compressedFile)
+        })
+        adicionadas++
+      } catch {
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            setFotos(prev => [...prev, { file, preview: reader.result as string }])
+            resolve()
+          }
+          reader.readAsDataURL(file)
+        })
+        adicionadas++
+      }
+    }
+
+    toast({
+      title: adicionadas > 1 ? `${adicionadas} fotos adicionadas` : "Foto adicionada",
+      description: adicionadas > 1 ? "Imagens otimizadas com sucesso." : "Imagem otimizada com sucesso.",
+    })
   }
 
   const removerFoto = (index: number) => {
