@@ -67,14 +67,11 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [pastedText, setPastedText] = useState('')
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file')
   const [origemSelecionada, setOrigemSelecionada] = useState<string>('NGD')
-  const [origemCustomizada, setOrigemCustomizada] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
-  const origemFinal = origemSelecionada === 'Outro'
-    ? (origemCustomizada.trim() || 'Outro')
-    : origemSelecionada
+  const origemFinal = origemSelecionada
 
   const { data: empreendimentos } = useQuery({
     queryKey: ['empreendimentos-terceirizados-all'],
