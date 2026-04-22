@@ -28,10 +28,22 @@ export default function Dashboard() {
     fetchDashboardData()
   }, [])
 
+  const now = new Date()
+  const inicioMes = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  const proximoMesDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const proximoMes = `${proximoMesDate.getFullYear()}-${String(proximoMesDate.getMonth() + 1).padStart(2, '0')}-01`
+  const competenciaLabel = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`
+
   const fetchDashboardData = async () => {
     try {
       const empRes = await supabase.from('empreendimentos_terceirizados').select('id', { count: 'exact', head: true })
-      const coletasRes = await supabase.from('servicos_nacional_gas').select('id', { count: 'exact', head: true }).eq('status_atendimento', 'executado')
+      const coletasRes = await supabase
+        .from('servicos_nacional_gas')
+        .select('id', { count: 'exact', head: true })
+        .eq('status_atendimento', 'executado')
+        .eq('tipo_servico', 'leitura')
+        .gte('data_agendamento', inicioMes)
+        .lt('data_agendamento', proximoMes)
 
       setStats({
         empreendimentosTerceirizados: empRes.count || 0,
@@ -118,7 +130,7 @@ export default function Dashboard() {
               {loading ? '...' : stats.coletasConfirmadas}
             </div>
             <p className="text-xs text-muted-foreground">
-              Total de coletas realizadas
+              Coletas realizadas na competência atual ({competenciaLabel})
             </p>
           </CardContent>
         </Card>
