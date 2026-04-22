@@ -549,7 +549,10 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
 
         {step === 'preview' && (
           <div className="flex flex-col flex-1 min-h-0 gap-4">
-            <div className="flex gap-4 shrink-0 flex-wrap">
+            <div className="flex gap-4 shrink-0 flex-wrap items-center">
+              <Badge variant="secondary" className="text-sm">
+                Origem: {origemFinal}
+              </Badge>
               <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-md">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-green-800 dark:text-green-400">
