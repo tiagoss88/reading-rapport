@@ -327,7 +327,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     setPastedText('')
     setImportMethod('file')
     setOrigemSelecionada('NGD')
-    setOrigemCustomizada('')
     onOpenChange(false)
   }
 
@@ -454,30 +453,16 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NGD">NGD — Nacional Gás Distribuidora</SelectItem>
-                  <SelectItem value="Síndico">Síndico</SelectItem>
-                  <SelectItem value="Administradora">Administradora</SelectItem>
-                  <SelectItem value="Outro">Outro (especificar)</SelectItem>
+                  <SelectItem value="BG">BG</SelectItem>
+                  <SelectItem value="Particular">Particular</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {origemSelecionada === 'Outro' && (
-              <div className="space-y-2">
-                <Label htmlFor="origem-custom">Especifique a origem</Label>
-                <Input
-                  id="origem-custom"
-                  placeholder="Digite a origem dos serviços"
-                  value={origemCustomizada}
-                  onChange={(e) => setOrigemCustomizada(e.target.value)}
-                />
-              </div>
-            )}
 
             <div className="flex justify-end gap-2 pt-2 border-t">
               <Button variant="outline" onClick={handleClose}>Cancelar</Button>
               <Button
                 onClick={() => setStep('upload')}
-                disabled={origemSelecionada === 'Outro' && !origemCustomizada.trim()}
               >
                 Continuar
               </Button>
