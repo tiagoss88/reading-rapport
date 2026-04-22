@@ -326,9 +326,11 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const handleClose = () => {
     setFile(null)
     setParsedData([])
-    setStep('upload')
+    setStep('origem')
     setPastedText('')
     setImportMethod('file')
+    setOrigemSelecionada('NGD')
+    setOrigemCustomizada('')
     onOpenChange(false)
   }
 
