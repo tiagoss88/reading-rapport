@@ -63,12 +63,18 @@ const makeDuplicateKey = (row: {
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ImportedRow[]>([])
-  const [step, setStep] = useState<'upload' | 'preview' | 'success'>('upload')
+  const [step, setStep] = useState<'origem' | 'upload' | 'preview' | 'success'>('origem')
   const [pastedText, setPastedText] = useState('')
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file')
+  const [origemSelecionada, setOrigemSelecionada] = useState<string>('NGD')
+  const [origemCustomizada, setOrigemCustomizada] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  const origemFinal = origemSelecionada === 'Outro'
+    ? (origemCustomizada.trim() || 'Outro')
+    : origemSelecionada
 
   const { data: empreendimentos } = useQuery({
     queryKey: ['empreendimentos-terceirizados-all'],
