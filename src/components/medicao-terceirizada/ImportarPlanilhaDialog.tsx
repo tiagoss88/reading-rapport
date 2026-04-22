@@ -254,7 +254,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
             condominio_nome_original: condominio,
             bloco: colMap.bloco >= 0 ? String(row[colMap.bloco] || '').trim() || null : null,
             apartamento: colMap.apto >= 0 ? String(row[colMap.apto] || '').trim() || null : null,
-            fonte: colMap.fonte >= 0 ? String(row[colMap.fonte] || '').trim() || null : null,
+            fonte: origemFinal,
             morador_nome: colMap.morador >= 0 ? String(row[colMap.morador] || '').trim() || null : null,
             telefone: colMap.telefone >= 0 ? String(row[colMap.telefone] || '').trim() || null : null,
             email: colMap.email >= 0 ? String(row[colMap.email] || '').trim() || null : null,
