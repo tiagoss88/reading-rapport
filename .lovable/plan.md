@@ -1,28 +1,22 @@
 
-## Ajustar opções de Origem na importação de planilha
+## Card "Coletas Confirmadas" — filtrar por competência atual
 
 ### Mudança
 
-**Arquivo único:** `src/components/medicao-terceirizada/ImportarPlanilhaDialog.tsx`
+**Arquivo único:** `src/pages/Dashboard.tsx`
 
-Substituir as opções atuais do `Select` de Origem (NGD / Síndico / Administradora / Outro) pelas três opções reais utilizadas:
-
-- **NGD** (padrão — Nacional Gás Distribuidora)
-- **BG**
-- **Particular**
+Alterar a query de `coletasConfirmadas` em `fetchDashboardData` para contar apenas as coletas de leitura executadas no mês corrente (competência atual), em vez de todas as coletas históricas.
 
 ### Detalhes
 
-1. Atualizar os `<SelectItem>` do passo `'origem'` para listar apenas: NGD, BG, Particular.
-2. Remover a opção "Outro" e o `Input` condicional de texto livre (`origemCustomizada`), bem como o estado relacionado.
-3. Simplificar `origemFinal` para usar diretamente `origemSelecionada` (não há mais texto customizado).
-4. Manter NGD como valor default e o badge de confirmação na tela de Preview.
-5. Resetar `origemSelecionada` para `'NGD'` em `handleClose`.
+1. Calcular o início do mês atual e o início do próximo mês (formato `YYYY-MM-DD`).
+2. Adicionar filtros à query:
+   - `.eq('tipo_servico', 'leitura')` — considerar apenas coletas de leitura
+   - `.gte('data_agendamento', inicioMes)`
+   - `.lt('data_agendamento', proximoMes)`
+3. Atualizar o texto auxiliar do card de `"Total de coletas realizadas"` para `"Coletas realizadas na competência atual (MM/AAAA)"`, usando o mês corrente formatado.
 
 ### Resultado
 
-- Diálogo de importação mostra apenas as 3 origens reais do negócio.
-- NGD continua como padrão de 1 clique para o caso mais comum.
-- Sem campo de texto livre, eliminando inconsistências de digitação.
-
-Nenhum schema, migration, edge function ou outro arquivo afetado.
+- O card "Coletas Confirmadas" passa a refletir apenas o volume do mês vigente, dando uma leitura mais útil de produtividade.
+- Sem impacto em schema, migrations ou outros relatórios.
