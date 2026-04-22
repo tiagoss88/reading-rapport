@@ -439,6 +439,55 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
           </DialogTitle>
         </DialogHeader>
 
+        {step === 'origem' && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Origem dos serviços</Label>
+              <p className="text-sm text-muted-foreground">
+                Escolha a origem que será aplicada a <strong>todos</strong> os serviços desta importação.
+                A coluna FONTE da planilha será ignorada.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="origem-select">Origem</Label>
+              <Select value={origemSelecionada} onValueChange={setOrigemSelecionada}>
+                <SelectTrigger id="origem-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NGD">NGD — Nacional Gás Distribuidora</SelectItem>
+                  <SelectItem value="Síndico">Síndico</SelectItem>
+                  <SelectItem value="Administradora">Administradora</SelectItem>
+                  <SelectItem value="Outro">Outro (especificar)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {origemSelecionada === 'Outro' && (
+              <div className="space-y-2">
+                <Label htmlFor="origem-custom">Especifique a origem</Label>
+                <Input
+                  id="origem-custom"
+                  placeholder="Digite a origem dos serviços"
+                  value={origemCustomizada}
+                  onChange={(e) => setOrigemCustomizada(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={handleClose}>Cancelar</Button>
+              <Button
+                onClick={() => setStep('upload')}
+                disabled={origemSelecionada === 'Outro' && !origemCustomizada.trim()}
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        )}
+
         {step === 'upload' && (
           <div className="space-y-4">
             <Tabs value={importMethod} onValueChange={(v) => setImportMethod(v as 'file' | 'paste')}>
