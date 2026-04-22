@@ -9,6 +9,10 @@ import * as XLSX from 'xlsx'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 
 interface ImportedRow {
   data_solicitacao: string | null
@@ -59,12 +63,18 @@ const makeDuplicateKey = (row: {
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [parsedData, setParsedData] = useState<ImportedRow[]>([])
-  const [step, setStep] = useState<'upload' | 'preview' | 'success'>('upload')
+  const [step, setStep] = useState<'origem' | 'upload' | 'preview' | 'success'>('origem')
   const [pastedText, setPastedText] = useState('')
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file')
+  const [origemSelecionada, setOrigemSelecionada] = useState<string>('NGD')
+  const [origemCustomizada, setOrigemCustomizada] = useState<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
+
+  const origemFinal = origemSelecionada === 'Outro'
+    ? (origemCustomizada.trim() || 'Outro')
+    : origemSelecionada
 
   const { data: empreendimentos } = useQuery({
     queryKey: ['empreendimentos-terceirizados-all'],
@@ -244,7 +254,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
             condominio_nome_original: condominio,
             bloco: colMap.bloco >= 0 ? String(row[colMap.bloco] || '').trim() || null : null,
             apartamento: colMap.apto >= 0 ? String(row[colMap.apto] || '').trim() || null : null,
-            fonte: colMap.fonte >= 0 ? String(row[colMap.fonte] || '').trim() || null : null,
+            fonte: origemFinal,
             morador_nome: colMap.morador >= 0 ? String(row[colMap.morador] || '').trim() || null : null,
             telefone: colMap.telefone >= 0 ? String(row[colMap.telefone] || '').trim() || null : null,
             email: colMap.email >= 0 ? String(row[colMap.email] || '').trim() || null : null,
@@ -316,9 +326,11 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const handleClose = () => {
     setFile(null)
     setParsedData([])
-    setStep('upload')
+    setStep('origem')
     setPastedText('')
     setImportMethod('file')
+    setOrigemSelecionada('NGD')
+    setOrigemCustomizada('')
     onOpenChange(false)
   }
 
@@ -389,7 +401,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
         condominio_nome_original: condominio,
         bloco: colMap.bloco >= 0 ? String(values[colMap.bloco] || '').trim() || null : null,
         apartamento: colMap.apto >= 0 ? String(values[colMap.apto] || '').trim() || null : null,
-        fonte: colMap.fonte >= 0 ? String(values[colMap.fonte] || '').trim() || null : null,
+        fonte: origemFinal,
         morador_nome: colMap.morador >= 0 ? String(values[colMap.morador] || '').trim() || null : null,
         telefone: colMap.telefone >= 0 ? String(values[colMap.telefone] || '').trim() || null : null,
         email: colMap.email >= 0 ? String(values[colMap.email] || '').trim() || null : null,
@@ -426,6 +438,55 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
             Importar Planilha de Serviços
           </DialogTitle>
         </DialogHeader>
+
+        {step === 'origem' && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Origem dos serviços</Label>
+              <p className="text-sm text-muted-foreground">
+                Escolha a origem que será aplicada a <strong>todos</strong> os serviços desta importação.
+                A coluna FONTE da planilha será ignorada.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="origem-select">Origem</Label>
+              <Select value={origemSelecionada} onValueChange={setOrigemSelecionada}>
+                <SelectTrigger id="origem-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NGD">NGD — Nacional Gás Distribuidora</SelectItem>
+                  <SelectItem value="Síndico">Síndico</SelectItem>
+                  <SelectItem value="Administradora">Administradora</SelectItem>
+                  <SelectItem value="Outro">Outro (especificar)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {origemSelecionada === 'Outro' && (
+              <div className="space-y-2">
+                <Label htmlFor="origem-custom">Especifique a origem</Label>
+                <Input
+                  id="origem-custom"
+                  placeholder="Digite a origem dos serviços"
+                  value={origemCustomizada}
+                  onChange={(e) => setOrigemCustomizada(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={handleClose}>Cancelar</Button>
+              <Button
+                onClick={() => setStep('upload')}
+                disabled={origemSelecionada === 'Outro' && !origemCustomizada.trim()}
+              >
+                Continuar
+              </Button>
+            </div>
+          </div>
+        )}
 
         {step === 'upload' && (
           <div className="space-y-4">
@@ -488,7 +549,10 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
 
         {step === 'preview' && (
           <div className="flex flex-col flex-1 min-h-0 gap-4">
-            <div className="flex gap-4 shrink-0 flex-wrap">
+            <div className="flex gap-4 shrink-0 flex-wrap items-center">
+              <Badge variant="secondary" className="text-sm">
+                Origem: {origemFinal}
+              </Badge>
               <div className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-900/30 rounded-md">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <span className="text-green-800 dark:text-green-400">
