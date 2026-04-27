@@ -64,6 +64,9 @@ export function useRelatorioServicos() {
     if (statusServico) {
       queryNacionalGas = queryNacionalGas.eq('status_atendimento', statusServico);
     }
+    if (ufFiltro) {
+      queryNacionalGas = queryNacionalGas.eq('uf', ufFiltro);
+    }
 
     const [resInternos, resNacionalGas] = await Promise.all([
       queryInternos.order('data_agendamento', { ascending: false }),
