@@ -190,18 +190,6 @@ export default function ServicosNacionalGas() {
   return (
     <Layout title="Serviços">
       <div className="space-y-6">
-        {/* Alerta de serviços não associados */}
-        {servicosNaoAssociados > 0 && (
-          <Card className="border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10">
-            <CardContent className="flex items-center gap-3 py-4">
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              <span className="text-yellow-800 dark:text-yellow-400">
-                <strong>{servicosNaoAssociados}</strong> serviço(s) não foram associados a nenhum empreendimento cadastrado.
-              </span>
-            </CardContent>
-          </Card>
-        )}
-
         <Tabs defaultValue="servicos">
           <TabsList>
             <TabsTrigger value="servicos">
