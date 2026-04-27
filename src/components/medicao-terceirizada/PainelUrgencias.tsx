@@ -275,8 +275,36 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
           </div>
         </CardTitle>
       </CardHeader>
+      {ufsDisponiveis.length > 1 && (
+        <div className="px-6 pb-2 flex flex-wrap gap-1.5">
+          <Button
+            variant={ufFiltro === 'TODAS' ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setUfFiltro('TODAS')}
+          >
+            Todas ({urgentes.length})
+          </Button>
+          {ufsDisponiveis.map(uf => (
+            <Button
+              key={uf}
+              variant={ufFiltro === uf ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setUfFiltro(uf)}
+            >
+              {uf} ({contagemPorUf(uf)})
+            </Button>
+          ))}
+        </div>
+      )}
       <CardContent className="space-y-2 pt-0">
-        {urgentes.map((item) => {
+        {urgentesFiltrados.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+            <Clock className="h-8 w-8 mb-2 opacity-50" />
+            <p className="text-sm">Nenhum serviço urgente para a UF selecionada</p>
+          </div>
+        ) : urgentesFiltrados.map((item) => {
           const config = nivelConfig[item.nivel]
           return (
             <div
