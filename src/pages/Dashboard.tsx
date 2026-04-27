@@ -65,7 +65,7 @@ export default function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('servicos_nacional_gas')
-        .select('id, data_solicitacao, condominio_nome_original, bloco, apartamento, tipo_servico, status_atendimento, morador_nome')
+        .select('id, data_solicitacao, condominio_nome_original, bloco, apartamento, tipo_servico, status_atendimento, morador_nome, uf')
         .in('status_atendimento', ['pendente', 'agendado'])
       if (error) throw error
       return data

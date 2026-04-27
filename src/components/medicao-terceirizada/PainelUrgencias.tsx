@@ -1,8 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Clock, Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertTriangle, Clock, Pencil, Copy } from 'lucide-react'
+import { format } from 'date-fns'
+import { useToast } from '@/hooks/use-toast'
 
 interface ServicoNacionalGas {
   id: string
@@ -13,6 +16,7 @@ interface ServicoNacionalGas {
   tipo_servico: string
   status_atendimento: string
   morador_nome: string | null
+  uf: string
 }
 
 interface PainelUrgenciasProps {
@@ -179,6 +183,8 @@ export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrge
 
 export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgenciasProps) {
   const urgentes = useMemo(() => getServicosUrgentes(servicos), [servicos])
+  const [resumoOpen, setResumoOpen] = useState(false)
+  const { toast } = useToast()
 
   if (urgentes.length === 0) {
     return (
@@ -192,24 +198,65 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
     )
   }
 
-  const vencidos = urgentes.filter(u => u.nivel === 'vencido').length
-  const criticos = urgentes.filter(u => u.nivel === 'critico').length
+  const vencidos = urgentes.filter(u => u.nivel === 'vencido')
+  const criticos = urgentes.filter(u => u.nivel === 'critico')
+  const atencao = urgentes.filter(u => u.nivel === 'atencao')
+
+  const formatLinhaResumo = (item: ServicoUrgente) => {
+    const s = item.servico
+    const localizacao = [s.bloco && `Bloco ${s.bloco}`, s.apartamento && `Apto ${s.apartamento}`]
+      .filter(Boolean)
+      .join(' ')
+    const partes = [
+      `[${s.uf}]`,
+      s.condominio_nome_original,
+      localizacao || null,
+      s.tipo_servico,
+      formatarTempoRestante(item.horasRestantes, item.semData),
+    ].filter(Boolean)
+    return `• ${partes.join(' — ')}`
+  }
+
+  const textoResumo = (() => {
+    const linhas: string[] = [
+      `🚨 Serviços com Prazo Crítico — ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
+      '',
+    ]
+    if (vencidos.length > 0) {
+      linhas.push(`🔴 VENCIDOS (${vencidos.length}):`, ...vencidos.map(formatLinhaResumo), '')
+    }
+    if (criticos.length > 0) {
+      linhas.push(`🟠 CRÍTICOS (${criticos.length}):`, ...criticos.map(formatLinhaResumo), '')
+    }
+    if (atencao.length > 0) {
+      linhas.push(`🟡 ATENÇÃO (${atencao.length}):`, ...atencao.map(formatLinhaResumo), '')
+    }
+    return linhas.join('\n').trimEnd()
+  })()
+
+  const handleCopiar = async () => {
+    await navigator.clipboard.writeText(textoResumo)
+    toast({ title: 'Copiado!', description: 'Resumo enviado para a área de transferência.' })
+  }
 
   return (
     <Card className="border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/10">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+        <CardTitle className="flex items-center gap-2 text-base flex-wrap">
           <AlertTriangle className="h-5 w-5 text-red-500" />
           <span>Serviços com Prazo Crítico</span>
-          <div className="flex gap-1.5 ml-auto">
-            {vencidos > 0 && (
+          <div className="flex gap-1.5 ml-auto items-center">
+            <Button variant="outline" size="sm" onClick={() => setResumoOpen(true)}>
+              <Copy className="h-4 w-4 mr-1" /> Copiar Resumo
+            </Button>
+            {vencidos.length > 0 && (
               <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                {vencidos} vencido{vencidos > 1 ? 's' : ''}
+                {vencidos.length} vencido{vencidos.length > 1 ? 's' : ''}
               </Badge>
             )}
-            {criticos > 0 && (
+            {criticos.length > 0 && (
               <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                {criticos} crítico{criticos > 1 ? 's' : ''}
+                {criticos.length} crítico{criticos.length > 1 ? 's' : ''}
               </Badge>
             )}
           </div>
@@ -226,6 +273,9 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
               <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-semibold">
+                    {item.servico.uf}
+                  </Badge>
                   <span className="font-medium text-sm truncate">
                     {item.servico.condominio_nome_original}
                   </span>
@@ -257,6 +307,27 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
           )
         })}
       </CardContent>
+
+      <Dialog open={resumoOpen} onOpenChange={setResumoOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resumo — Serviços com Prazo Crítico</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <textarea
+              readOnly
+              value={textoResumo}
+              className="w-full h-80 p-3 text-sm bg-muted rounded-md border resize-none font-mono"
+              onClick={e => (e.target as HTMLTextAreaElement).select()}
+            />
+            <div className="flex justify-end">
+              <Button onClick={handleCopiar}>
+                <Copy className="h-4 w-4 mr-1" /> Copiar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
