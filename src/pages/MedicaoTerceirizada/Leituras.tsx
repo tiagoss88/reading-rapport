@@ -53,6 +53,7 @@ export default function LeiturasTerceirizadas() {
   const [editarColeta, setEditarColeta] = useState<any>(null)
   const [novaColetaOpen, setNovaColetaOpen] = useState(false)
   const [resumoOpen, setResumoOpen] = useState(false)
+  const [resumoPendentesOpen, setResumoPendentesOpen] = useState(false)
   const [coletaExcluir, setColetaExcluir] = useState<any>(null)
   const [excluindo, setExcluindo] = useState(false)
   const queryClient = useQueryClient()
