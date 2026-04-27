@@ -1,8 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, Clock, Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AlertTriangle, Clock, Pencil, Copy } from 'lucide-react'
+import { format } from 'date-fns'
+import { useToast } from '@/hooks/use-toast'
 
 interface ServicoNacionalGas {
   id: string
@@ -13,6 +16,7 @@ interface ServicoNacionalGas {
   tipo_servico: string
   status_atendimento: string
   morador_nome: string | null
+  uf: string
 }
 
 interface PainelUrgenciasProps {
