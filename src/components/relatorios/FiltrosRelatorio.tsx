@@ -44,7 +44,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
   });
 
   const { data: operadores } = useQuery({
@@ -286,6 +286,28 @@ export default function FiltrosRelatorio({
                     <SelectItem value="cancelado">Cancelado</SelectItem>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="executado">Executado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ufFiltroRdo">UF</Label>
+                <Select
+                  value={filtros.ufFiltro || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, ufFiltro: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    {ufsDisponiveis?.map((uf) => (
+                      <SelectItem key={uf} value={uf}>
+                        {uf}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

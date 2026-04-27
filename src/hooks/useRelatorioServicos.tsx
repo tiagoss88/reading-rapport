@@ -3,7 +3,7 @@ import { FiltrosRelatorioType } from '@/pages/Relatorios';
 
 export function useRelatorioServicos() {
   const gerarRelatorioServicos = async (filtros: FiltrosRelatorioType): Promise<any[]> => {
-    const { dataInicio, dataFim, operadorId, tipoServico, statusServico } = filtros;
+    const { dataInicio, dataFim, operadorId, tipoServico, statusServico, ufFiltro } = filtros;
 
     const addOneDay = (dateStr: string) => {
       const date = new Date(dateStr);
@@ -64,9 +64,14 @@ export function useRelatorioServicos() {
     if (statusServico) {
       queryNacionalGas = queryNacionalGas.eq('status_atendimento', statusServico);
     }
+    if (ufFiltro) {
+      queryNacionalGas = queryNacionalGas.eq('uf', ufFiltro);
+    }
 
     const [resInternos, resNacionalGas] = await Promise.all([
-      queryInternos.order('data_agendamento', { ascending: false }),
+      ufFiltro
+        ? Promise.resolve({ data: [] as any[], error: null })
+        : queryInternos.order('data_agendamento', { ascending: false }),
       queryNacionalGas.order('data_agendamento', { ascending: false }),
     ]);
 
