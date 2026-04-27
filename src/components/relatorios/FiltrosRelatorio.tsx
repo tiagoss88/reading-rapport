@@ -289,6 +289,28 @@ export default function FiltrosRelatorio({
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ufFiltroRdo">UF</Label>
+                <Select
+                  value={filtros.ufFiltro || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, ufFiltro: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    {ufsDisponiveis?.map((uf) => (
+                      <SelectItem key={uf} value={uf}>
+                        {uf}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </>
           )}
         </div>
