@@ -414,18 +414,39 @@ export default function LeiturasTerceirizadas() {
                               : '-'}
                           </TableCell>
                           <TableCell>
-                            {fotoUrl ? (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setFotoSelecionada(fotoUrl)}
-                                title="Ver foto"
-                              >
-                                <Image className="h-4 w-4 text-primary" />
-                              </Button>
-                            ) : (
-                              <ImageOff className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            {(() => {
+                              const fotos = extrairFotosUrls(coleta.observacao)
+                              if (fotos.length === 0) {
+                                return <ImageOff className="h-4 w-4 text-muted-foreground" />
+                              }
+                              return (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" title="Ver foto" className="relative">
+                                      <Image className="h-4 w-4 text-primary" />
+                                      {fotos.length > 1 && (
+                                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] leading-none rounded-full px-1 py-0.5">
+                                          {fotos.length}
+                                        </span>
+                                      )}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent side="left" className="w-auto max-w-sm p-2">
+                                    <p className="text-xs font-medium mb-2 px-1">Foto Comprovante</p>
+                                    <div className={fotos.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>
+                                      {fotos.map((url, idx) => (
+                                        <img
+                                          key={idx}
+                                          src={url}
+                                          alt={`Foto comprovante ${idx + 1}`}
+                                          className="max-h-72 w-full object-contain rounded-md bg-muted"
+                                        />
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              )
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
