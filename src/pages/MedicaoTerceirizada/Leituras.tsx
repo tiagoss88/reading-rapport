@@ -453,12 +453,22 @@ export default function LeiturasTerceirizadas() {
         <TabsContent value="pendentes">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Pendentes
-                {pendentes.length > 0 && (
-                  <Badge variant="destructive">{pendentesFiltrados.length}</Badge>
-                )}
-              </CardTitle>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="flex items-center gap-2">
+                  Pendentes
+                  {pendentes.length > 0 && (
+                    <Badge variant="destructive">{pendentesFiltrados.length}</Badge>
+                  )}
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setResumoPendentesOpen(true)}
+                  disabled={!pendentesFiltrados.length}
+                >
+                  <Copy className="h-4 w-4 mr-1" /> Copiar Resumo
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-3 mt-2">
                 <Select value={competencia} onValueChange={setCompetencia}>
                   <SelectTrigger className="w-48">
