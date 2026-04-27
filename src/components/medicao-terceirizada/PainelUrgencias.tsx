@@ -184,7 +184,13 @@ export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrge
 export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgenciasProps) {
   const urgentes = useMemo(() => getServicosUrgentes(servicos), [servicos])
   const [resumoOpen, setResumoOpen] = useState(false)
+  const [ufFiltro, setUfFiltro] = useState<string>('TODAS')
   const { toast } = useToast()
+
+  const ufsDisponiveis = useMemo(
+    () => Array.from(new Set(urgentes.map(u => u.servico.uf).filter(Boolean))).sort(),
+    [urgentes]
+  )
 
   if (urgentes.length === 0) {
     return (
@@ -198,9 +204,15 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
     )
   }
 
-  const vencidos = urgentes.filter(u => u.nivel === 'vencido')
-  const criticos = urgentes.filter(u => u.nivel === 'critico')
-  const atencao = urgentes.filter(u => u.nivel === 'atencao')
+  const urgentesFiltrados = ufFiltro === 'TODAS'
+    ? urgentes
+    : urgentes.filter(u => u.servico.uf === ufFiltro)
+
+  const vencidos = urgentesFiltrados.filter(u => u.nivel === 'vencido')
+  const criticos = urgentesFiltrados.filter(u => u.nivel === 'critico')
+  const atencao = urgentesFiltrados.filter(u => u.nivel === 'atencao')
+
+  const contagemPorUf = (uf: string) => urgentes.filter(u => u.servico.uf === uf).length
 
   const formatLinhaResumo = (item: ServicoUrgente) => {
     const s = item.servico
@@ -218,8 +230,9 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
   }
 
   const textoResumo = (() => {
+    const escopo = ufFiltro === 'TODAS' ? '' : ` — UF: ${ufFiltro}`
     const linhas: string[] = [
-      `🚨 Serviços com Prazo Crítico — ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
+      `🚨 Serviços com Prazo Crítico${escopo} — ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
       '',
     ]
     if (vencidos.length > 0) {
@@ -262,8 +275,36 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
           </div>
         </CardTitle>
       </CardHeader>
+      {ufsDisponiveis.length > 1 && (
+        <div className="px-6 pb-2 flex flex-wrap gap-1.5">
+          <Button
+            variant={ufFiltro === 'TODAS' ? 'default' : 'outline'}
+            size="sm"
+            className="h-7 px-2.5 text-xs"
+            onClick={() => setUfFiltro('TODAS')}
+          >
+            Todas ({urgentes.length})
+          </Button>
+          {ufsDisponiveis.map(uf => (
+            <Button
+              key={uf}
+              variant={ufFiltro === uf ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 px-2.5 text-xs"
+              onClick={() => setUfFiltro(uf)}
+            >
+              {uf} ({contagemPorUf(uf)})
+            </Button>
+          ))}
+        </div>
+      )}
       <CardContent className="space-y-2 pt-0">
-        {urgentes.map((item) => {
+        {urgentesFiltrados.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+            <Clock className="h-8 w-8 mb-2 opacity-50" />
+            <p className="text-sm">Nenhum serviço urgente para a UF selecionada</p>
+          </div>
+        ) : urgentesFiltrados.map((item) => {
           const config = nivelConfig[item.nivel]
           return (
             <div

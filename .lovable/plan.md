@@ -1,60 +1,47 @@
-## Painel de Urgências — exibir UF e adicionar "Copiar Resumo"
+## Filtro por UF no Painel de Urgências
 
-### Mudança
+### Arquivo único
+`src/components/medicao-terceirizada/PainelUrgencias.tsx`
 
-**Arquivo único:** `src/components/medicao-terceirizada/PainelUrgencias.tsx`
+### Mudanças
 
-Acrescentar duas melhorias ao painel "Serviços com Prazo Crítico":
+1. **Estado de filtro**
+   - Adicionar `const [ufFiltro, setUfFiltro] = useState<string>('TODAS')` no componente.
 
-1. **Mostrar a UF** em cada item da lista (badge discreto ao lado do nome do condomínio).
-2. **Botão "Copiar Resumo"** no cabeçalho do card, gerando um texto formatado pronto para colar no grupo de WhatsApp dos técnicos.
+2. **Lista dinâmica de UFs disponíveis**
+   - Derivar a partir da lista completa de `urgentes` via `useMemo`:
+     ```ts
+     const ufsDisponiveis = useMemo(
+       () => Array.from(new Set(urgentes.map(u => u.servico.uf).filter(Boolean))).sort(),
+       [urgentes]
+     )
+     ```
+   - Assim só aparecem botões para UFs que de fato têm serviços urgentes (ex.: BA, CE).
 
-### Detalhes
+3. **Lista filtrada**
+   - `const urgentesFiltrados = ufFiltro === 'TODAS' ? urgentes : urgentes.filter(u => u.servico.uf === ufFiltro)`
+   - As variáveis `vencidos`, `criticos`, `atencao` passam a derivar de `urgentesFiltrados`.
+   - O `map` da renderização e o `textoResumo` usam `urgentesFiltrados`.
 
-#### 1. Interface `ServicoNacionalGas`
-Adicionar o campo `uf: string` (a coluna já existe na tabela `servicos_nacional_gas` e é NOT NULL, então não precisa de fallback).
+4. **UI dos botões de filtro**
+   - Logo abaixo do `CardHeader` (ou dentro dele, em uma segunda linha), adicionar um grupo de botões compactos:
+     - "Todas" (default selecionado)
+     - Um botão por UF presente em `ufsDisponiveis` (ex.: "BA", "CE")
+   - Usar `Button` shadcn com `variant={ufFiltro === uf ? 'default' : 'outline'}` e `size="sm"`, mostrando contador entre parênteses (ex.: `BA (3)`).
+   - Esconder o grupo se houver apenas 1 UF disponível (filtro irrelevante).
 
-#### 2. Exibição da UF na lista
-Junto ao nome do condomínio, exibir um badge `outline` pequeno com a UF:
-```
-[BA] BA DUO HORTENSIAS — Apto 101
-```
-Posição: imediatamente antes do nome, com classe `text-[10px] px-1.5 py-0` para manter compacto.
+5. **Cabeçalho do resumo**
+   - Quando filtrado, ajustar o título da primeira linha para refletir o escopo:
+     ```
+     🚨 Serviços com Prazo Crítico — UF: BA — 27/04/2026 14:30
+     ```
+   - Quando "Todas", manter o formato atual sem o trecho "UF: ...".
 
-#### 3. Botão "Copiar Resumo"
-- Ícone `Copy` (lucide-react) + label "Copiar Resumo".
-- Posição: dentro do `CardTitle`, à esquerda dos badges de contagem (vencidos/críticos), em `variant="outline" size="sm"`.
-- Ao clicar abre um `Dialog` (mesmo padrão da Rota do Dia) com `textarea` somente-leitura + botão "Copiar" que usa `navigator.clipboard.writeText`.
-- Toast de confirmação via `useToast` (`{ title: 'Copiado!', description: 'Resumo enviado para a área de transferência.' }`).
+6. **Empty state**
+   - Se `urgentesFiltrados.length === 0` mas `urgentes.length > 0` (filtro ativo sem resultados), mostrar mensagem curta "Nenhum serviço urgente para a UF selecionada" em vez de esconder o card inteiro, mantendo os botões de filtro visíveis.
 
-#### 4. Formato do texto do resumo
+### Comportamento esperado
 
-Agrupado por nível de urgência, mais crítico primeiro, com emojis para leitura rápida no WhatsApp:
-
-```
-🚨 Serviços com Prazo Crítico — 27/04/2026 14:30
-
-🔴 VENCIDOS (3):
-• [BA] BA DUO HORTENSIAS — Apto 101 — Religação — Vencido há 4h
-• [SP] CONDOMÍNIO X — Bloco A Apto 22 — Desligamento — Vencido há 12h
-• [BA] BA RESIDENCIAL Y — Apto 305 — Religação Emergencial — Data não informada
-
-🟠 CRÍTICOS (2):
-• [SP] EDIFÍCIO Z — Apto 12 — Religação — Falta 3h úteis
-• [BA] CONDOMÍNIO W — Bloco B Apto 45 — Desligamento — Falta 6h úteis
-
-🟡 ATENÇÃO (4):
-• [BA] ...
-```
-
-Reaproveitar `formatarTempoRestante` já existente para a coluna de tempo. Data/hora atuais via `format(new Date(), 'dd/MM/yyyy HH:mm')` (date-fns já está em uso no projeto).
-
-#### 5. Estado e imports
-- Novo `useState` `resumoOpen`.
-- Imports adicionais: `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` de `@/components/ui/dialog`; `Copy` de `lucide-react`; `useToast` de `@/hooks/use-toast`; `format` de `date-fns`.
-
-### Resultado
-
-- Cada urgência mostra de imediato a UF, ajudando o despachante a direcionar o técnico certo.
-- Um clique gera um resumo formatado, agrupado por nível e pronto para colar no grupo de WhatsApp.
-- Sem mudanças em schema, queries, RLS ou outros componentes — a UF já vem na seleção atual de `servicos_nacional_gas`.
+- Por padrão, exibe todos os serviços urgentes (comportamento atual preservado).
+- Ao clicar em "BA" ou "CE", a lista, os badges de contagem no header e o conteúdo do "Copiar Resumo" passam a refletir apenas a UF escolhida.
+- Sem impacto em queries, schema ou outros componentes.
