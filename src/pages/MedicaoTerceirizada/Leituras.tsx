@@ -59,7 +59,7 @@ export default function LeiturasTerceirizadas() {
   const [competencia, setCompetencia] = useState(getCompetenciaAtual())
   const [filtroUF, setFiltroUF] = useState<string>('todas')
   const [filtroRota, setFiltroRota] = useState<string>('todas')
-  const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
+  
   const [filtroUFRotaDia, setFiltroUFRotaDia] = useState<string>('todas')
   const [buscaColeta, setBuscaColeta] = useState('')
   const [itensPorPagina, setItensPorPagina] = useState<number>(10)
