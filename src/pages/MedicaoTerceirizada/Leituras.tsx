@@ -15,13 +15,26 @@ import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
 import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
 
-const extrairFotoUrl = (observacao: string | null) => {
-  if (!observacao) return null
-  const match = observacao.match(/Foto comprovante: (.+)/)
-  return match ? match[1].trim() : null
+const extrairFotosUrls = (observacao: string | null): string[] => {
+  if (!observacao) return []
+  // "Fotos comprovante: [url1, url2] | Obs: ..."
+  const matchMulti = observacao.match(/Fotos comprovante:\s*\[([^\]]*)\]/i)
+  if (matchMulti) {
+    return matchMulti[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
+  // "Fotos comprovante: url1, url2 | Obs: ..."
+  const matchMultiNoBrackets = observacao.match(/Fotos comprovante:\s*(https?:\/\/[^|]+)/i)
+  if (matchMultiNoBrackets) {
+    return matchMultiNoBrackets[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
+  // "Foto comprovante: url | Obs: ..."
+  const matchSingle = observacao.match(/Foto comprovante:\s*(https?:\/\/[^\s|]+)/i)
+  if (matchSingle) return [matchSingle[1].trim()]
+  return []
 }
 
 const statusBadge = (status: string) => {
@@ -46,7 +59,7 @@ export default function LeiturasTerceirizadas() {
   const [competencia, setCompetencia] = useState(getCompetenciaAtual())
   const [filtroUF, setFiltroUF] = useState<string>('todas')
   const [filtroRota, setFiltroRota] = useState<string>('todas')
-  const [fotoSelecionada, setFotoSelecionada] = useState<string | null>(null)
+  
   const [filtroUFRotaDia, setFiltroUFRotaDia] = useState<string>('todas')
   const [buscaColeta, setBuscaColeta] = useState('')
   const [itensPorPagina, setItensPorPagina] = useState<number>(10)
@@ -387,7 +400,6 @@ export default function LeiturasTerceirizadas() {
                     {coletasExibidas.map(coleta => {
                       const emp = coleta.empreendimentos_terceirizados as any
                       const tecnico = coleta.operadores as any
-                      const fotoUrl = extrairFotoUrl(coleta.observacao)
                       return (
                         <TableRow key={coleta.id}>
                           <TableCell className="font-medium">{emp?.nome || coleta.condominio_nome_original}</TableCell>
@@ -401,18 +413,39 @@ export default function LeiturasTerceirizadas() {
                               : '-'}
                           </TableCell>
                           <TableCell>
-                            {fotoUrl ? (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setFotoSelecionada(fotoUrl)}
-                                title="Ver foto"
-                              >
-                                <Image className="h-4 w-4 text-primary" />
-                              </Button>
-                            ) : (
-                              <ImageOff className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            {(() => {
+                              const fotos = extrairFotosUrls(coleta.observacao)
+                              if (fotos.length === 0) {
+                                return <ImageOff className="h-4 w-4 text-muted-foreground" />
+                              }
+                              return (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button variant="ghost" size="icon" title="Ver foto" className="relative">
+                                      <Image className="h-4 w-4 text-primary" />
+                                      {fotos.length > 1 && (
+                                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] leading-none rounded-full px-1 py-0.5">
+                                          {fotos.length}
+                                        </span>
+                                      )}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent side="left" className="w-auto max-w-sm p-2">
+                                    <p className="text-xs font-medium mb-2 px-1">Foto Comprovante</p>
+                                    <div className={fotos.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>
+                                      {fotos.map((url, idx) => (
+                                        <img
+                                          key={idx}
+                                          src={url}
+                                          alt={`Foto comprovante ${idx + 1}`}
+                                          className="max-h-72 w-full object-contain rounded-md bg-muted"
+                                        />
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              )
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
@@ -536,25 +569,7 @@ export default function LeiturasTerceirizadas() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!fotoSelecionada} onOpenChange={(open) => !open && setFotoSelecionada(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Foto Comprovante</DialogTitle>
-            <p className="text-sm text-muted-foreground">Clique na imagem para ampliar em nova aba</p>
-          </DialogHeader>
-          {fotoSelecionada && (
-            <img
-              src={fotoSelecionada}
-              alt="Foto comprovante da coleta"
-              className="w-full max-h-[60vh] object-contain rounded-md cursor-pointer"
-              onClick={() => window.open(fotoSelecionada, '_blank')}
-            />
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFotoSelecionada(null)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       <EditarColetaDialog
         open={!!editarColeta}
