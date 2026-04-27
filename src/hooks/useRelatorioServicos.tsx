@@ -3,7 +3,7 @@ import { FiltrosRelatorioType } from '@/pages/Relatorios';
 
 export function useRelatorioServicos() {
   const gerarRelatorioServicos = async (filtros: FiltrosRelatorioType): Promise<any[]> => {
-    const { dataInicio, dataFim, operadorId, tipoServico, statusServico } = filtros;
+    const { dataInicio, dataFim, operadorId, tipoServico, statusServico, ufFiltro } = filtros;
 
     const addOneDay = (dateStr: string) => {
       const date = new Date(dateStr);
