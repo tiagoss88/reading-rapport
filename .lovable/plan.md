@@ -1,47 +1,40 @@
-## Filtro por UF no Painel de Urgências
+## Botão "Copiar Resumo" na aba Pendentes (Leituras)
 
-### Arquivo único
-`src/components/medicao-terceirizada/PainelUrgencias.tsx`
+### Objetivo
+Adicionar um botão "Copiar Resumo" na aba **Pendentes** da página `Leituras` (Medição), gerando texto pronto para envio no WhatsApp dos operadores com a lista de condomínios ainda não coletados na competência atual, respeitando os filtros de UF e Rota já aplicados.
+
+### Arquivo
+`src/pages/MedicaoTerceirizada/Leituras.tsx`
 
 ### Mudanças
 
-1. **Estado de filtro**
-   - Adicionar `const [ufFiltro, setUfFiltro] = useState<string>('TODAS')` no componente.
+1. **Novo estado**
+   - `const [resumoPendentesOpen, setResumoPendentesOpen] = useState(false)` (separado do `resumoOpen` da Rota do Dia).
 
-2. **Lista dinâmica de UFs disponíveis**
-   - Derivar a partir da lista completa de `urgentes` via `useMemo`:
-     ```ts
-     const ufsDisponiveis = useMemo(
-       () => Array.from(new Set(urgentes.map(u => u.servico.uf).filter(Boolean))).sort(),
-       [urgentes]
-     )
+2. **Botão no `CardHeader` da aba Pendentes**
+   - Posicionado ao lado dos filtros (mesmo padrão visual do botão da Rota do Dia: `Button variant="outline" size="sm"` com ícone `Copy`).
+   - Desabilitado quando `pendentesFiltrados.length === 0`.
+
+3. **Dialog de resumo**
+   - Reaproveita o padrão do `Dialog` existente da Rota do Dia: `textarea` readonly + botão "Copiar" que usa `navigator.clipboard.writeText` e dispara `toast`.
+   - Formato do texto:
      ```
-   - Assim só aparecem botões para UFs que de fato têm serviços urgentes (ex.: BA, CE).
+     ⏳ Leituras Pendentes — <Mês/Ano da competência>
+     [UF: BA | Rota: 3]      ← linha só aparece quando há filtro ativo
+     Total: N condomínios
 
-3. **Lista filtrada**
-   - `const urgentesFiltrados = ufFiltro === 'TODAS' ? urgentes : urgentes.filter(u => u.servico.uf === ufFiltro)`
-   - As variáveis `vencidos`, `criticos`, `atencao` passam a derivar de `urgentesFiltrados`.
-   - O `map` da renderização e o `textoResumo` usam `urgentesFiltrados`.
-
-4. **UI dos botões de filtro**
-   - Logo abaixo do `CardHeader` (ou dentro dele, em uma segunda linha), adicionar um grupo de botões compactos:
-     - "Todas" (default selecionado)
-     - Um botão por UF presente em `ufsDisponiveis` (ex.: "BA", "CE")
-   - Usar `Button` shadcn com `variant={ufFiltro === uf ? 'default' : 'outline'}` e `size="sm"`, mostrando contador entre parênteses (ex.: `BA (3)`).
-   - Esconder o grupo se houver apenas 1 UF disponível (filtro irrelevante).
-
-5. **Cabeçalho do resumo**
-   - Quando filtrado, ajustar o título da primeira linha para refletir o escopo:
+     • [BA] Nome do Condomínio — Rota 3 — 24 medidores
+     • [CE] Nome do Condomínio — Rota 1 — 18 medidores
+     ...
      ```
-     🚨 Serviços com Prazo Crítico — UF: BA — 27/04/2026 14:30
-     ```
-   - Quando "Todas", manter o formato atual sem o trecho "UF: ...".
+   - Agrupamento opcional por UF quando `filtroUF === 'todas'` (cabeçalho `── BA (X) ──`, `── CE (Y) ──`) para melhor leitura no WhatsApp; quando filtrado por UF, lista corrida.
+   - Ordenação: por UF, depois Rota, depois Nome.
 
-6. **Empty state**
-   - Se `urgentesFiltrados.length === 0` mas `urgentes.length > 0` (filtro ativo sem resultados), mostrar mensagem curta "Nenhum serviço urgente para a UF selecionada" em vez de esconder o card inteiro, mantendo os botões de filtro visíveis.
+4. **Label da competência**
+   - Reutilizar `competenciaOptions` para obter o label legível (ex.: "Abril 2026") a partir de `competencia`.
 
 ### Comportamento esperado
-
-- Por padrão, exibe todos os serviços urgentes (comportamento atual preservado).
-- Ao clicar em "BA" ou "CE", a lista, os badges de contagem no header e o conteúdo do "Copiar Resumo" passam a refletir apenas a UF escolhida.
-- Sem impacto em queries, schema ou outros componentes.
+- Botão visível apenas na aba Pendentes; não interfere no botão existente da Rota do Dia.
+- Conteúdo do resumo reflete exatamente o que está sendo exibido na tabela (filtros UF/Rota aplicados).
+- Toast "Copiado!" confirma a ação.
+- Sem alterações em queries, schema ou outros componentes.
