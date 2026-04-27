@@ -230,8 +230,9 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
   }
 
   const textoResumo = (() => {
+    const escopo = ufFiltro === 'TODAS' ? '' : ` — UF: ${ufFiltro}`
     const linhas: string[] = [
-      `🚨 Serviços com Prazo Crítico — ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
+      `🚨 Serviços com Prazo Crítico${escopo} — ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
       '',
     ]
     if (vencidos.length > 0) {
