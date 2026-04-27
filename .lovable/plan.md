@@ -1,16 +1,25 @@
-## Adicionar filtro UF no relatório RDO de Serviços
+## Corrigir ícone de Foto em "Coletas Realizadas"
 
-### Mudanças
+### Problema
+Em `src/pages/MedicaoTerceirizada/Leituras.tsx`, a função `extrairFotoUrl` usa o regex `/Foto comprovante: (.+)/` (singular). Porém, as coletas reais são salvas no formato plural `Fotos comprovante: [url1, url2] | Obs: ...` (visto em `NovaColetaManualDialog`, `ExecucaoServicoTerceirizado` e `ColetorEmpreendimentoDetalhe`). Como o regex não casa, todas as linhas exibem `ImageOff` e o clique não abre nada.
 
-**1. `src/components/relatorios/FiltrosRelatorio.tsx`**
-- Habilitar a query `ufs_disponiveis` também para `tipoRelatorio === 'rdo_servicos'` (atualmente só carrega para `cadastro_condominios_uf` e `coletas_sem_pendencia`).
-- Dentro do bloco `tipoRelatorio === 'rdo_servicos'`, adicionar um novo Select "UF" (com opção "Todas") que atualiza `filtros.ufFiltro`. Posicionar logo após o filtro "Status".
+### Mudanças em `src/pages/MedicaoTerceirizada/Leituras.tsx`
 
-**2. `src/hooks/useRelatorioServicos.tsx`**
-- Receber `ufFiltro` dos filtros.
-- Em `queryNacionalGas`: aplicar `.eq('uf', ufFiltro)` quando definido (tabela já tem coluna `uf`).
-- Em `queryInternos` (tabela `servicos` → `empreendimentos`): a tabela `empreendimentos` interna provavelmente não tem `uf` por condomínio nesse contexto. Vou verificar; se não houver, o filtro UF se aplica apenas aos serviços `nacional_gas` (que é a fonte principal do módulo Medição). A maneira mais segura: quando `ufFiltro` estiver definido, aplicar apenas em `queryNacionalGas` e pular `queryInternos` (retornar lista vazia para internos), já que o escopo do projeto é Nacional Gás.
+**1. Substituir `extrairFotoUrl` por `extrairFotosUrls(observacao)` que retorna `string[]`**, suportando os 3 formatos existentes:
+- `Fotos comprovante: [url1, url2] | Obs: ...` (com colchetes)
+- `Fotos comprovante: url1, url2 | Obs: ...` (sem colchetes)
+- `Foto comprovante: url | Obs: ...` (singular legado)
 
-### Observações
-- O tipo `FiltrosRelatorioType` já possui `ufFiltro`, então não há mudanças em `Relatorios.tsx`/`RelatoriosServicos.tsx`.
-- A lista de UFs vem de `empreendimentos_terceirizados.uf` (mesma fonte usada nos outros relatórios), garantindo consistência.
+**2. Substituir o Dialog modal por um Popover inline** (atende ao pedido "exibida em um box, sem necessidade de abrir em uma outra janela ou pagina"):
+- O ícone `Image` vira o `PopoverTrigger`.
+- `PopoverContent` mostra a(s) foto(s) em miniatura (grid se houver mais de uma), `max-w-sm`, `max-h-80 object-contain`.
+- Remover o `onClick={() => window.open(...)}` que abria nova aba.
+- Remover o estado `fotoSelecionada` e o `<Dialog>` de foto (linhas 539–557).
+
+**3. Renderização da célula "Foto"**:
+- Se houver fotos: `Popover` com ícone `Image` colorido + badge com a contagem quando > 1.
+- Se não houver: continua com `ImageOff` em muted.
+
+### Observação técnica
+- Usar `Popover` de `@/components/ui/popover` (já presente no projeto).
+- Manter o título "Foto Comprovante" dentro do popover para contexto.

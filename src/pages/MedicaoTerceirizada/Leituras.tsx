@@ -15,13 +15,26 @@ import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
 import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
 
-const extrairFotoUrl = (observacao: string | null) => {
-  if (!observacao) return null
-  const match = observacao.match(/Foto comprovante: (.+)/)
-  return match ? match[1].trim() : null
+const extrairFotosUrls = (observacao: string | null): string[] => {
+  if (!observacao) return []
+  // "Fotos comprovante: [url1, url2] | Obs: ..."
+  const matchMulti = observacao.match(/Fotos comprovante:\s*\[([^\]]*)\]/i)
+  if (matchMulti) {
+    return matchMulti[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
+  // "Fotos comprovante: url1, url2 | Obs: ..."
+  const matchMultiNoBrackets = observacao.match(/Fotos comprovante:\s*(https?:\/\/[^|]+)/i)
+  if (matchMultiNoBrackets) {
+    return matchMultiNoBrackets[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
+  // "Foto comprovante: url | Obs: ..."
+  const matchSingle = observacao.match(/Foto comprovante:\s*(https?:\/\/[^\s|]+)/i)
+  if (matchSingle) return [matchSingle[1].trim()]
+  return []
 }
 
 const statusBadge = (status: string) => {
