@@ -69,7 +69,9 @@ export function useRelatorioServicos() {
     }
 
     const [resInternos, resNacionalGas] = await Promise.all([
-      queryInternos.order('data_agendamento', { ascending: false }),
+      ufFiltro
+        ? Promise.resolve({ data: [] as any[], error: null })
+        : queryInternos.order('data_agendamento', { ascending: false }),
       queryNacionalGas.order('data_agendamento', { ascending: false }),
     ]);
 
