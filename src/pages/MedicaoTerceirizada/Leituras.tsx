@@ -400,7 +400,6 @@ export default function LeiturasTerceirizadas() {
                     {coletasExibidas.map(coleta => {
                       const emp = coleta.empreendimentos_terceirizados as any
                       const tecnico = coleta.operadores as any
-                      const fotoUrl = extrairFotoUrl(coleta.observacao)
                       return (
                         <TableRow key={coleta.id}>
                           <TableCell className="font-medium">{emp?.nome || coleta.condominio_nome_original}</TableCell>
