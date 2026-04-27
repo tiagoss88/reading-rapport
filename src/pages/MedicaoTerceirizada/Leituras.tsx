@@ -569,25 +569,7 @@ export default function LeiturasTerceirizadas() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!fotoSelecionada} onOpenChange={(open) => !open && setFotoSelecionada(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Foto Comprovante</DialogTitle>
-            <p className="text-sm text-muted-foreground">Clique na imagem para ampliar em nova aba</p>
-          </DialogHeader>
-          {fotoSelecionada && (
-            <img
-              src={fotoSelecionada}
-              alt="Foto comprovante da coleta"
-              className="w-full max-h-[60vh] object-contain rounded-md cursor-pointer"
-              onClick={() => window.open(fotoSelecionada, '_blank')}
-            />
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFotoSelecionada(null)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       <EditarColetaDialog
         open={!!editarColeta}
