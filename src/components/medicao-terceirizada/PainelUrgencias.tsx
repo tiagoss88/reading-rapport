@@ -184,7 +184,13 @@ export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrge
 export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgenciasProps) {
   const urgentes = useMemo(() => getServicosUrgentes(servicos), [servicos])
   const [resumoOpen, setResumoOpen] = useState(false)
+  const [ufFiltro, setUfFiltro] = useState<string>('TODAS')
   const { toast } = useToast()
+
+  const ufsDisponiveis = useMemo(
+    () => Array.from(new Set(urgentes.map(u => u.servico.uf).filter(Boolean))).sort(),
+    [urgentes]
+  )
 
   if (urgentes.length === 0) {
     return (
@@ -198,9 +204,15 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
     )
   }
 
-  const vencidos = urgentes.filter(u => u.nivel === 'vencido')
-  const criticos = urgentes.filter(u => u.nivel === 'critico')
-  const atencao = urgentes.filter(u => u.nivel === 'atencao')
+  const urgentesFiltrados = ufFiltro === 'TODAS'
+    ? urgentes
+    : urgentes.filter(u => u.servico.uf === ufFiltro)
+
+  const vencidos = urgentesFiltrados.filter(u => u.nivel === 'vencido')
+  const criticos = urgentesFiltrados.filter(u => u.nivel === 'critico')
+  const atencao = urgentesFiltrados.filter(u => u.nivel === 'atencao')
+
+  const contagemPorUf = (uf: string) => urgentes.filter(u => u.servico.uf === uf).length
 
   const formatLinhaResumo = (item: ServicoUrgente) => {
     const s = item.servico
