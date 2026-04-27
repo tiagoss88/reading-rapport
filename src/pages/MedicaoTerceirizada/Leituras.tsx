@@ -613,6 +613,76 @@ export default function LeiturasTerceirizadas() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={resumoPendentesOpen} onOpenChange={setResumoPendentesOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Resumo de Leituras Pendentes</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const competenciaLabel = competenciaOptions.find(o => o.value === competencia)?.label || competencia
+            const ordenados = [...pendentesFiltrados].sort((a, b) => {
+              if (a.uf !== b.uf) return String(a.uf).localeCompare(String(b.uf))
+              if (a.rota !== b.rota) return Number(a.rota) - Number(b.rota)
+              return String(a.nome).localeCompare(String(b.nome))
+            })
+
+            const filtroLinha: string[] = []
+            if (filtroUF !== 'todas') filtroLinha.push(`UF: ${filtroUF}`)
+            if (filtroRota !== 'todas') filtroLinha.push(`Rota: ${filtroRota}`)
+
+            const linhas: string[] = [
+              `⏳ Leituras Pendentes — ${competenciaLabel}`,
+            ]
+            if (filtroLinha.length) linhas.push(`[${filtroLinha.join(' | ')}]`)
+            linhas.push(`Total: ${ordenados.length} condomínio${ordenados.length === 1 ? '' : 's'}`)
+            linhas.push('')
+
+            if (filtroUF === 'todas') {
+              const porUf = new Map<string, typeof ordenados>()
+              for (const e of ordenados) {
+                const arr = porUf.get(e.uf) || []
+                arr.push(e)
+                porUf.set(e.uf, arr)
+              }
+              for (const [uf, lista] of porUf) {
+                linhas.push(`── ${uf} (${lista.length}) ──`)
+                for (const e of lista) {
+                  linhas.push(`• ${e.nome} — Rota ${e.rota} — ${e.quantidade_medidores || 0} medidores`)
+                }
+                linhas.push('')
+              }
+            } else {
+              for (const e of ordenados) {
+                linhas.push(`• [${e.uf}] ${e.nome} — Rota ${e.rota} — ${e.quantidade_medidores || 0} medidores`)
+              }
+            }
+
+            const texto = linhas.join('\n').trimEnd()
+
+            const handleCopiar = async () => {
+              await navigator.clipboard.writeText(texto)
+              toast({ title: 'Copiado!', description: 'Resumo copiado para a área de transferência.' })
+            }
+
+            return (
+              <div className="space-y-3">
+                <textarea
+                  readOnly
+                  value={texto}
+                  className="w-full h-80 p-3 text-sm bg-muted rounded-md border resize-none font-mono"
+                  onClick={e => (e.target as HTMLTextAreaElement).select()}
+                />
+                <div className="flex justify-end">
+                  <Button onClick={handleCopiar}>
+                    <Copy className="h-4 w-4 mr-1" /> Copiar
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
+
       {/* AlertDialog de confirmação de exclusão */}
       <AlertDialog open={!!coletaExcluir} onOpenChange={(open) => { if (!open) setColetaExcluir(null) }}>
         <AlertDialogContent>
