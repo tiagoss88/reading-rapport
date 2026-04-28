@@ -198,6 +198,47 @@ const ConfiguracoesSistema = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Card Cache do Aplicativo */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Cache do Aplicativo
+            </CardTitle>
+            <CardDescription>
+              Limpa todos os caches locais (Service Worker e Cache Storage) e recarrega o app com a versão mais recente. Útil quando mudanças não aparecem após uma atualização.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={limpandoCache}>
+                  {limpandoCache ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Limpar cache e recarregar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar cache do aplicativo?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação irá remover o Service Worker e todos os caches locais, depois recarregar a página automaticamente. Sua sessão de login será preservada.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLimparCache}>
+                    Sim, limpar e recarregar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
