@@ -1,15 +1,31 @@
-## Remover filtro "Periodicidade" do RDO de Serviços
+## Corrigir Relatório RDO de Serviços para mostrar apenas Serviços Nacional Gás
 
-### Contexto
-O relatório RDO de Serviços já possui filtros de **Data Início** e **Data Fim**, tornando o campo "Periodicidade" (Diário/Semanal/Mensal) redundante. Confirmado que `filtros.periodicidade` não é consumido por nenhum hook de geração de relatório (`useRelatorioServicos`, etc.), apenas existe no formulário e nos defaults.
+### Problema identificado
+O relatório RDO está unindo registros de **duas tabelas diferentes**:
+1. `servicos` (sistema legado de medição interna) — contém centenas de "Leitura"
+2. `servicos_nacional_gas` (sistema atual da Nacional Gás) — onde estão religação, desligamento, visita técnica, etc.
 
-### Mudanças
+Como o escopo do projeto é exclusivamente **Medição Nacional Gás**, a tabela `servicos` está poluindo o relatório com leituras antigas e escondendo os serviços reais.
 
-**`src/components/relatorios/FiltrosRelatorio.tsx`**
-- Remover o bloco `<div>` do Select de Periodicidade (linhas ~187-204) dentro do branch `tipoRelatorio === 'rdo_servicos'`.
+Trecho atual de `src/hooks/useRelatorioServicos.tsx`:
+```ts
+// Query servicos internos (LEGADO - deve ser removida)
+let queryInternos = supabase.from('servicos').select(...)
+// Query servicos nacional gas (CORRETA)
+let queryNacionalGas = supabase.from('servicos_nacional_gas').select(...)
+```
 
-### Não alterar
-- O tipo `periodicidade?` em `src/pages/Relatorios.tsx` e os defaults em `RelatoriosServicos.tsx` / `RelatoriosLeituras.tsx` permanecem (campo opcional, sem efeito) para evitar churn em outros lugares. Se desejar, em uma etapa futura posso remover também do tipo.
+Os dois resultados são concatenados em `resultados[]`, fazendo a "Leitura" do legado dominar a lista.
 
-### Resultado
-A grade de filtros do RDO passa a mostrar: Data Início, Data Fim, Tipo de Serviço, Técnico, Status e UF — sem o seletor de Periodicidade.
+### Mudança
+
+**Arquivo: `src/hooks/useRelatorioServicos.tsx`**
+- Remover totalmente a query `queryInternos` (`servicos`) e o respectivo bloco de mapeamento.
+- Manter apenas `servicos_nacional_gas` como fonte de dados do RDO.
+- Remover o bloco condicional `ufFiltro ? Promise.resolve(...) : queryInternos.order(...)` — basta executar a query Nacional Gás direto.
+
+### Resultado esperado
+O relatório RDO passará a mostrar **apenas** serviços da `servicos_nacional_gas`: religação, religação automática, religação emergencial, desligamento, visita técnica, troca de medidor, etc. — sem as "Leituras" do sistema legado.
+
+### Observação adicional
+Caso depois da correção ainda apareçam registros com `tipo_servico = 'Leitura'` dentro de `servicos_nacional_gas`, o problema estará no **import da planilha** (mapeamento de coluna). Nesse caso vou inspecionar `ImportarPlanilhaDialog.tsx` em uma segunda etapa.
