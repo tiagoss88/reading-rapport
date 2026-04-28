@@ -88,6 +88,44 @@ const ConfiguracoesSistema = () => {
     updateMutation.mutate({ chave: 'mapbox_token', valor: mapboxToken.trim() });
   };
 
+  const [limpandoCache, setLimpandoCache] = useState(false);
+
+  const handleLimparCache = async () => {
+    setLimpandoCache(true);
+    try {
+      // 1. Desregistrar todos os Service Workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((r) => r.unregister()));
+      }
+
+      // 2. Limpar todos os caches do Cache Storage
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+
+      // 3. Limpar chaves específicas do PWA (preservando sessão Supabase)
+      const chavesPwa = [
+        'pwa-banner-dismissed',
+        'coletor_synced_empreendimentos',
+        'coletor_sync_timestamp',
+      ];
+      chavesPwa.forEach((k) => localStorage.removeItem(k));
+
+      toast.success('Cache limpo! Recarregando o app...');
+
+      // 4. Forçar reload completo
+      setTimeout(() => {
+        window.location.href = window.location.pathname + '?_t=' + Date.now();
+      }, 800);
+    } catch (error) {
+      console.error('Erro ao limpar cache:', error);
+      toast.error('Erro ao limpar cache. Tente novamente.');
+      setLimpandoCache(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout title="Configurações do Sistema">
