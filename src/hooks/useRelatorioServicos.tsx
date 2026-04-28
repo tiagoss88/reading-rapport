@@ -26,7 +26,9 @@ export function useRelatorioServicos() {
         operadores:tecnico_id(nome)
       `)
       .gte('data_agendamento', dataInicio)
-      .lt('data_agendamento', fimExclusivo);
+      .lt('data_agendamento', fimExclusivo)
+      // Excluir registros de leitura — RDO trata só serviços (religação, desligamento, visita técnica, etc.)
+      .not('tipo_servico', 'ilike', '%leitura%');
 
     if (operadorId) {
       queryNacionalGas = queryNacionalGas.eq('tecnico_id', operadorId);

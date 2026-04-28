@@ -1,25 +1,48 @@
-## Adicionar botão "Limpar cache do app" em Configurações do Sistema
+## Diagnóstico
 
-### Objetivo
-Permitir que o usuário (admin) limpe o cache do PWA diretamente pela tela **Configurações do Sistema**, sem precisar abrir o DevTools ou as configurações do navegador.
+A página **Medição → Serviços** e o relatório **RDO de Serviços** leem da mesma tabela (`servicos_nacional_gas`). A diferença é que a tela de Medição/Serviços aplica um filtro escondido na linha 127:
+
+```ts
+const servicosSemLeitura = servicos?.filter(
+  s => !s.tipo_servico?.toLowerCase().includes('leitura')
+)
+```
+
+Ou seja, ela **esconde** todos os registros cujo `tipo_servico` contém a palavra "leitura". O relatório RDO **não** aplica esse filtro, então traz tudo — e como a maioria dos registros importados via planilha tem `tipo_servico = "Leitura"` (vem da coluna TIPO da planilha do cliente), o relatório acaba mostrando quase só "Leitura".
+
+Conclusão: o relatório está funcionando, mas falta o mesmo filtro/critério usado em Medição/Serviços para considerar apenas serviços "reais" (religação, religação automática, religação emergencial, desligamento, visita técnica, etc.) e excluir os registros de leitura.
+
+## Plano
+
+Aplicar no relatório **RDO de Serviços** o mesmo critério da tela Medição/Serviços: **excluir registros cujo `tipo_servico` contenha "leitura"**.
+
+### Arquivo a alterar
+
+- `src/hooks/useRelatorioServicos.tsx`
 
 ### Mudança
 
-**Arquivo: `src/pages/ConfiguracoesSistema.tsx`**
+Após o `.select(...)` da query em `servicos_nacional_gas`, adicionar:
 
-Adicionar um novo `Card` abaixo do card existente do Mapbox, com:
-- **Título:** "Cache do Aplicativo" (ícone `Trash2`)
-- **Descrição:** "Limpa todos os caches locais (Service Worker, IndexedDB, CacheStorage) e recarrega o app com a versão mais recente."
-- **Botão:** "Limpar cache e recarregar" (ícone `RefreshCw`)
-- Ao clicar, abre um `AlertDialog` de confirmação ("Esta ação irá desconectar você e recarregar o app").
-- Ao confirmar, executa:
-  1. `navigator.serviceWorker.getRegistrations()` → unregister em todos
-  2. `caches.keys()` → `caches.delete()` em todos
-  3. Limpar `localStorage` apenas das chaves do PWA (`pwa-banner-dismissed`, `coletor_synced_empreendimentos`, `coletor_sync_timestamp`) — **preservando** a sessão Supabase para evitar logout forçado
-  4. Toast de sucesso e `location.reload()` (com `window.location.href = window.location.pathname` para garantir reload completo)
+```ts
+// Excluir registros de leitura — RDO trata só serviços
+queryNacionalGas = queryNacionalGas.not('tipo_servico', 'ilike', '%leitura%');
+```
 
-### Detalhe técnico
-Usar `AlertDialog` de `@/components/ui/alert-dialog` (já existe no projeto). O botão de confirmação fica em vermelho (`variant="destructive"`).
+Isso garante que o RDO mostre apenas:
+- Religação
+- Religação Automática
+- Religação Emergencial
+- Desligamento
+- Visita Técnica
+- Demais serviços cadastrados em Medição/Serviços
 
-### Resultado
-Em **Configurações → Cache do Aplicativo**, basta clicar no botão para forçar o navegador/PWA a buscar a versão mais nova do app — útil quando mudanças não aparecem após deploy.
+E não mais o tipo "Leitura" que vem das importações de planilha.
+
+### Bônus (opcional, mas recomendado)
+
+No filtro **Tipo de Serviço** do formulário (`FiltrosRelatorio.tsx`), o select hoje carrega **todos** os tipos da tabela `tipos_servico`. Se você quiser, posso também filtrar a lista para esconder qualquer item cujo nome contenha "leitura", deixando o select coerente com o que o relatório passa a retornar.
+
+### Validação
+
+Após a mudança, gerar o relatório RDO sem filtro de tipo deve listar somente serviços reais (religações, desligamentos, visitas técnicas, etc.), batendo com o que aparece em Medição → Serviços.
