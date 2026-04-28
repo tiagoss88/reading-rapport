@@ -1,48 +1,54 @@
+# Corrigir contagem de Serviços no Relatório RDO
+
 ## Diagnóstico
 
-A página **Medição → Serviços** e o relatório **RDO de Serviços** leem da mesma tabela (`servicos_nacional_gas`). A diferença é que a tela de Medição/Serviços aplica um filtro escondido na linha 127:
+Comparando as duas telas que leem da tabela `servicos_nacional_gas`:
 
-```ts
-const servicosSemLeitura = servicos?.filter(
-  s => !s.tipo_servico?.toLowerCase().includes('leitura')
-)
-```
+**Medição / Serviços** (mostra todos os serviços corretamente)
+- Carrega tudo sem filtro de data (`order by created_at desc`)
+- Filtra "leitura" só no front-end
+- Conta todos os serviços, incluindo `pendentes` sem agendamento
 
-Ou seja, ela **esconde** todos os registros cujo `tipo_servico` contém a palavra "leitura". O relatório RDO **não** aplica esse filtro, então traz tudo — e como a maioria dos registros importados via planilha tem `tipo_servico = "Leitura"` (vem da coluna TIPO da planilha do cliente), o relatório acaba mostrando quase só "Leitura".
+**Relatório / Serviços / RDO** (mostra muito menos)
+- Filtra `data_agendamento >= inicio AND < fim`
+- Registros com `data_agendamento IS NULL` são **silenciosamente descartados**
+- Janela default = último 1 mês — agendados fora ficam de fora
+- Limite implícito de 1000 linhas do Supabase
 
-Conclusão: o relatório está funcionando, mas falta o mesmo filtro/critério usado em Medição/Serviços para considerar apenas serviços "reais" (religação, religação automática, religação emergencial, desligamento, visita técnica, etc.) e excluir os registros de leitura.
+Resultado: serviços pendentes (a maioria) e os agendados fora da janela curta nunca aparecem.
 
-## Plano
+## O que será alterado
 
-Aplicar no relatório **RDO de Serviços** o mesmo critério da tela Medição/Serviços: **excluir registros cujo `tipo_servico` contenha "leitura"**.
+**Arquivo:** `src/hooks/useRelatorioServicos.tsx`
 
-### Arquivo a alterar
+1. **Usar campo de data com fallback inteligente**
+   Em vez de filtrar somente `data_agendamento`, usar o `OR` do PostgREST para considerar:
+   - `data_agendamento` quando existir, OU
+   - `data_solicitacao` como referência, OU
+   - `created_at` como último fallback
+   Implementação: trazer um conjunto mais amplo e filtrar por data efetiva no JS (mais simples e correto que `or()` complexo).
 
-- `src/hooks/useRelatorioServicos.tsx`
+2. **Tornar o filtro de data opcional**
+   Se o usuário deixar `dataInicio` ou `dataFim` em branco → não aplicar filtro de data (mostra tudo). Hoje o componente sempre preenche, mas o hook deixa de descartar registros sem data.
 
-### Mudança
+3. **Incluir registros sem data**
+   Registros com `data_agendamento`, `data_solicitacao` e `created_at` todos nulos são raros, mas serão mantidos como `data: null` no resultado para não sumirem.
 
-Após o `.select(...)` da query em `servicos_nacional_gas`, adicionar:
+4. **Remover limite de 1000**
+   Adicionar `.range(0, 9999)` para garantir que grandes volumes não sejam cortados silenciosamente.
 
-```ts
-// Excluir registros de leitura — RDO trata só serviços
-queryNacionalGas = queryNacionalGas.not('tipo_servico', 'ilike', '%leitura%');
-```
+5. **Escolher coluna de data exibida**
+   No campo `data` retornado: usar `data_agendamento ?? data_solicitacao ?? created_at` para a tabela e exportações exibirem sempre algo coerente.
 
-Isso garante que o RDO mostre apenas:
-- Religação
-- Religação Automática
-- Religação Emergencial
-- Desligamento
-- Visita Técnica
-- Demais serviços cadastrados em Medição/Serviços
+## Comportamento final esperado
 
-E não mais o tipo "Leitura" que vem das importações de planilha.
+- Quantidade de serviços no RDO == quantidade vista em **Medição / Serviços** (descontando "Leitura"), respeitando os filtros opcionais de UF, status, técnico e tipo.
+- Período de data agora é uma **janela inclusiva**: pega qualquer serviço cuja data efetiva (agendamento → solicitação → criação) caia dentro do intervalo.
+- Serviços `pendentes` sem agendamento agora aparecem normalmente.
 
-### Bônus (opcional, mas recomendado)
+## Sem mudanças necessárias em
 
-No filtro **Tipo de Serviço** do formulário (`FiltrosRelatorio.tsx`), o select hoje carrega **todos** os tipos da tabela `tipos_servico`. Se você quiser, posso também filtrar a lista para esconder qualquer item cujo nome contenha "leitura", deixando o select coerente com o que o relatório passa a retornar.
-
-### Validação
-
-Após a mudança, gerar o relatório RDO sem filtro de tipo deve listar somente serviços reais (religações, desligamentos, visitas técnicas, etc.), batendo com o que aparece em Medição → Serviços.
+- Banco de dados (sem migração)
+- UI do filtro (`FiltrosRelatorio.tsx`)
+- Tabela de resultados (`TabelaRelatorio.tsx`)
+- Exportações PDF/CSV (continuam recebendo o mesmo shape)
