@@ -7,7 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Map, Save, ExternalLink, Loader2 } from 'lucide-react';
+import { Map, Save, ExternalLink, Loader2, Trash2, RefreshCw } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface Configuracao {
   id: string;
@@ -75,6 +86,44 @@ const ConfiguracoesSistema = () => {
     }
 
     updateMutation.mutate({ chave: 'mapbox_token', valor: mapboxToken.trim() });
+  };
+
+  const [limpandoCache, setLimpandoCache] = useState(false);
+
+  const handleLimparCache = async () => {
+    setLimpandoCache(true);
+    try {
+      // 1. Desregistrar todos os Service Workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((r) => r.unregister()));
+      }
+
+      // 2. Limpar todos os caches do Cache Storage
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+
+      // 3. Limpar chaves específicas do PWA (preservando sessão Supabase)
+      const chavesPwa = [
+        'pwa-banner-dismissed',
+        'coletor_synced_empreendimentos',
+        'coletor_sync_timestamp',
+      ];
+      chavesPwa.forEach((k) => localStorage.removeItem(k));
+
+      toast.success('Cache limpo! Recarregando o app...');
+
+      // 4. Forçar reload completo
+      setTimeout(() => {
+        window.location.href = window.location.pathname + '?_t=' + Date.now();
+      }, 800);
+    } catch (error) {
+      console.error('Erro ao limpar cache:', error);
+      toast.error('Erro ao limpar cache. Tente novamente.');
+      setLimpandoCache(false);
+    }
   };
 
   if (isLoading) {
@@ -147,6 +196,47 @@ const ConfiguracoesSistema = () => {
                 </p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Card Cache do Aplicativo */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Cache do Aplicativo
+            </CardTitle>
+            <CardDescription>
+              Limpa todos os caches locais (Service Worker e Cache Storage) e recarrega o app com a versão mais recente. Útil quando mudanças não aparecem após uma atualização.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={limpandoCache}>
+                  {limpandoCache ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Limpar cache e recarregar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar cache do aplicativo?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação irá remover o Service Worker e todos os caches locais, depois recarregar a página automaticamente. Sua sessão de login será preservada.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLimparCache}>
+                    Sim, limpar e recarregar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>
