@@ -1,25 +1,15 @@
-## Corrigir ícone de Foto em "Coletas Realizadas"
+## Remover filtro "Periodicidade" do RDO de Serviços
 
-### Problema
-Em `src/pages/MedicaoTerceirizada/Leituras.tsx`, a função `extrairFotoUrl` usa o regex `/Foto comprovante: (.+)/` (singular). Porém, as coletas reais são salvas no formato plural `Fotos comprovante: [url1, url2] | Obs: ...` (visto em `NovaColetaManualDialog`, `ExecucaoServicoTerceirizado` e `ColetorEmpreendimentoDetalhe`). Como o regex não casa, todas as linhas exibem `ImageOff` e o clique não abre nada.
+### Contexto
+O relatório RDO de Serviços já possui filtros de **Data Início** e **Data Fim**, tornando o campo "Periodicidade" (Diário/Semanal/Mensal) redundante. Confirmado que `filtros.periodicidade` não é consumido por nenhum hook de geração de relatório (`useRelatorioServicos`, etc.), apenas existe no formulário e nos defaults.
 
-### Mudanças em `src/pages/MedicaoTerceirizada/Leituras.tsx`
+### Mudanças
 
-**1. Substituir `extrairFotoUrl` por `extrairFotosUrls(observacao)` que retorna `string[]`**, suportando os 3 formatos existentes:
-- `Fotos comprovante: [url1, url2] | Obs: ...` (com colchetes)
-- `Fotos comprovante: url1, url2 | Obs: ...` (sem colchetes)
-- `Foto comprovante: url | Obs: ...` (singular legado)
+**`src/components/relatorios/FiltrosRelatorio.tsx`**
+- Remover o bloco `<div>` do Select de Periodicidade (linhas ~187-204) dentro do branch `tipoRelatorio === 'rdo_servicos'`.
 
-**2. Substituir o Dialog modal por um Popover inline** (atende ao pedido "exibida em um box, sem necessidade de abrir em uma outra janela ou pagina"):
-- O ícone `Image` vira o `PopoverTrigger`.
-- `PopoverContent` mostra a(s) foto(s) em miniatura (grid se houver mais de uma), `max-w-sm`, `max-h-80 object-contain`.
-- Remover o `onClick={() => window.open(...)}` que abria nova aba.
-- Remover o estado `fotoSelecionada` e o `<Dialog>` de foto (linhas 539–557).
+### Não alterar
+- O tipo `periodicidade?` em `src/pages/Relatorios.tsx` e os defaults em `RelatoriosServicos.tsx` / `RelatoriosLeituras.tsx` permanecem (campo opcional, sem efeito) para evitar churn em outros lugares. Se desejar, em uma etapa futura posso remover também do tipo.
 
-**3. Renderização da célula "Foto"**:
-- Se houver fotos: `Popover` com ícone `Image` colorido + badge com a contagem quando > 1.
-- Se não houver: continua com `ImageOff` em muted.
-
-### Observação técnica
-- Usar `Popover` de `@/components/ui/popover` (já presente no projeto).
-- Manter o título "Foto Comprovante" dentro do popover para contexto.
+### Resultado
+A grade de filtros do RDO passa a mostrar: Data Início, Data Fim, Tipo de Serviço, Técnico, Status e UF — sem o seletor de Periodicidade.
