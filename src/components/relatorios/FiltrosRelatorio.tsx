@@ -185,25 +185,6 @@ export default function FiltrosRelatorio({
           {tipoRelatorio === 'rdo_servicos' && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="periodicidade">Periodicidade</Label>
-                <Select
-                  value={filtros.periodicidade || 'diario'}
-                  onValueChange={(value) =>
-                    onFiltrosChange({ ...filtros, periodicidade: value as 'diario' | 'semanal' | 'mensal' })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="diario">Diário</SelectItem>
-                    <SelectItem value="semanal">Semanal</SelectItem>
-                    <SelectItem value="mensal">Mensal</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="dataInicio">Data Início</Label>
                 <Input
                   id="dataInicio"
