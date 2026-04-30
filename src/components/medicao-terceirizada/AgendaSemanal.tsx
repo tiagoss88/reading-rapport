@@ -96,8 +96,9 @@ export default function AgendaSemanal({ servicos, onSelectServico }: AgendaSeman
     servicos.filter(s => {
       // Ocultar leituras (possuem sessão própria)
       if ((s.tipo_servico || '').toLowerCase().includes('leitura')) return false
-      // Ocultar serviços já executados
+      // Ocultar serviços já executados ou cancelados
       if (s.status_atendimento === 'executado') return false
+      if (s.status_atendimento === 'cancelado') return false
 
       if (ufFilter !== 'all' && s.uf !== ufFilter) return false
       if (statusFilter !== 'all' && s.status_atendimento !== statusFilter) return false
