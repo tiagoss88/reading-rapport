@@ -1,54 +1,46 @@
-# Corrigir contagem de Serviços no Relatório RDO
+## Objetivo
 
-## Diagnóstico
+Limpar a visão **Serviços / Agenda** removendo dois tipos de cards que poluem a tela:
 
-Comparando as duas telas que leem da tabela `servicos_nacional_gas`:
+1. **Leituras** — já têm sua própria sessão (Medição / Leituras).
+2. **Serviços já executados** — fluxo encerrado, não precisam aparecer no planejamento.
 
-**Medição / Serviços** (mostra todos os serviços corretamente)
-- Carrega tudo sem filtro de data (`order by created_at desc`)
-- Filtra "leitura" só no front-end
-- Conta todos os serviços, incluindo `pendentes` sem agendamento
+## Mudança
 
-**Relatório / Serviços / RDO** (mostra muito menos)
-- Filtra `data_agendamento >= inicio AND < fim`
-- Registros com `data_agendamento IS NULL` são **silenciosamente descartados**
-- Janela default = último 1 mês — agendados fora ficam de fora
-- Limite implícito de 1000 linhas do Supabase
+Editar `src/components/medicao-terceirizada/AgendaSemanal.tsx`, no `useMemo` do `filtered` (linhas ~95-107), adicionando dois novos filtros base aplicados antes dos demais:
 
-Resultado: serviços pendentes (a maioria) e os agendados fora da janela curta nunca aparecem.
+- Excluir registros cujo `tipo_servico` contenha "leitura" (case-insensitive), mesma regra já usada no relatório RDO.
+- Excluir registros com `status_atendimento === 'executado'`.
 
-## O que será alterado
+```ts
+const filtered = useMemo(() =>
+  servicos.filter(s => {
+    // Ocultar leituras (têm sessão própria)
+    if ((s.tipo_servico || '').toLowerCase().includes('leitura')) return false
+    // Ocultar serviços já executados
+    if (s.status_atendimento === 'executado') return false
 
-**Arquivo:** `src/hooks/useRelatorioServicos.tsx`
+    if (ufFilter !== 'all' && s.uf !== ufFilter) return false
+    if (statusFilter !== 'all' && s.status_atendimento !== statusFilter) return false
+    if (tipoFilter !== 'all' && s.tipo_servico !== tipoFilter) return false
+    if (bairroFilter !== 'all') {
+      const bairro = extrairBairro((s.empreendimento as any)?.endereco)
+      if (bairro !== bairroFilter) return false
+    }
+    return true
+  }),
+  [servicos, ufFilter, statusFilter, tipoFilter, bairroFilter]
+)
+```
 
-1. **Usar campo de data com fallback inteligente**
-   Em vez de filtrar somente `data_agendamento`, usar o `OR` do PostgREST para considerar:
-   - `data_agendamento` quando existir, OU
-   - `data_solicitacao` como referência, OU
-   - `created_at` como último fallback
-   Implementação: trazer um conjunto mais amplo e filtrar por data efetiva no JS (mais simples e correto que `or()` complexo).
+## Efeito
 
-2. **Tornar o filtro de data opcional**
-   Se o usuário deixar `dataInicio` ou `dataFim` em branco → não aplicar filtro de data (mostra tudo). Hoje o componente sempre preenche, mas o hook deixa de descartar registros sem data.
+- Agenda passa a mostrar apenas serviços ativos (pendente, agendado, em andamento, etc.) — sem leituras e sem executados.
+- Listas auxiliares de filtro (`ufs`, `tipos`, `bairros`) continuam baseadas em `servicos` cru, sem impacto.
+- A página principal **Medição / Serviços** (lista) **não é alterada** — continua mostrando tudo como hoje.
+- Relatórios RDO e demais telas permanecem inalterados.
 
-3. **Incluir registros sem data**
-   Registros com `data_agendamento`, `data_solicitacao` e `created_at` todos nulos são raros, mas serão mantidos como `data: null` no resultado para não sumirem.
+## Fora de escopo
 
-4. **Remover limite de 1000**
-   Adicionar `.range(0, 9999)` para garantir que grandes volumes não sejam cortados silenciosamente.
-
-5. **Escolher coluna de data exibida**
-   No campo `data` retornado: usar `data_agendamento ?? data_solicitacao ?? created_at` para a tabela e exportações exibirem sempre algo coerente.
-
-## Comportamento final esperado
-
-- Quantidade de serviços no RDO == quantidade vista em **Medição / Serviços** (descontando "Leitura"), respeitando os filtros opcionais de UF, status, técnico e tipo.
-- Período de data agora é uma **janela inclusiva**: pega qualquer serviço cuja data efetiva (agendamento → solicitação → criação) caia dentro do intervalo.
-- Serviços `pendentes` sem agendamento agora aparecem normalmente.
-
-## Sem mudanças necessárias em
-
-- Banco de dados (sem migração)
-- UI do filtro (`FiltrosRelatorio.tsx`)
-- Tabela de resultados (`TabelaRelatorio.tsx`)
-- Exportações PDF/CSV (continuam recebendo o mesmo shape)
+- Nenhuma alteração de banco de dados.
+- Nenhuma mudança em outras abas/telas.

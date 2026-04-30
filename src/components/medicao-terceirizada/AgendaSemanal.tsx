@@ -94,6 +94,11 @@ export default function AgendaSemanal({ servicos, onSelectServico }: AgendaSeman
   // Filter servicos
   const filtered = useMemo(() =>
     servicos.filter(s => {
+      // Ocultar leituras (possuem sessão própria)
+      if ((s.tipo_servico || '').toLowerCase().includes('leitura')) return false
+      // Ocultar serviços já executados
+      if (s.status_atendimento === 'executado') return false
+
       if (ufFilter !== 'all' && s.uf !== ufFilter) return false
       if (statusFilter !== 'all' && s.status_atendimento !== statusFilter) return false
       if (tipoFilter !== 'all' && s.tipo_servico !== tipoFilter) return false
