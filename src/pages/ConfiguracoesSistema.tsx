@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Map, Save, ExternalLink, Loader2, Trash2, RefreshCw } from 'lucide-react';
+import { Map, Save, ExternalLink, Loader2, Trash2, RefreshCw, Route, ClipboardPaste } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +28,11 @@ interface Configuracao {
   valor: string | null;
   descricao: string | null;
   tipo: string | null;
+}
+
+interface ParsedRoute {
+  nome: string;
+  rota: number;
 }
 
 const ConfiguracoesSistema = () => {
