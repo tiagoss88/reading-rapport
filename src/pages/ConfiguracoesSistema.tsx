@@ -133,6 +133,123 @@ const ConfiguracoesSistema = () => {
     }
   };
 
+  // ---- Atualizar Rotas ----
+  const [rotaUf, setRotaUf] = useState('BA');
+  const [rotaTexto, setRotaTexto] = useState('');
+  const [rotasParsed, setRotasParsed] = useState<ParsedRoute[]>([]);
+  const [rotaLog, setRotaLog] = useState<string[]>([]);
+  const [rotaRunning, setRotaRunning] = useState(false);
+
+  const parseRotas = () => {
+    const lines = rotaTexto.trim().split('\n').filter(l => l.trim());
+    const parsed: ParsedRoute[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip header lines
+      if (/^condominio/i.test(trimmed) || /^nome/i.test(trimmed)) continue;
+
+      // Try tab separator first, then last number in line
+      const tabParts = trimmed.split('\t');
+      if (tabParts.length >= 2) {
+        const rota = parseInt(tabParts[tabParts.length - 1].trim());
+        const nome = tabParts.slice(0, -1).join('\t').trim();
+        if (nome && !isNaN(rota) && rota > 0) {
+          parsed.push({ nome, rota });
+          continue;
+        }
+      }
+
+      // Fallback: last token is the number
+      const match = trimmed.match(/^(.+?)\s+(\d+)\s*$/);
+      if (match) {
+        parsed.push({ nome: match[1].trim(), rota: parseInt(match[2]) });
+      }
+    }
+
+    setRotasParsed(parsed);
+    if (parsed.length === 0) {
+      toast.error('Nenhuma linha válida encontrada. Formato: CONDOMINIO [tab ou espaços] ROTA');
+    } else {
+      toast.success(`${parsed.length} linhas identificadas`);
+    }
+  };
+
+  const executarRotas = async () => {
+    if (rotasParsed.length === 0) return;
+    setRotaRunning(true);
+    setRotaLog([]);
+    const log: string[] = [];
+
+    log.push(`Buscando empreendimentos de UF = ${rotaUf}...`);
+    setRotaLog([...log]);
+
+    const { data: empreendimentos, error } = await supabase
+      .from('empreendimentos_terceirizados')
+      .select('id, nome, rota')
+      .eq('uf', rotaUf);
+
+    if (error) {
+      log.push(`ERRO: ${error.message}`);
+      setRotaLog([...log]);
+      setRotaRunning(false);
+      return;
+    }
+
+    log.push(`Encontrados ${empreendimentos.length} empreendimentos no banco.`);
+    setRotaLog([...log]);
+
+    const lookup = new Map<string, { id: string; nome: string; rota: number }>();
+    for (const emp of empreendimentos) {
+      lookup.set(emp.nome.trim().toUpperCase(), emp);
+    }
+
+    let updated = 0, skipped = 0, notFound = 0;
+    const notFoundList: string[] = [];
+
+    for (const item of rotasParsed) {
+      const key = item.nome.trim().toUpperCase();
+      const emp = lookup.get(key);
+
+      if (!emp) {
+        log.push(`❌ Não encontrado: "${item.nome}"`);
+        notFoundList.push(item.nome);
+        notFound++;
+        continue;
+      }
+
+      if (emp.rota === item.rota) {
+        skipped++;
+        continue;
+      }
+
+      const { error: updateError } = await supabase
+        .from('empreendimentos_terceirizados')
+        .update({ rota: item.rota })
+        .eq('id', emp.id);
+
+      if (updateError) {
+        log.push(`⚠️ Erro ao atualizar "${emp.nome}": ${updateError.message}`);
+      } else {
+        log.push(`✅ "${emp.nome}": rota ${emp.rota} → ${item.rota}`);
+        updated++;
+      }
+    }
+
+    log.push('');
+    log.push('=== RESUMO ===');
+    log.push(`Atualizados: ${updated}`);
+    log.push(`Já corretos: ${skipped}`);
+    log.push(`Não encontrados: ${notFound}`);
+    if (notFoundList.length > 0) {
+      log.push(`Nomes: ${notFoundList.join(', ')}`);
+    }
+    log.push('Concluído!');
+    setRotaLog([...log]);
+    setRotaRunning(false);
+    toast.success(`Atualização concluída: ${updated} alterados, ${skipped} já corretos, ${notFound} não encontrados`);
+  };
+
   if (isLoading) {
     return (
       <Layout title="Configurações do Sistema">
