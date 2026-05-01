@@ -1,49 +1,36 @@
 
-## Redesign da Lista de Serviços
+## Compactar tabela de Serviços — eliminar scroll horizontal
 
-Melhorar a interface da aba "Serviços" na página `MedicaoTerceirizada/Servicos.tsx`, seguindo o HTML de referência enviado. Sem mudanças no banco de dados.
+A tabela ficou larga demais com padding `py-3 px-4`. Vou reduzir para o padrão compacto do projeto e otimizar larguras.
 
-### Mudanças no arquivo `src/pages/MedicaoTerceirizada/Servicos.tsx`
+### Mudanças em `src/pages/MedicaoTerceirizada/Servicos.tsx`
 
-**1. Tabela com melhor espaçamento e legibilidade**
-- Aumentar padding das células (py-3 px-4 em vez do padrão compacto)
-- Header da tabela com fundo `bg-gray-50`, borda inferior mais forte, texto uppercase 11px com letter-spacing
-- Hover nas linhas com `bg-gray-50/80` e transição suave
-- Bordas entre linhas mais sutis (`border-gray-100`)
-- Protocolo com `font-mono font-semibold` e cor mais forte
+**1. Reduzir padding de todas as células**
+- Headers: `h-9 px-2` (de `py-3 px-4`)
+- Body cells: `py-1.5 px-2` (de `py-3 px-4`)
+- Font sizes: `text-xs` no body, `text-[10px]` nos headers
 
-**2. Status badges maiores e mais visuais**
-- Padding aumentado (`px-3 py-1.5`), `min-w-[100px]`, `text-center`
-- Cores mais definidas conforme referência:
-  - Agendado: `bg-blue-50 text-blue-800`
-  - Pendente: `bg-amber-50 text-amber-800`
-  - Executado: `bg-emerald-50 text-emerald-800`
-  - Cancelado: `bg-red-50 text-red-800`
+**2. Compactar conteúdo das colunas**
+- "Bloco/Apto" abreviado para "Bl X - Ap Y"
+- Turno abreviado para "(M)" ou "(T)" em vez de "(Manhã)"/"(Tarde)"
+- Condomínio com `max-w-[180px] truncate`
+- Morador com `max-w-[120px] truncate`
+- Técnico com `max-w-[100px] truncate`
+- `whitespace-nowrap` em Protocolo, Solicitação, Agendamento, Bloco/Apto
 
-**3. Coluna Condominio aprimorada**
-- Nome em `font-semibold`
-- Status de vinculacao como micro-badge com fundo colorido (verde para vinculado, amber para nao vinculado)
+**3. Compactar badges**
+- Status: `px-2 py-0.5 text-[10px]` (de `px-3 py-1.5 min-w-[100px]`)
+- Origem: `px-1.5 py-0 text-[10px]` (de `text-[11px]`)
+- Vinculação: texto inline sem fundo (de micro-badge)
 
-**4. Origem badges com cores da referencia**
-- BG: fundo indigo claro `bg-indigo-100 text-indigo-800`
-- NGD: fundo verde claro `bg-emerald-100 text-emerald-800`
+**4. Compactar botões de ação**
+- `h-7 w-7` (de `h-8 w-8`), ícones `h-3.5 w-3.5`
+- Coluna ações: `w-[80px]` (de `w-[110px]`)
+- Gap entre botões: `gap-0.5`
 
-**5. Botoes de acao com hover azul**
-- Hover com `text-blue-600` e borda azul sutil
-- Tooltips via atributo `title`
-
-**6. Ordenacao de colunas (click no header)**
-- Estado local `sortColumn` e `sortDirection`
-- Colunas ordenaveis: Protocolo, Solicitacao, Condominio, Morador, Status
-- Icone de seta no header ativo
-- Ordenacao aplicada antes da paginacao
-
-**7. Toolbar e filtros**
-- Manter layout existente, apenas ajustar espaçamento para ficar mais respirado
-- Busca com placeholder mais descritivo incluindo "protocolo"
+**5. Container da tabela**
+- `overflow-hidden` em vez de `overflow-x-auto` para evitar scroll horizontal
+- Remover `shadow-sm` extra
 
 ### Arquivo modificado
-- `src/pages/MedicaoTerceirizada/Servicos.tsx` -- ajustes de classes CSS e adição de lógica de ordenação
-
-### Sem novas dependencias
-Usa apenas Tailwind classes e componentes UI existentes.
+- `src/pages/MedicaoTerceirizada/Servicos.tsx`
