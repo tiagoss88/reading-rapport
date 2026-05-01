@@ -363,6 +363,98 @@ const ConfiguracoesSistema = () => {
             </AlertDialog>
           </CardContent>
         </Card>
+
+        {/* Card Atualizar Rotas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Route className="h-5 w-5" />
+              Atualizar Rotas de Empreendimentos
+            </CardTitle>
+            <CardDescription>
+              Cole os dados no formato "CONDOMINIO [tab] ROTA" (copiados do Excel ou tabela). O sistema atualizará as rotas diretamente no banco.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-32">
+                <Label className="text-xs mb-1 block">UF</Label>
+                <Select value={rotaUf} onValueChange={setRotaUf}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['BA', 'CE', 'PE', 'RN', 'PB', 'MA', 'PI', 'SE', 'AL'].map(uf => (
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-1 block">Dados (CONDOMINIO + ROTA)</Label>
+              <Textarea
+                placeholder={"BA DUO HORTENSIAS\t1\nBA SOLAR DO FORTE\t1\nBA ALTO DA BOA VISTA\t2"}
+                value={rotaTexto}
+                onChange={(e) => setRotaTexto(e.target.value)}
+                rows={8}
+                className="font-mono text-xs"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={parseRotas} variant="outline" disabled={!rotaTexto.trim()}>
+                <ClipboardPaste className="h-4 w-4 mr-2" />
+                Processar Dados
+              </Button>
+              {rotasParsed.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button disabled={rotaRunning}>
+                      {rotaRunning ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Executar Atualização ({rotasParsed.length} linhas)
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar atualização de rotas?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Serão atualizadas as rotas de {rotasParsed.length} empreendimentos na UF {rotaUf}. Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={executarRotas}>
+                        Sim, atualizar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+
+            {rotasParsed.length > 0 && rotaLog.length === 0 && (
+              <div className="bg-muted rounded-md p-3 max-h-48 overflow-y-auto font-mono text-xs">
+                <div className="font-semibold mb-1">Preview ({rotasParsed.length} linhas):</div>
+                {rotasParsed.slice(0, 30).map((r, i) => (
+                  <div key={i}>Rota {r.rota} → {r.nome}</div>
+                ))}
+                {rotasParsed.length > 30 && <div>... e mais {rotasParsed.length - 30} linhas</div>}
+              </div>
+            )}
+
+            {rotaLog.length > 0 && (
+              <div className="bg-muted rounded-md p-3 max-h-80 overflow-y-auto font-mono text-xs space-y-0.5">
+                {rotaLog.map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
