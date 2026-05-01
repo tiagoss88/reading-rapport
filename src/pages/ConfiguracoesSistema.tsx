@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Map, Save, ExternalLink, Loader2, Trash2, RefreshCw } from 'lucide-react';
+import { Map, Save, ExternalLink, Loader2, Trash2, RefreshCw, Route, ClipboardPaste } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +28,11 @@ interface Configuracao {
   valor: string | null;
   descricao: string | null;
   tipo: string | null;
+}
+
+interface ParsedRoute {
+  nome: string;
+  rota: number;
 }
 
 const ConfiguracoesSistema = () => {
@@ -124,6 +131,123 @@ const ConfiguracoesSistema = () => {
       toast.error('Erro ao limpar cache. Tente novamente.');
       setLimpandoCache(false);
     }
+  };
+
+  // ---- Atualizar Rotas ----
+  const [rotaUf, setRotaUf] = useState('BA');
+  const [rotaTexto, setRotaTexto] = useState('');
+  const [rotasParsed, setRotasParsed] = useState<ParsedRoute[]>([]);
+  const [rotaLog, setRotaLog] = useState<string[]>([]);
+  const [rotaRunning, setRotaRunning] = useState(false);
+
+  const parseRotas = () => {
+    const lines = rotaTexto.trim().split('\n').filter(l => l.trim());
+    const parsed: ParsedRoute[] = [];
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip header lines
+      if (/^condominio/i.test(trimmed) || /^nome/i.test(trimmed)) continue;
+
+      // Try tab separator first, then last number in line
+      const tabParts = trimmed.split('\t');
+      if (tabParts.length >= 2) {
+        const rota = parseInt(tabParts[tabParts.length - 1].trim());
+        const nome = tabParts.slice(0, -1).join('\t').trim();
+        if (nome && !isNaN(rota) && rota > 0) {
+          parsed.push({ nome, rota });
+          continue;
+        }
+      }
+
+      // Fallback: last token is the number
+      const match = trimmed.match(/^(.+?)\s+(\d+)\s*$/);
+      if (match) {
+        parsed.push({ nome: match[1].trim(), rota: parseInt(match[2]) });
+      }
+    }
+
+    setRotasParsed(parsed);
+    if (parsed.length === 0) {
+      toast.error('Nenhuma linha válida encontrada. Formato: CONDOMINIO [tab ou espaços] ROTA');
+    } else {
+      toast.success(`${parsed.length} linhas identificadas`);
+    }
+  };
+
+  const executarRotas = async () => {
+    if (rotasParsed.length === 0) return;
+    setRotaRunning(true);
+    setRotaLog([]);
+    const log: string[] = [];
+
+    log.push(`Buscando empreendimentos de UF = ${rotaUf}...`);
+    setRotaLog([...log]);
+
+    const { data: empreendimentos, error } = await supabase
+      .from('empreendimentos_terceirizados')
+      .select('id, nome, rota')
+      .eq('uf', rotaUf);
+
+    if (error) {
+      log.push(`ERRO: ${error.message}`);
+      setRotaLog([...log]);
+      setRotaRunning(false);
+      return;
+    }
+
+    log.push(`Encontrados ${empreendimentos.length} empreendimentos no banco.`);
+    setRotaLog([...log]);
+
+    const lookup: Record<string, { id: string; nome: string; rota: number }> = {};
+    for (const emp of empreendimentos) {
+      lookup[emp.nome.trim().toUpperCase()] = emp;
+    }
+
+    let updated = 0, skipped = 0, notFound = 0;
+    const notFoundList: string[] = [];
+
+    for (const item of rotasParsed) {
+      const key = item.nome.trim().toUpperCase();
+      const emp = lookup[key];
+
+      if (!emp) {
+        log.push(`❌ Não encontrado: "${item.nome}"`);
+        notFoundList.push(item.nome);
+        notFound++;
+        continue;
+      }
+
+      if (emp.rota === item.rota) {
+        skipped++;
+        continue;
+      }
+
+      const { error: updateError } = await supabase
+        .from('empreendimentos_terceirizados')
+        .update({ rota: item.rota })
+        .eq('id', emp.id);
+
+      if (updateError) {
+        log.push(`⚠️ Erro ao atualizar "${emp.nome}": ${updateError.message}`);
+      } else {
+        log.push(`✅ "${emp.nome}": rota ${emp.rota} → ${item.rota}`);
+        updated++;
+      }
+    }
+
+    log.push('');
+    log.push('=== RESUMO ===');
+    log.push(`Atualizados: ${updated}`);
+    log.push(`Já corretos: ${skipped}`);
+    log.push(`Não encontrados: ${notFound}`);
+    if (notFoundList.length > 0) {
+      log.push(`Nomes: ${notFoundList.join(', ')}`);
+    }
+    log.push('Concluído!');
+    setRotaLog([...log]);
+    setRotaRunning(false);
+    toast.success(`Atualização concluída: ${updated} alterados, ${skipped} já corretos, ${notFound} não encontrados`);
   };
 
   if (isLoading) {
@@ -237,6 +361,98 @@ const ConfiguracoesSistema = () => {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+          </CardContent>
+        </Card>
+
+        {/* Card Atualizar Rotas */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Route className="h-5 w-5" />
+              Atualizar Rotas de Empreendimentos
+            </CardTitle>
+            <CardDescription>
+              Cole os dados no formato "CONDOMINIO [tab] ROTA" (copiados do Excel ou tabela). O sistema atualizará as rotas diretamente no banco.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-32">
+                <Label className="text-xs mb-1 block">UF</Label>
+                <Select value={rotaUf} onValueChange={setRotaUf}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['BA', 'CE', 'PE', 'RN', 'PB', 'MA', 'PI', 'SE', 'AL'].map(uf => (
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs mb-1 block">Dados (CONDOMINIO + ROTA)</Label>
+              <Textarea
+                placeholder={"BA DUO HORTENSIAS\t1\nBA SOLAR DO FORTE\t1\nBA ALTO DA BOA VISTA\t2"}
+                value={rotaTexto}
+                onChange={(e) => setRotaTexto(e.target.value)}
+                rows={8}
+                className="font-mono text-xs"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button onClick={parseRotas} variant="outline" disabled={!rotaTexto.trim()}>
+                <ClipboardPaste className="h-4 w-4 mr-2" />
+                Processar Dados
+              </Button>
+              {rotasParsed.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button disabled={rotaRunning}>
+                      {rotaRunning ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Executar Atualização ({rotasParsed.length} linhas)
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirmar atualização de rotas?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Serão atualizadas as rotas de {rotasParsed.length} empreendimentos na UF {rotaUf}. Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={executarRotas}>
+                        Sim, atualizar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+
+            {rotasParsed.length > 0 && rotaLog.length === 0 && (
+              <div className="bg-muted rounded-md p-3 max-h-48 overflow-y-auto font-mono text-xs">
+                <div className="font-semibold mb-1">Preview ({rotasParsed.length} linhas):</div>
+                {rotasParsed.slice(0, 30).map((r, i) => (
+                  <div key={i}>Rota {r.rota} → {r.nome}</div>
+                ))}
+                {rotasParsed.length > 30 && <div>... e mais {rotasParsed.length - 30} linhas</div>}
+              </div>
+            )}
+
+            {rotaLog.length > 0 && (
+              <div className="bg-muted rounded-md p-3 max-h-80 overflow-y-auto font-mono text-xs space-y-0.5">
+                {rotaLog.map((line, i) => (
+                  <div key={i}>{line}</div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
