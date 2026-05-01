@@ -444,49 +444,53 @@ export default function AgendaSemanal({ servicos, onSelectServico }: AgendaSeman
       </div>
 
       {/* Weekly Grid */}
-      <div className="grid grid-cols-8 gap-2 min-h-[420px]">
-        {/* Sem Agendamento */}
-        {renderColumn(
-          semAgendamento,
-          'unscheduled',
-          <div className="text-center">
-            <div className="text-[11px] font-semibold text-muted-foreground">Sem Agendamento</div>
-            <div className="inline-flex items-center justify-center mt-1 w-5 h-5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
-              {semAgendamento.length}
-            </div>
+      <div className="overflow-x-auto">
+        <div className="flex gap-3 min-h-[420px] pb-2" style={{ minWidth: '1200px' }}>
+          {/* Sem Agendamento */}
+          <div className="w-[200px] shrink-0">
+            {renderColumn(
+              semAgendamento,
+              'unscheduled',
+              <div className="text-center">
+                <div className="text-[11px] font-semibold text-muted-foreground">Sem Agendamento</div>
+                <div className="inline-flex items-center justify-center mt-1 w-5 h-5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                  {semAgendamento.length}
+                </div>
+              </div>
+            )}
           </div>
-        )}
 
-        {/* Day Columns */}
-        {weekDays.map((day, idx) => {
-          const isToday = isSameDay(day, new Date())
-          const dayServicos = servicosPorDia[idx]
-          const dateKey = format(day, 'yyyy-MM-dd')
-          return (
-            <div key={dateKey}>
-              {renderColumn(
-                dayServicos,
-                dateKey,
-                <div className="text-center">
-                  <div className={`text-xs font-semibold ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {diasSemana[idx]}
-                  </div>
-                  <div className={`text-[11px] font-mono ${isToday ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                    {format(day, 'dd/MM')}
-                  </div>
-                  <div className={`inline-flex items-center justify-center mt-1 w-5 h-5 rounded-full text-[10px] font-bold ${
-                    isToday
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {dayServicos.length}
-                  </div>
-                </div>,
-                isToday
-              )}
-            </div>
-          )
-        })}
+          {/* Day Columns */}
+          {weekDays.map((day, idx) => {
+            const isToday = isSameDay(day, new Date())
+            const dayServicos = servicosPorDia[idx]
+            const dateKey = format(day, 'yyyy-MM-dd')
+            return (
+              <div key={dateKey} className="flex-1 min-w-[180px]">
+                {renderColumn(
+                  dayServicos,
+                  dateKey,
+                  <div className="text-center">
+                    <div className={`text-xs font-semibold ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
+                      {diasSemana[idx]}
+                    </div>
+                    <div className={`text-[11px] font-mono ${isToday ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                      {format(day, 'dd/MM')}
+                    </div>
+                    <div className={`inline-flex items-center justify-center mt-1 w-5 h-5 rounded-full text-[10px] font-bold ${
+                      isToday
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {dayServicos.length}
+                    </div>
+                  </div>,
+                  isToday
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
