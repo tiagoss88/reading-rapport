@@ -341,48 +341,45 @@ export default function ServicosNacionalGas() {
                   <div className="text-center py-8 text-muted-foreground">Carregando...</div>
                 ) : (
                   <>
-                  <div className="rounded-lg border border-gray-200 overflow-x-auto shadow-sm">
-                    <Table>
+                  <div className="rounded-md border overflow-hidden">
+                    <Table className="text-xs">
                       <TableHeader>
                         <TableRow className="bg-gray-50/80 border-b-2 border-gray-200">
-                          <TableHead className="w-[50px] py-3 px-4">
+                          <TableHead className="w-[36px] h-9 px-2">
                             <Checkbox
                               checked={filteredServicos && filteredServicos.length > 0 && selectedIds.size === filteredServicos.length}
                               onCheckedChange={(checked) => toggleSelectAll(!!checked)}
                             />
                           </TableHead>
-                          <TableHead className="py-3 px-4 cursor-pointer select-none text-[11px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('protocolo')}>
-                            <span className="flex items-center">Protocolo <SortIcon col="protocolo" /></span>
+                          <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('protocolo')}>
+                            <span className="flex items-center whitespace-nowrap">Protocolo <SortIcon col="protocolo" /></span>
                           </TableHead>
-                          <TableHead className="py-3 px-4 text-[11px] uppercase tracking-wider font-semibold text-gray-500">Origem</TableHead>
-                          <TableHead className="py-3 px-4 cursor-pointer select-none text-[11px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('solicitacao')}>
-                            <span className="flex items-center">Solicitação <SortIcon col="solicitacao" /></span>
+                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Origem</TableHead>
+                          <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('solicitacao')}>
+                            <span className="flex items-center whitespace-nowrap">Solicitação <SortIcon col="solicitacao" /></span>
                           </TableHead>
-                          <TableHead className="py-3 px-4 cursor-pointer select-none text-[11px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('condominio')}>
-                            <span className="flex items-center">Condomínio <SortIcon col="condominio" /></span>
+                          <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('condominio')}>
+                            <span className="flex items-center whitespace-nowrap">Condomínio <SortIcon col="condominio" /></span>
                           </TableHead>
-                          <TableHead className="py-3 px-4 text-[11px] uppercase tracking-wider font-semibold text-gray-500">Bloco/Apto</TableHead>
-                          <TableHead className="py-3 px-4 cursor-pointer select-none text-[11px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('morador')}>
-                            <span className="flex items-center">Morador <SortIcon col="morador" /></span>
+                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Bloco/Apto</TableHead>
+                          <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('morador')}>
+                            <span className="flex items-center whitespace-nowrap">Morador <SortIcon col="morador" /></span>
                           </TableHead>
-                          <TableHead className="py-3 px-4 text-[11px] uppercase tracking-wider font-semibold text-gray-500">Tipo</TableHead>
-                          <TableHead className="py-3 px-4 text-[11px] uppercase tracking-wider font-semibold text-gray-500">UF</TableHead>
-                          <TableHead className="py-3 px-4 text-[11px] uppercase tracking-wider font-semibold text-gray-500">Agendamento</TableHead>
-                          <TableHead className="py-3 px-4 text-[11px] uppercase tracking-wider font-semibold text-gray-500">Técnico</TableHead>
-                          <TableHead className="py-3 px-4 cursor-pointer select-none text-[11px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('status')}>
-                            <span className="flex items-center">Status <SortIcon col="status" /></span>
+                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Tipo</TableHead>
+                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">UF</TableHead>
+                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Agendamento</TableHead>
+                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Técnico</TableHead>
+                          <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('status')}>
+                            <span className="flex items-center whitespace-nowrap">Status <SortIcon col="status" /></span>
                           </TableHead>
-                          <TableHead className="w-[110px] py-3 px-4 text-[11px] uppercase tracking-wider font-semibold text-gray-500">Ações</TableHead>
+                          <TableHead className="w-[80px] h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Ações</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {paginatedServicos?.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={13} className="text-center text-muted-foreground py-12">
-                              <div className="flex flex-col items-center gap-2">
-                                <FileText className="h-10 w-10 opacity-30" />
-                                <span className="text-sm">Nenhum serviço encontrado</span>
-                              </div>
+                            <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                              Nenhum serviço encontrado
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -391,84 +388,84 @@ export default function ServicosNacionalGas() {
                               key={servico.id} 
                               className={`border-b border-gray-100 transition-colors duration-150 hover:bg-gray-50/80 ${!servico.empreendimento_id ? 'bg-amber-50/30' : ''}`}
                             >
-                              <TableCell className="py-3 px-4">
+                              <TableCell className="py-1.5 px-2">
                                 <Checkbox
                                   checked={selectedIds.has(servico.id)}
                                   onCheckedChange={(checked) => toggleSelectOne(servico.id, !!checked)}
                                 />
                               </TableCell>
-                              <TableCell className="py-3 px-4">
-                                <span className="font-mono font-semibold text-gray-900 text-[13px]">{servico.numero_protocolo || '-'}</span>
+                              <TableCell className="py-1.5 px-2">
+                                <span className="font-mono font-semibold text-gray-900 whitespace-nowrap">{servico.numero_protocolo || '-'}</span>
                               </TableCell>
-                              <TableCell className="py-3 px-4">
+                              <TableCell className="py-1.5 px-2">
                                 {(() => {
                                   const f = servico.fonte?.toLowerCase()
-                                  if (f === 'particular') return <Badge variant="secondary" className="text-[11px] font-semibold">Particular</Badge>
-                                  if (f === 'bg') return <Badge className="bg-indigo-100 text-indigo-800 border border-indigo-200 text-[11px] font-semibold">BG</Badge>
-                                  if (f === 'ngd') return <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-semibold">NGD</Badge>
+                                  if (f === 'particular') return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">Particular</Badge>
+                                  if (f === 'bg') return <Badge className="bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] px-1.5 py-0 font-semibold">BG</Badge>
+                                  if (f === 'ngd') return <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] px-1.5 py-0 font-semibold">NGD</Badge>
                                   return <span className="text-muted-foreground">—</span>
                                 })()}
                               </TableCell>
-                              <TableCell className="py-3 px-4 text-[13px]">
+                              <TableCell className="py-1.5 px-2 whitespace-nowrap">
                                 {servico.data_solicitacao
                                   ? format(new Date(servico.data_solicitacao + 'T00:00:00'), 'dd/MM/yyyy')
                                   : '-'
                                 }
                               </TableCell>
-                              <TableCell className="py-3 px-4 max-w-[200px]">
-                                <div className="flex flex-col gap-1">
-                                  <span className="font-semibold text-gray-900 text-[13px] leading-tight">{servico.condominio_nome_original}</span>
+                              <TableCell className="py-1.5 px-2 max-w-[180px]">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-gray-900 leading-tight truncate">{servico.condominio_nome_original}</span>
                                   {servico.empreendimento ? (
-                                    <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 w-fit">✓ Vinculado</span>
+                                    <span className="text-[9px] font-semibold text-emerald-700">✓ Vinculado</span>
                                   ) : (
-                                    <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 w-fit">⚠ Não vinculado</span>
+                                    <span className="text-[9px] font-semibold text-amber-700">⚠ Não vinculado</span>
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="py-3 px-4 text-[13px]">
-                                {servico.bloco && <span>Bloco {servico.bloco}</span>}
-                                {servico.bloco && servico.apartamento && ' - '}
-                                {servico.apartamento && <span>Apto {servico.apartamento}</span>}
+                              <TableCell className="py-1.5 px-2 whitespace-nowrap">
+                                {servico.bloco && <span>Bl {servico.bloco}</span>}
+                                {servico.bloco && servico.apartamento && '-'}
+                                {servico.apartamento && <span>Ap {servico.apartamento}</span>}
                               </TableCell>
-                              <TableCell className="py-3 px-4 text-[13px]">{servico.morador_nome || '-'}</TableCell>
-                              <TableCell className="py-3 px-4 text-[13px]">{servico.tipo_servico?.toUpperCase()}</TableCell>
-                              <TableCell className="py-3 px-4 text-[13px]">{servico.uf}</TableCell>
-                              <TableCell className="py-3 px-4 text-[13px]">
+                              <TableCell className="py-1.5 px-2 max-w-[120px] truncate">{servico.morador_nome || '-'}</TableCell>
+                              <TableCell className="py-1.5 px-2 whitespace-nowrap">{servico.tipo_servico?.toUpperCase()}</TableCell>
+                              <TableCell className="py-1.5 px-2">{servico.uf}</TableCell>
+                              <TableCell className="py-1.5 px-2 whitespace-nowrap">
                                 {servico.data_agendamento 
                                   ? format(new Date(servico.data_agendamento + 'T00:00:00'), 'dd/MM/yyyy')
                                   : '-'
                                 }
                                 {servico.turno && (
-                                  <span className="text-xs text-muted-foreground ml-1">
-                                    ({servico.turno === 'manha' ? 'Manhã' : 'Tarde'})
+                                  <span className="text-[10px] text-muted-foreground ml-0.5">
+                                    ({servico.turno === 'manha' ? 'M' : 'T'})
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="py-3 px-4 text-[13px]">{servico.tecnico?.nome || '-'}</TableCell>
-                              <TableCell className="py-3 px-4">
-                                <Badge className={`${statusColors[servico.status_atendimento]} px-3 py-1.5 min-w-[100px] text-center text-[12px] font-semibold rounded-md`}>
+                              <TableCell className="py-1.5 px-2 max-w-[100px] truncate">{servico.tecnico?.nome || '-'}</TableCell>
+                              <TableCell className="py-1.5 px-2">
+                                <Badge className={`${statusColors[servico.status_atendimento]} px-2 py-0.5 text-[10px] font-semibold rounded`}>
                                   {statusLabels[servico.status_atendimento]}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="py-3 px-4">
-                                <div className="flex gap-1">
+                              <TableCell className="py-1.5 px-2">
+                                <div className="flex gap-0.5">
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
                                     onClick={() => handleEdit(servico)} 
                                     title="Editar serviço"
-                                    className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                    className="h-7 w-7 hover:text-blue-600 hover:bg-blue-50"
                                   >
-                                    <Pencil className="h-4 w-4" />
+                                    <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                   <Button 
                                     variant="ghost" 
                                     size="icon" 
                                     onClick={() => handleHistorico(servico)} 
                                     title="Ver histórico"
-                                    className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                    className="h-7 w-7 hover:text-blue-600 hover:bg-blue-50"
                                   >
-                                    <History className="h-4 w-4" />
+                                    <History className="h-3.5 w-3.5" />
                                   </Button>
                                   {servico.status_atendimento === 'executado' && (
                                     <Button 
@@ -476,9 +473,9 @@ export default function ServicosNacionalGas() {
                                       size="icon" 
                                       onClick={() => { setDetalhesServicoId(servico.id); setDetalhesDialogOpen(true) }} 
                                       title="Ver detalhes da execução"
-                                      className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                      className="h-7 w-7 hover:text-blue-600 hover:bg-blue-50"
                                     >
-                                      <Eye className="h-4 w-4 text-primary" />
+                                      <Eye className="h-3.5 w-3.5 text-primary" />
                                     </Button>
                                   )}
                                 </div>
