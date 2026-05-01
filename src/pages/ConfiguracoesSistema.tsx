@@ -209,7 +209,7 @@ const ConfiguracoesSistema = () => {
 
     for (const item of rotasParsed) {
       const key = item.nome.trim().toUpperCase();
-      const emp = lookup.get(key);
+      const emp = lookup[key];
 
       if (!emp) {
         log.push(`❌ Não encontrado: "${item.nome}"`);
