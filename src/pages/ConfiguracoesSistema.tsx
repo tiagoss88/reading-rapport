@@ -199,9 +199,9 @@ const ConfiguracoesSistema = () => {
     log.push(`Encontrados ${empreendimentos.length} empreendimentos no banco.`);
     setRotaLog([...log]);
 
-    const lookup: Map<string, { id: string; nome: string; rota: number }> = new Map();
+    const lookup: Record<string, { id: string; nome: string; rota: number }> = {};
     for (const emp of empreendimentos) {
-      lookup.set(emp.nome.trim().toUpperCase(), emp);
+      lookup[emp.nome.trim().toUpperCase()] = emp;
     }
 
     let updated = 0, skipped = 0, notFound = 0;
