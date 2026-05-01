@@ -1,40 +1,49 @@
 
-## Redesign da Agenda de Serviços
+## Redesign da Lista de Serviços
 
-### Resumo
-Redesenhar o componente AgendaSemanal com visual mais compacto e moderno, melhorar feedback visual de drag-and-drop, e permitir reordenação dos cards dentro de cada coluna de dia (apenas visual, sem persistência no banco).
+Melhorar a interface da aba "Serviços" na página `MedicaoTerceirizada/Servicos.tsx`, seguindo o HTML de referência enviado. Sem mudanças no banco de dados.
 
-### Sem alterações no banco de dados
-A ordem dos cards é apenas local/visual — o usuário arrasta para reorganizar a pilha dentro de cada dia, mas essa ordem não é salva no backend.
+### Mudanças no arquivo `src/pages/MedicaoTerceirizada/Servicos.tsx`
 
-### Mudanças no componente `AgendaSemanal.tsx`
+**1. Tabela com melhor espaçamento e legibilidade**
+- Aumentar padding das células (py-3 px-4 em vez do padrão compacto)
+- Header da tabela com fundo `bg-gray-50`, borda inferior mais forte, texto uppercase 11px com letter-spacing
+- Hover nas linhas com `bg-gray-50/80` e transição suave
+- Bordas entre linhas mais sutis (`border-gray-100`)
+- Protocolo com `font-mono font-semibold` e cor mais forte
 
-**1. Cards de Serviço mais compactos e modernos**
-- Padding reduzido (12px)
-- Borda esquerda colorida por status (mantém padrão atual)
-- Badge de número sequencial (posição na pilha) no canto superior direito
-- Ícone drag-handle (⋮⋮) visível no hover
-- Hover com sombra e leve elevação
-- Tipo de serviço em badge uppercase compacto
-- Localização com ícone de pin
+**2. Status badges maiores e mais visuais**
+- Padding aumentado (`px-3 py-1.5`), `min-w-[100px]`, `text-center`
+- Cores mais definidas conforme referência:
+  - Agendado: `bg-blue-50 text-blue-800`
+  - Pendente: `bg-amber-50 text-amber-800`
+  - Executado: `bg-emerald-50 text-emerald-800`
+  - Cancelado: `bg-red-50 text-red-800`
 
-**2. Drag-and-drop aprimorado**
-- Arrastar cards entre colunas de dia (já existe — atualiza `data_agendamento`)
-- Arrastar cards dentro da mesma coluna para reordenar a pilha (novo — apenas visual)
-- Estado local `orderedByDay` controla a sequência dos cards por dia
-- Feedback visual: card arrastado com opacidade + escala reduzida, zona de drop com fundo azul claro
+**3. Coluna Condominio aprimorada**
+- Nome em `font-semibold`
+- Status de vinculacao como micro-badge com fundo colorido (verde para vinculado, amber para nao vinculado)
 
-**3. Colunas de dia melhoradas**
-- Header mais estruturado: nome do dia, data formatada, contador em badge
-- Coluna "Hoje" com destaque azul mais marcante (borda + fundo)
-- Transições suaves (200ms)
+**4. Origem badges com cores da referencia**
+- BG: fundo indigo claro `bg-indigo-100 text-indigo-800`
+- NGD: fundo verde claro `bg-emerald-100 text-emerald-800`
 
-**4. Filtros e navegação**
-- Mantém filtros existentes (UF, Status, Tipo, Bairro) sem alterações funcionais
-- Layout visual levemente mais compacto
+**5. Botoes de acao com hover azul**
+- Hover com `text-blue-600` e borda azul sutil
+- Tooltips via atributo `title`
+
+**6. Ordenacao de colunas (click no header)**
+- Estado local `sortColumn` e `sortDirection`
+- Colunas ordenaveis: Protocolo, Solicitacao, Condominio, Morador, Status
+- Icone de seta no header ativo
+- Ordenacao aplicada antes da paginacao
+
+**7. Toolbar e filtros**
+- Manter layout existente, apenas ajustar espaçamento para ficar mais respirado
+- Busca com placeholder mais descritivo incluindo "protocolo"
 
 ### Arquivo modificado
-- `src/components/medicao-terceirizada/AgendaSemanal.tsx` — redesign completo
+- `src/pages/MedicaoTerceirizada/Servicos.tsx` -- ajustes de classes CSS e adição de lógica de ordenação
 
-### Sem novas dependências
-Drag-and-drop nativo do HTML5 (já em uso).
+### Sem novas dependencias
+Usa apenas Tailwind classes e componentes UI existentes.
