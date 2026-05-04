@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ChevronLeft, ChevronRight, CalendarDays, GripVertical, MapPin } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CalendarDays, GripVertical, MapPin, User, Clock, FileText } from 'lucide-react'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { useToast } from '@/hooks/use-toast'
 import { format, startOfWeek, addDays, addWeeks, subWeeks, isSameDay, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -85,56 +86,118 @@ const ServiceCard = memo(function ServiceCard({
     ? `${servico.bloco ? `Bl. ${servico.bloco}` : ''}${servico.bloco && servico.apartamento ? ' - ' : ''}${servico.apartamento ? `Apto ${servico.apartamento}` : ''}`
     : null
 
+  const endereco = (servico.empreendimento as any)?.endereco
+  const rota = (servico.empreendimento as any)?.rota
+
   return (
-    <div
-      draggable
-      onDragStart={(e) => onDragStart(e, servico.id, sourceKey)}
-      onDragEnd={onDragEnd}
-      onDragOver={(e) => onDragOverCard(e, servico.id)}
-      onDrop={(e) => onDropOnCard(e, servico.id, sourceKey)}
-      onClick={() => onSelect(servico)}
-      className={`
-        group relative rounded-lg border border-l-4 bg-card p-3
-        cursor-grab active:cursor-grabbing
-        transition-all duration-200
-        ${statusBorderColor[servico.status_atendimento] || 'border-l-muted'}
-        ${isDragging ? 'opacity-40 scale-95' : 'hover:shadow-md hover:-translate-y-0.5'}
-        ${isDragOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}
-      `}
-    >
-      {/* Execution order badge */}
-      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-sm">
-        {index + 1}
-      </div>
+    <HoverCard openDelay={300} closeDelay={100}>
+      <HoverCardTrigger asChild>
+        <div
+          draggable
+          onDragStart={(e) => onDragStart(e, servico.id, sourceKey)}
+          onDragEnd={onDragEnd}
+          onDragOver={(e) => onDragOverCard(e, servico.id)}
+          onDrop={(e) => onDropOnCard(e, servico.id, sourceKey)}
+          onClick={() => onSelect(servico)}
+          className={`
+            group relative rounded-lg border border-l-4 bg-card p-3
+            cursor-grab active:cursor-grabbing
+            transition-all duration-200
+            ${statusBorderColor[servico.status_atendimento] || 'border-l-muted'}
+            ${isDragging ? 'opacity-40 scale-95' : 'hover:shadow-md hover:-translate-y-0.5'}
+            ${isDragOver ? 'ring-2 ring-primary/40 bg-primary/5' : ''}
+          `}
+        >
+          {/* Execution order badge */}
+          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-sm">
+            {index + 1}
+          </div>
 
-      {/* Drag handle */}
-      <div className="absolute top-2 left-1 opacity-0 group-hover:opacity-60 transition-opacity">
-        <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
-      </div>
+          {/* Drag handle */}
+          <div className="absolute top-2 left-1 opacity-0 group-hover:opacity-60 transition-opacity">
+            <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
 
-      {/* Title */}
-      <p className="text-xs font-semibold text-foreground truncate pr-7 pl-3">
-        {servico.condominio_nome_original}
-      </p>
+          {/* Title */}
+          <p className="text-xs font-semibold text-foreground truncate pr-7 pl-3">
+            {servico.condominio_nome_original}
+          </p>
 
-      {/* Location */}
-      {location && (
-        <p className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1 pl-3">
-          <MapPin className="h-3 w-3 shrink-0" />
-          <span className="truncate">{location}</span>
-        </p>
-      )}
+          {/* Location */}
+          {location && (
+            <p className="flex items-center gap-1 text-[11px] text-muted-foreground mt-1 pl-3">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">{location}</span>
+            </p>
+          )}
 
-      {/* Type + Status row */}
-      <div className="flex items-center gap-1.5 mt-2 pl-3">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/40 rounded px-1.5 py-0.5 truncate max-w-[120px]">
-          {servico.tipo_servico}
-        </span>
-        <Badge className={`text-[10px] px-1.5 py-0 leading-4 ${statusColors[servico.status_atendimento] || ''}`}>
-          {statusLabels[servico.status_atendimento] || servico.status_atendimento}
-        </Badge>
-      </div>
-    </div>
+          {/* Type + Status row */}
+          <div className="flex items-center gap-1.5 mt-2 pl-3">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground bg-muted/40 rounded px-1.5 py-0.5 truncate max-w-[120px]">
+              {servico.tipo_servico}
+            </span>
+            <Badge className={`text-[10px] px-1.5 py-0 leading-4 ${statusColors[servico.status_atendimento] || ''}`}>
+              {statusLabels[servico.status_atendimento] || servico.status_atendimento}
+            </Badge>
+          </div>
+        </div>
+      </HoverCardTrigger>
+      <HoverCardContent side="right" align="start" className="w-72 p-3 text-xs z-50" sideOffset={8}>
+        <div className="space-y-2">
+          <p className="font-semibold text-sm text-foreground">{servico.condominio_nome_original}</p>
+          
+          {location && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span>{location}</span>
+            </div>
+          )}
+
+          {servico.morador_nome && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <User className="h-3 w-3 shrink-0" />
+              <span>{servico.morador_nome}</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium uppercase tracking-wide text-muted-foreground bg-muted/40 rounded px-1.5 py-0.5">
+              {servico.tipo_servico}
+            </span>
+            <Badge className={`text-[10px] px-1.5 py-0 leading-4 ${statusColors[servico.status_atendimento] || ''}`}>
+              {statusLabels[servico.status_atendimento] || servico.status_atendimento}
+            </Badge>
+          </div>
+
+          {servico.turno && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Clock className="h-3 w-3 shrink-0" />
+              <span>Turno: {servico.turno}</span>
+            </div>
+          )}
+
+          {rota && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span>Rota: {rota}</span>
+            </div>
+          )}
+
+          {endereco && (
+            <div className="text-muted-foreground">
+              <span className="font-medium">Endereço:</span> {endereco}
+            </div>
+          )}
+
+          {servico.observacao && (
+            <div className="flex items-start gap-1.5 text-muted-foreground border-t pt-2">
+              <FileText className="h-3 w-3 shrink-0 mt-0.5" />
+              <span className="break-words">{servico.observacao}</span>
+            </div>
+          )}
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   )
 })
 
