@@ -41,17 +41,22 @@ interface Props {
 }
 
 // Generate a normalized key for duplicate comparison
+// Uses: uf + condominio + bloco + apto + morador (ignores data_solicitacao and protocolo)
 const makeDuplicateKey = (row: {
-  data_solicitacao?: string | null
   uf?: string
   condominio_nome_original?: string
   bloco?: string | null
   apartamento?: string | null
   morador_nome?: string | null
 }): string => {
-  const norm = (v: string | null | undefined) => (v || '').toLowerCase().trim()
+  const norm = (v: string | null | undefined) =>
+    (v || '')
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
   return [
-    norm(row.data_solicitacao),
     norm(row.uf),
     norm(row.condominio_nome_original),
     norm(row.bloco),
@@ -101,7 +106,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('servicos_nacional_gas')
-        .select('data_solicitacao, uf, condominio_nome_original, bloco, apartamento, morador_nome')
+        .select('uf, condominio_nome_original, bloco, apartamento, morador_nome')
       if (error) throw error
       return data
     },
