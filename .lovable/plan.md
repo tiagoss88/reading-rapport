@@ -1,42 +1,38 @@
-## Problema
+Vou ajustar a importação de serviços para que a validação de duplicidade não dependa de uma busca incompleta nem de texto exatamente igual.
 
-Em `src/components/medicao-terceirizada/ImportarPlanilhaDialog.tsx`, a função `makeDuplicateKey` inclui `data_solicitacao` na chave de comparação:
+Plano:
 
-```ts
-return [
-  norm(row.data_solicitacao),  // ← aqui está o problema
-  norm(row.uf),
-  norm(row.condominio_nome_original),
-  norm(row.bloco),
-  norm(row.apartamento),
-  norm(row.morador_nome),
-].join('|')
-```
+1. Corrigir a busca de serviços existentes
+   - Hoje a consulta usada para montar os duplicados não tem paginação/range.
+   - A API retorna apenas um lote padrão, então serviços fora desse lote não entram no `existingKeys`.
+   - Vou buscar todos os registros necessários em páginas/chunks antes de comparar.
 
-Como o serviço já existente no banco (ex.: Sonata Bloco B Apto 302) muitas vezes tem **data_solicitacao diferente** da planilha importada (ou está nula), a chave nunca bate e o registro é tratado como novo — mesmo sendo o mesmo cliente/condomínio/unidade/morador.
+2. Fortalecer a chave de comparação
+   - Manter a regra principal: UF + condomínio + bloco/apto + morador, sem considerar protocolo e sem considerar data de solicitação.
+   - Normalizar melhor os campos:
+     - remover acentos;
+     - padronizar maiúsculas/minúsculas e espaços;
+     - remover sufixos como `(GTI)`, `(FS)`;
+     - ignorar prefixo `BA ` no nome do condomínio quando aplicável;
+     - tratar `UNICO`, `ÚNICO`, vazio e `null` como equivalentes para bloco;
+     - limpar pontuação de bloco/apto.
 
-Isso contraria a regra que você definiu: a verificação deve usar **condomínio + bloco/apto + morador** (sem considerar data nem protocolo).
+3. Evitar falso negativo quando o morador vier vazio ou diferente
+   - Para comparação com registros existentes, usar uma chave secundária por UF + condomínio + bloco/apto.
+   - Se o morador estiver preenchido nos dois lados e bater, marca como duplicado pela chave completa.
+   - Se faltar morador em um dos lados, ainda marca como provável duplicado pela unidade, evitando casos como Barcelona ÚNICO 404 e Sonata B 302 passarem batido.
 
-## Solução
+4. Melhorar o feedback visual da prévia
+   - Continuar exibindo “Duplicado”.
+   - Adicionar a razão interna no registro importado, por exemplo: “Duplicado por unidade existente” ou “Duplicado por morador/unidade”, para facilitar conferência.
 
-Ajustar `makeDuplicateKey` para remover `data_solicitacao` e considerar apenas:
+5. Validar com os exemplos citados
+   - Testar mentalmente/por função local as normalizações:
+     - `Barcelona` deve casar com `BARCELONA (GTI)`.
+     - `UNICO` deve casar com bloco vazio/null ou `ÚNICO` quando for torre única.
+     - `Sonata B 302` deve casar mesmo com diferença de caixa, acento, espaço ou pontuação.
 
-- `uf`
-- `condominio_nome_original` (normalizado: lowercase + trim + remover acentos + colapsar espaços)
-- `bloco`
-- `apartamento`
-- `morador_nome`
+Arquivos previstos:
+- `src/components/medicao-terceirizada/ImportarPlanilhaDialog.tsx`
 
-E atualizar a query `existingServices` para não trazer `data_solicitacao` (não é mais necessária para a chave).
-
-### Detalhes técnicos
-
-1. **`makeDuplicateKey`**: remover `data_solicitacao`; adicionar normalização que remove acentos (`NFD` + remoção de diacríticos) e colapsa espaços, alinhando com o padrão já usado em `ImportarEmpreendimentosDialog.tsx`.
-2. **Query `servicos-nacional-gas-duplicates`**: selecionar apenas `uf, condominio_nome_original, bloco, apartamento, morador_nome`.
-3. Manter o comportamento atual de marcar duplicados na UI (badge amarelo) e excluí-los do insert — só muda a chave.
-4. Não alterar nada no banco; é apenas ajuste de lógica de comparação no frontend.
-
-### Fora do escopo
-
-- Não vou adicionar constraint de unicidade no banco agora (poderia bloquear inserts legítimos de re-execução de serviço para o mesmo morador). Se quiser, posso propor isso depois.
-- Não vou mexer em serviços já duplicados no banco — a limpeza dos atuais é tema separado.
+Não vou alterar banco de dados neste ajuste; é correção da lógica de importação no frontend.

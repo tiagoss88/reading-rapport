@@ -40,8 +40,50 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-// Generate a normalized key for duplicate comparison
-// Uses: uf + condominio + bloco + apto + morador (ignores data_solicitacao and protocolo)
+// Normalização agressiva para comparação de duplicidade
+const normText = (v: string | null | undefined): string =>
+  (v || '')
+    .toString()
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+
+const normCondo = (v: string | null | undefined): string => {
+  let s = normText(v)
+  // remove sufixos tipo "(gti)", "(fs)", "(...)" e prefixo "ba "
+  s = s.replace(/\([^)]*\)/g, '').trim()
+  s = s.replace(/^ba\s+/, '').trim()
+  s = s.replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim()
+  return s
+}
+
+const normUnidade = (v: string | null | undefined): string => {
+  let s = normText(v).replace(/[^a-z0-9]/g, '')
+  // bloco "unico"/"único"/"u" e vazio são equivalentes
+  if (s === 'unico' || s === 'u') s = ''
+  // remove zeros à esquerda (apto "0404" == "404")
+  s = s.replace(/^0+/, '')
+  return s
+}
+
+// Chave por unidade física (sem morador) — base mínima para duplicidade
+const makeUnitKey = (row: {
+  uf?: string
+  condominio_nome_original?: string
+  bloco?: string | null
+  apartamento?: string | null
+}): string => {
+  return [
+    normText(row.uf),
+    normCondo(row.condominio_nome_original),
+    normUnidade(row.bloco),
+    normUnidade(row.apartamento),
+  ].join('|')
+}
+
+// Chave completa (com morador) — usada para casar quando ambos têm morador
 const makeDuplicateKey = (row: {
   uf?: string
   condominio_nome_original?: string
@@ -49,20 +91,7 @@ const makeDuplicateKey = (row: {
   apartamento?: string | null
   morador_nome?: string | null
 }): string => {
-  const norm = (v: string | null | undefined) =>
-    (v || '')
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, ' ')
-  return [
-    norm(row.uf),
-    norm(row.condominio_nome_original),
-    norm(row.bloco),
-    norm(row.apartamento),
-    norm(row.morador_nome),
-  ].join('|')
+  return makeUnitKey(row) + '|' + normText(row.morador_nome)
 }
 
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
