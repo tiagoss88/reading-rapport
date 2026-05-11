@@ -106,7 +106,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('servicos_nacional_gas')
-        .select('data_solicitacao, uf, condominio_nome_original, bloco, apartamento, morador_nome')
+        .select('uf, condominio_nome_original, bloco, apartamento, morador_nome')
       if (error) throw error
       return data
     },
