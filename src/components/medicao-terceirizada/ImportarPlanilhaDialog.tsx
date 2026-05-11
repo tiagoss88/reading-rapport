@@ -40,8 +40,50 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-// Generate a normalized key for duplicate comparison
-// Uses: uf + condominio + bloco + apto + morador (ignores data_solicitacao and protocolo)
+// Normalização agressiva para comparação de duplicidade
+const normText = (v: string | null | undefined): string =>
+  (v || '')
+    .toString()
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+
+const normCondo = (v: string | null | undefined): string => {
+  let s = normText(v)
+  // remove sufixos tipo "(gti)", "(fs)", "(...)" e prefixo "ba "
+  s = s.replace(/\([^)]*\)/g, '').trim()
+  s = s.replace(/^ba\s+/, '').trim()
+  s = s.replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim()
+  return s
+}
+
+const normUnidade = (v: string | null | undefined): string => {
+  let s = normText(v).replace(/[^a-z0-9]/g, '')
+  // bloco "unico"/"único"/"u" e vazio são equivalentes
+  if (s === 'unico' || s === 'u') s = ''
+  // remove zeros à esquerda (apto "0404" == "404")
+  s = s.replace(/^0+/, '')
+  return s
+}
+
+// Chave por unidade física (sem morador) — base mínima para duplicidade
+const makeUnitKey = (row: {
+  uf?: string
+  condominio_nome_original?: string
+  bloco?: string | null
+  apartamento?: string | null
+}): string => {
+  return [
+    normText(row.uf),
+    normCondo(row.condominio_nome_original),
+    normUnidade(row.bloco),
+    normUnidade(row.apartamento),
+  ].join('|')
+}
+
+// Chave completa (com morador) — usada para casar quando ambos têm morador
 const makeDuplicateKey = (row: {
   uf?: string
   condominio_nome_original?: string
@@ -49,20 +91,7 @@ const makeDuplicateKey = (row: {
   apartamento?: string | null
   morador_nome?: string | null
 }): string => {
-  const norm = (v: string | null | undefined) =>
-    (v || '')
-      .toLowerCase()
-      .trim()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, ' ')
-  return [
-    norm(row.uf),
-    norm(row.condominio_nome_original),
-    norm(row.bloco),
-    norm(row.apartamento),
-    norm(row.morador_nome),
-  ].join('|')
+  return makeUnitKey(row) + '|' + normText(row.morador_nome)
 }
 
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
@@ -100,29 +129,51 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     }
   })
 
-  // Fetch existing services for duplicate checking
+  // Fetch existing services for duplicate checking (paginated to bypass 1000-row limit)
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('servicos_nacional_gas')
-        .select('uf, condominio_nome_original, bloco, apartamento, morador_nome')
-      if (error) throw error
-      return data
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null }> = []
+      const PAGE = 1000
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from('servicos_nacional_gas')
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome')
+          .range(from, from + PAGE - 1)
+        if (error) throw error
+        if (!data || data.length === 0) break
+        all.push(...(data as any))
+        if (data.length < PAGE) break
+      }
+      return all
     },
     enabled: open
   })
 
-  const existingKeys = new Set(
-    (existingServices || []).map(s => makeDuplicateKey(s))
-  )
+  const { existingFullKeys, existingUnitKeys } = (() => {
+    const full = new Set<string>()
+    const unit = new Set<string>()
+    ;(existingServices || []).forEach(s => {
+      full.add(makeDuplicateKey(s))
+      unit.add(makeUnitKey(s))
+    })
+    return { existingFullKeys: full, existingUnitKeys: unit }
+  })()
 
   const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
-    const seenKeys = new Set<string>()
+    const seenFull = new Set<string>()
+    const seenUnit = new Set<string>()
     return rows.map(row => {
-      const key = makeDuplicateKey(row)
-      const isDuplicate = existingKeys.has(key) || seenKeys.has(key)
-      seenKeys.add(key)
+      const fullKey = makeDuplicateKey(row)
+      const unitKey = makeUnitKey(row)
+      // Só consideramos chave de unidade quando há bloco OU apto preenchido
+      const hasUnit = !!(row.bloco || row.apartamento)
+      const isDuplicate =
+        existingFullKeys.has(fullKey) ||
+        seenFull.has(fullKey) ||
+        (hasUnit && (existingUnitKeys.has(unitKey) || seenUnit.has(unitKey)))
+      seenFull.add(fullKey)
+      if (hasUnit) seenUnit.add(unitKey)
       return { ...row, isDuplicate }
     })
   }
