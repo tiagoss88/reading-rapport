@@ -129,29 +129,51 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     }
   })
 
-  // Fetch existing services for duplicate checking
+  // Fetch existing services for duplicate checking (paginated to bypass 1000-row limit)
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('servicos_nacional_gas')
-        .select('uf, condominio_nome_original, bloco, apartamento, morador_nome')
-      if (error) throw error
-      return data
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null }> = []
+      const PAGE = 1000
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from('servicos_nacional_gas')
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome')
+          .range(from, from + PAGE - 1)
+        if (error) throw error
+        if (!data || data.length === 0) break
+        all.push(...(data as any))
+        if (data.length < PAGE) break
+      }
+      return all
     },
     enabled: open
   })
 
-  const existingKeys = new Set(
-    (existingServices || []).map(s => makeDuplicateKey(s))
-  )
+  const { existingFullKeys, existingUnitKeys } = (() => {
+    const full = new Set<string>()
+    const unit = new Set<string>()
+    ;(existingServices || []).forEach(s => {
+      full.add(makeDuplicateKey(s))
+      unit.add(makeUnitKey(s))
+    })
+    return { existingFullKeys: full, existingUnitKeys: unit }
+  })()
 
   const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
-    const seenKeys = new Set<string>()
+    const seenFull = new Set<string>()
+    const seenUnit = new Set<string>()
     return rows.map(row => {
-      const key = makeDuplicateKey(row)
-      const isDuplicate = existingKeys.has(key) || seenKeys.has(key)
-      seenKeys.add(key)
+      const fullKey = makeDuplicateKey(row)
+      const unitKey = makeUnitKey(row)
+      // Só consideramos chave de unidade quando há bloco OU apto preenchido
+      const hasUnit = !!(row.bloco || row.apartamento)
+      const isDuplicate =
+        existingFullKeys.has(fullKey) ||
+        seenFull.has(fullKey) ||
+        (hasUnit && (existingUnitKeys.has(unitKey) || seenUnit.has(unitKey)))
+      seenFull.add(fullKey)
+      if (hasUnit) seenUnit.add(unitKey)
       return { ...row, isDuplicate }
     })
   }
