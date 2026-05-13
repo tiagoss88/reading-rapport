@@ -98,8 +98,9 @@ function calcularDiasUteisRestantes(dataSolicitacao: Date, prazoDias: number): n
 
 function getNivel(diasRestantes: number, _prazoDias: number): NivelUrgencia {
   if (diasRestantes < 0) return 'vencido'
-  if (diasRestantes <= 1) return 'critico' // hoje ou amanhã
-  return 'atencao'
+  if (diasRestantes === 0) return 'critico'
+  if (diasRestantes === 1) return 'atencao'
+  return 'no_prazo'
 }
 
 const nivelConfig = {
@@ -109,7 +110,7 @@ const nivelConfig = {
     borderClass: 'border-l-red-500',
   },
   critico: {
-    label: 'Crítico',
+    label: 'Vence hoje',
     badgeClass: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200',
     borderClass: 'border-l-orange-500',
   },
@@ -117,6 +118,11 @@ const nivelConfig = {
     label: 'Atenção',
     badgeClass: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200',
     borderClass: 'border-l-yellow-500',
+  },
+  no_prazo: {
+    label: 'Dentro do prazo',
+    badgeClass: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200',
+    borderClass: 'border-l-green-500',
   },
 }
 
