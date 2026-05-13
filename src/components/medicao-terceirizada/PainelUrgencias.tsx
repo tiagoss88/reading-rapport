@@ -198,6 +198,7 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
   const vencidos = urgentesFiltrados.filter(u => u.nivel === 'vencido')
   const criticos = urgentesFiltrados.filter(u => u.nivel === 'critico')
   const atencao = urgentesFiltrados.filter(u => u.nivel === 'atencao')
+  const noPrazo = urgentesFiltrados.filter(u => u.nivel === 'no_prazo')
 
   const contagemPorUf = (uf: string) => urgentes.filter(u => u.servico.uf === uf).length
 
