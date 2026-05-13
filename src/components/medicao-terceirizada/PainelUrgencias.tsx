@@ -28,9 +28,9 @@ type NivelUrgencia = 'vencido' | 'critico' | 'atencao'
 
 interface ServicoUrgente {
   servico: ServicoNacionalGas
-  horasRestantes: number
+  diasRestantes: number
   nivel: NivelUrgencia
-  prazoHoras: number
+  prazoDias: number
   semData: boolean
 }
 
