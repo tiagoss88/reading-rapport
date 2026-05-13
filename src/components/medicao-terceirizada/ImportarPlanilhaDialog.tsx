@@ -136,12 +136,12 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null }> = []
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null }> = []
       const PAGE = 1000
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from('servicos_nacional_gas')
-          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome')
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico')
           .range(from, from + PAGE - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -150,33 +150,24 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       }
       return all
     },
-    enabled: open
+    enabled: open,
+    staleTime: 0,
   })
 
-  const { existingFullKeys, existingUnitKeys } = (() => {
+  const existingFullKeys = (() => {
     const full = new Set<string>()
-    const unit = new Set<string>()
     ;(existingServices || []).forEach(s => {
       full.add(makeDuplicateKey(s))
-      unit.add(makeUnitKey(s))
     })
-    return { existingFullKeys: full, existingUnitKeys: unit }
+    return full
   })()
 
   const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
     const seenFull = new Set<string>()
-    const seenUnit = new Set<string>()
     return rows.map(row => {
       const fullKey = makeDuplicateKey(row)
-      const unitKey = makeUnitKey(row)
-      // Só consideramos chave de unidade quando há bloco OU apto preenchido
-      const hasUnit = !!(row.bloco || row.apartamento)
-      const isDuplicate =
-        existingFullKeys.has(fullKey) ||
-        seenFull.has(fullKey) ||
-        (hasUnit && (existingUnitKeys.has(unitKey) || seenUnit.has(unitKey)))
+      const isDuplicate = existingFullKeys.has(fullKey) || seenFull.has(fullKey)
       seenFull.add(fullKey)
-      if (hasUnit) seenUnit.add(unitKey)
       return { ...row, isDuplicate }
     })
   }
