@@ -28,9 +28,9 @@ type NivelUrgencia = 'vencido' | 'critico' | 'atencao'
 
 interface ServicoUrgente {
   servico: ServicoNacionalGas
-  horasRestantes: number
+  diasRestantes: number
   nivel: NivelUrgencia
-  prazoHoras: number
+  prazoDias: number
   semData: boolean
 }
 
@@ -41,82 +41,65 @@ function normalizarTexto(texto: string): string {
     .replace(/[\u0300-\u036f]/g, '')
 }
 
-function getPrazoHoras(tipoServico: string): number | null {
+function getPrazoDias(tipoServico: string): number | null {
   const normalizado = normalizarTexto(tipoServico)
   if (normalizado.includes('religacao emergencial') || normalizado.includes('religacao de emergencia')) {
-    return 24
+    return 1
   }
   if (normalizado.includes('religacao') || normalizado.includes('religamento')) {
-    return 48
+    return 2
   }
   if (normalizado.includes('desligamento') || normalizado.includes('desligacao')) {
-    return 48
+    return 2
   }
   return null
 }
 
-function calcularHorasUteisRestantes(dataSolicitacao: Date, prazoHoras: number): number {
-  const agora = new Date()
-  const HORA_INICIO = 8
-  const HORA_FIM = 18
-  const HORAS_DIA = HORA_FIM - HORA_INICIO
-
-  // Calculate business hours elapsed since dataSolicitacao
-  let horasUteisCorridas = 0
-  const cursor = new Date(dataSolicitacao)
-
-  // Advance cursor to start of business hours if needed
-  if (cursor.getHours() < HORA_INICIO) {
-    cursor.setHours(HORA_INICIO, 0, 0, 0)
-  } else if (cursor.getHours() >= HORA_FIM) {
-    // Move to next business day
-    cursor.setDate(cursor.getDate() + 1)
-    cursor.setHours(HORA_INICIO, 0, 0, 0)
-    // Skip weekends
-    while (cursor.getDay() === 0 || cursor.getDay() === 6) {
-      cursor.setDate(cursor.getDate() + 1)
-    }
-  }
-
-  // Count full business days between cursor and agora
-  const tempCursor = new Date(cursor)
-  
-  while (tempCursor < agora) {
-    const diaSemana = tempCursor.getDay()
-    
-    // Skip weekends
-    if (diaSemana === 0 || diaSemana === 6) {
-      tempCursor.setDate(tempCursor.getDate() + 1)
-      tempCursor.setHours(HORA_INICIO, 0, 0, 0)
-      continue
-    }
-
-    const inicioUtil = new Date(tempCursor)
-    inicioUtil.setHours(HORA_INICIO, 0, 0, 0)
-    
-    const fimUtil = new Date(tempCursor)
-    fimUtil.setHours(HORA_FIM, 0, 0, 0)
-
-    const inicioContagem = tempCursor > inicioUtil ? tempCursor : inicioUtil
-    const fimContagem = agora < fimUtil ? agora : fimUtil
-
-    if (fimContagem > inicioContagem) {
-      horasUteisCorridas += (fimContagem.getTime() - inicioContagem.getTime()) / (1000 * 60 * 60)
-    }
-
-    // Move to next day
-    tempCursor.setDate(tempCursor.getDate() + 1)
-    tempCursor.setHours(HORA_INICIO, 0, 0, 0)
-  }
-
-  return prazoHoras - horasUteisCorridas
+// Domingo (0) não é dia útil; sábado (6) é.
+function isDiaUtil(d: Date): boolean {
+  return d.getDay() !== 0
 }
 
-function getNivel(horasRestantes: number, prazoHoras: number): NivelUrgencia {
-  if (horasRestantes <= 0) return 'vencido'
-  if (horasRestantes <= 8) return 'critico'
-  if (horasRestantes <= prazoHoras / 2) return 'atencao'
-  return 'atencao' // fallback, won't be shown
+function startOfDay(d: Date): Date {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
+
+function addDiasUteis(date: Date, n: number): Date {
+  const result = startOfDay(date)
+  let added = 0
+  while (added < n) {
+    result.setDate(result.getDate() + 1)
+    if (isDiaUtil(result)) added++
+  }
+  return result
+}
+
+// Conta dias úteis entre `from` (exclusivo) e `to` (inclusivo). Negativo se to < from.
+function contarDiasUteisEntre(from: Date, to: Date): number {
+  const a = startOfDay(from)
+  const b = startOfDay(to)
+  if (a.getTime() === b.getTime()) return 0
+  const sign = b > a ? 1 : -1
+  let count = 0
+  const cursor = new Date(a)
+  while (cursor.getTime() !== b.getTime()) {
+    cursor.setDate(cursor.getDate() + sign)
+    if (isDiaUtil(cursor)) count += sign
+  }
+  return count
+}
+
+function calcularDiasUteisRestantes(dataSolicitacao: Date, prazoDias: number): number {
+  const dataLimite = addDiasUteis(dataSolicitacao, prazoDias)
+  return contarDiasUteisEntre(new Date(), dataLimite)
+}
+
+function getNivel(diasRestantes: number, _prazoDias: number): NivelUrgencia {
+  if (diasRestantes <= 0) return 'vencido'
+  if (diasRestantes <= 1) return 'critico'
+  return 'atencao'
 }
 
 const nivelConfig = {
@@ -137,47 +120,45 @@ const nivelConfig = {
   },
 }
 
-function formatarTempoRestante(horas: number, semData: boolean): string {
+function formatarTempoRestante(dias: number, semData: boolean): string {
   if (semData) return 'Data não informada'
-  if (horas <= 0) {
-    const abs = Math.abs(horas)
-    if (abs < 1) return `Vencido há ${Math.round(abs * 60)}min`
-    return `Vencido há ${Math.round(abs)}h`
+  if (dias < 0) {
+    const abs = Math.abs(dias)
+    return `Vencido há ${abs} dia${abs > 1 ? 's' : ''} útil${abs > 1 ? 'eis' : ''}`
   }
-  if (horas < 1) return `Falta ${Math.round(horas * 60)}min úteis`
-  return `Falta ${Math.round(horas)}h úteis`
+  if (dias === 0) return 'Vence hoje'
+  if (dias === 1) return 'Vence amanhã'
+  return `Faltam ${dias} dias úteis`
 }
 
 export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrgente[] {
   const urgentes: ServicoUrgente[] = []
 
   for (const servico of servicos) {
-    // Only monitor pending/scheduled
     if (servico.status_atendimento !== 'pendente' && servico.status_atendimento !== 'agendado') continue
 
-    const prazoHoras = getPrazoHoras(servico.tipo_servico)
-    if (prazoHoras === null) continue
+    const prazoDias = getPrazoDias(servico.tipo_servico)
+    if (prazoDias === null) continue
 
     if (!servico.data_solicitacao) {
       urgentes.push({
         servico,
-        horasRestantes: -999,
+        diasRestantes: -999,
         nivel: 'vencido',
-        prazoHoras,
+        prazoDias,
         semData: true,
       })
       continue
     }
 
-    const horasRestantes = calcularHorasUteisRestantes(new Date(servico.data_solicitacao), prazoHoras)
-    const nivel = getNivel(horasRestantes, prazoHoras)
+    const dataSolic = new Date(`${servico.data_solicitacao}T00:00:00`)
+    const diasRestantes = calcularDiasUteisRestantes(dataSolic, prazoDias)
+    const nivel = getNivel(diasRestantes, prazoDias)
 
-    // Include all pending/scheduled services — badge indicates urgency level
-    urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
+    urgentes.push({ servico, diasRestantes, nivel, prazoDias, semData: false })
   }
 
-  // Sort: most urgent first
-  urgentes.sort((a, b) => a.horasRestantes - b.horasRestantes)
+  urgentes.sort((a, b) => a.diasRestantes - b.diasRestantes)
   return urgentes
 }
 
@@ -224,7 +205,7 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
       s.condominio_nome_original,
       localizacao || null,
       s.tipo_servico,
-      formatarTempoRestante(item.horasRestantes, item.semData),
+      formatarTempoRestante(item.diasRestantes, item.semData),
     ].filter(Boolean)
     return `• ${partes.join(' — ')}`
   }
@@ -329,7 +310,7 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-muted-foreground">{item.servico.tipo_servico}</span>
                   <span className="text-xs font-medium">
-                    {formatarTempoRestante(item.horasRestantes, item.semData)}
+                    {formatarTempoRestante(item.diasRestantes, item.semData)}
                   </span>
                 </div>
               </div>

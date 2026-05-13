@@ -1,65 +1,53 @@
-## Problema
+## Objetivo
 
-A detecção atual (em `ImportarPlanilhaDialog.tsx`) marca como duplicado **qualquer** registro que bata só por unidade física (UF + condomínio + bloco + apto), ignorando morador e tipo de serviço quando há bloco/apto preenchidos.
+Alterar a verificação de urgências (PainelUrgencias) para trabalhar em **dias úteis** em vez de **horas úteis**, considerando sábado como dia útil e domingo como não útil.
 
-Trecho responsável (linhas 163-179):
-```ts
-const isDuplicate =
-  existingFullKeys.has(fullKey) ||
-  seenFull.has(fullKey) ||
-  (hasUnit && (existingUnitKeys.has(unitKey) || seenUnit.has(unitKey)))
-```
+## Regras de prazo
 
-Resultado: VARANDAS DO IMBUI 602 é marcado como duplicado mesmo com morador diferente e tipo de serviço diferente, porque já existe outro serviço naquela mesma unidade.
+- **Religação emergencial** → 1 dia útil
+- **Religação / Religação automática / Desligamento** → 2 dias úteis
+- Contagem a partir da `data_solicitacao`
+- Sábado conta como dia útil; domingo não
 
-Isso foi introduzido para resolver o caso oposto (Sonata B 302 / Barcelona ÚNICO 404), mas ficou agressivo demais — uma mesma unidade pode legitimamente ter vários serviços ao longo do tempo (religação, desligamento, vistoria, troca de medidor, etc.) e/ou trocar de morador.
+Exemplo: solicitação em 13/05 (qua) com prazo de 2 dias úteis → vence em 15/05 (sex). Emergencial em 13/05 → vence em 14/05.
 
-## Correção proposta
+## Mudanças no código
 
-Reformular a chave de duplicidade para considerar **tipo de serviço** e **morador**, mantendo as normalizações atuais.
+Arquivo: `src/components/medicao-terceirizada/PainelUrgencias.tsx`
 
-### Nova regra de duplicidade
+1. **Substituir `getPrazoHoras` por `getPrazoDias`**
+   - `religacao emergencial` / `religacao de emergencia` → 1
+   - `religacao` / `religamento` / `desligamento` / `desligacao` → 2
+   - demais → `null` (ignorado)
 
-Um registro é duplicado quando bate **tudo** isto com um existente (ou outro da mesma planilha):
+2. **Substituir `calcularHorasUteisRestantes` por `calcularDiasUteisRestantes(dataSolicitacao, prazoDias)`**
+   - Calcular `dataLimite` somando `prazoDias` dias úteis (pulando domingos) à data da solicitação (ignorando hora — usar início do dia).
+   - Retornar a diferença em dias úteis entre **hoje** (início do dia) e `dataLimite`:
+     - `> 0` → ainda no prazo (X dias úteis restantes)
+     - `= 0` → vence hoje
+     - `< 0` → vencido há N dias úteis
+   - Função auxiliar `addDiasUteis(date, n)` e `contarDiasUteisEntre(a, b)` que ignoram domingos.
 
-- UF
-- Condomínio (normalizado: sem acento, sem `(GTI)/(FS)`, sem prefixo `BA `)
-- Bloco (normalizado, `unico`/`u`/vazio equivalentes)
-- Apartamento (normalizado, sem zeros à esquerda)
-- **Tipo de serviço** (normalizado)
-- **Morador** (normalizado)
+3. **Atualizar tipo `ServicoUrgente`**: renomear `horasRestantes` → `diasRestantes` e `prazoHoras` → `prazoDias`.
 
-Ou seja: mesma unidade + mesmo serviço + mesmo morador = duplicado. Qualquer um desses três últimos diferindo → não é duplicado.
+4. **Atualizar `getNivel(diasRestantes, prazoDias)`**:
+   - `diasRestantes <= 0` → `vencido`
+   - `diasRestantes <= 1` (vence amanhã ou hoje, ainda no prazo) → `critico`
+   - resto → `atencao`
 
-### Tratamento do morador vazio
+5. **Atualizar `formatarTempoRestante(dias, semData)`**:
+   - `semData` → "Data não informada"
+   - `dias < 0` → "Vencido há N dia(s) útil(eis)"
+   - `dias === 0` → "Vence hoje"
+   - `dias === 1` → "Vence amanhã"
+   - `dias > 1` → "Faltam N dias úteis"
 
-Para não voltar ao problema antigo (Sonata B 302 vinha sem morador e passava batido):
+6. **Ordenação** continua por menor `diasRestantes` primeiro.
 
-- Se o morador estiver vazio nos **dois lados** (importado e existente) e o tipo de serviço for o mesmo → considerar duplicado (não dá para distinguir).
-- Se um lado tem morador e o outro não → **não** duplicado (tratar como registro novo, deixa o usuário decidir).
+7. **Texto do card vazio**: trocar "prazos apertados" para refletir dias úteis (texto mantido, só ajuste leve se necessário).
 
-### Mudanças no código
+## Sem mudanças
 
-Arquivo único: `src/components/medicao-terceirizada/ImportarPlanilhaDialog.tsx`
-
-1. Substituir `makeDuplicateKey` para incluir `tipo_servico` normalizado:
-   ```ts
-   makeUnitKey(row) + '|' + normText(row.tipo_servico) + '|' + normText(row.morador_nome)
-   ```
-
-2. Ajustar a busca em `existingServices` para também trazer `tipo_servico` (`select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico')`).
-
-3. Em `markDuplicates`, remover o fallback por `unitKey` puro. Usar apenas `existingFullKeys` / `seenFull` com a nova chave (que já inclui tipo + morador).
-
-4. Invalidar a query `servicos-nacional-gas-duplicates` ao abrir o dialog (ou manter `enabled: open` + `staleTime: 0`) para garantir dados frescos.
-
-5. Atualizar o comentário/cabeçalho explicando a nova regra.
-
-Não há mudança de banco, RLS, UI ou outros componentes.
-
-### Validação mental
-
-- VARANDAS DO IMBUI 602, morador A, "Religação" + já existe morador B, "Vistoria" → tipo diferente E morador diferente → **não** duplicado. ✓
-- Sonata B 302 sem morador na planilha + já existe sem morador, mesmo tipo → duplicado. ✓
-- Reimportar a mesma planilha duas vezes → duplicado (tudo bate). ✓
-- Mesma unidade, mesmo morador, tipo diferente (ex.: "Religação" hoje, "Desligamento" amanhã) → **não** duplicado. ✓
+- `Dashboard.tsx` continua usando `getServicosUrgentes` (assinatura externa preservada — apenas o conteúdo dos itens muda; ele só conta níveis).
+- Sem mudanças de banco, RLS ou backend.
+- Sem mudanças de UI/layout além dos textos de tempo restante.
