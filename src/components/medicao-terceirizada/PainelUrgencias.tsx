@@ -24,7 +24,7 @@ interface PainelUrgenciasProps {
   onEditServico?: (servico: ServicoNacionalGas) => void
 }
 
-type NivelUrgencia = 'vencido' | 'critico' | 'atencao'
+type NivelUrgencia = 'vencido' | 'critico' | 'atencao' | 'no_prazo'
 
 interface ServicoUrgente {
   servico: ServicoNacionalGas
@@ -98,8 +98,9 @@ function calcularDiasUteisRestantes(dataSolicitacao: Date, prazoDias: number): n
 
 function getNivel(diasRestantes: number, _prazoDias: number): NivelUrgencia {
   if (diasRestantes < 0) return 'vencido'
-  if (diasRestantes <= 1) return 'critico' // hoje ou amanhã
-  return 'atencao'
+  if (diasRestantes === 0) return 'critico'
+  if (diasRestantes === 1) return 'atencao'
+  return 'no_prazo'
 }
 
 const nivelConfig = {
@@ -109,7 +110,7 @@ const nivelConfig = {
     borderClass: 'border-l-red-500',
   },
   critico: {
-    label: 'Crítico',
+    label: 'Vence hoje',
     badgeClass: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200',
     borderClass: 'border-l-orange-500',
   },
@@ -117,6 +118,11 @@ const nivelConfig = {
     label: 'Atenção',
     badgeClass: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200',
     borderClass: 'border-l-yellow-500',
+  },
+  no_prazo: {
+    label: 'Dentro do prazo',
+    badgeClass: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200',
+    borderClass: 'border-l-green-500',
   },
 }
 
@@ -192,6 +198,7 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
   const vencidos = urgentesFiltrados.filter(u => u.nivel === 'vencido')
   const criticos = urgentesFiltrados.filter(u => u.nivel === 'critico')
   const atencao = urgentesFiltrados.filter(u => u.nivel === 'atencao')
+  const noPrazo = urgentesFiltrados.filter(u => u.nivel === 'no_prazo')
 
   const contagemPorUf = (uf: string) => urgentes.filter(u => u.servico.uf === uf).length
 
@@ -225,6 +232,9 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
     if (atencao.length > 0) {
       linhas.push(`🟡 ATENÇÃO (${atencao.length}):`, ...atencao.map(formatLinhaResumo), '')
     }
+    if (noPrazo.length > 0) {
+      linhas.push(`🟢 DENTRO DO PRAZO (${noPrazo.length}):`, ...noPrazo.map(formatLinhaResumo), '')
+    }
     return linhas.join('\n').trimEnd()
   })()
 
@@ -250,7 +260,17 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
             )}
             {criticos.length > 0 && (
               <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                {criticos.length} crítico{criticos.length > 1 ? 's' : ''}
+                {criticos.length} hoje
+              </Badge>
+            )}
+            {atencao.length > 0 && (
+              <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                {atencao.length} amanhã
+              </Badge>
+            )}
+            {noPrazo.length > 0 && (
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                {noPrazo.length} no prazo
               </Badge>
             )}
           </div>
