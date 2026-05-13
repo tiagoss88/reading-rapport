@@ -260,7 +260,17 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
             )}
             {criticos.length > 0 && (
               <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
-                {criticos.length} crítico{criticos.length > 1 ? 's' : ''}
+                {criticos.length} hoje
+              </Badge>
+            )}
+            {atencao.length > 0 && (
+              <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                {atencao.length} amanhã
+              </Badge>
+            )}
+            {noPrazo.length > 0 && (
+              <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                {noPrazo.length} no prazo
               </Badge>
             )}
           </div>
