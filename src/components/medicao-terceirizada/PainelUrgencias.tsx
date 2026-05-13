@@ -97,8 +97,8 @@ function calcularDiasUteisRestantes(dataSolicitacao: Date, prazoDias: number): n
 }
 
 function getNivel(diasRestantes: number, _prazoDias: number): NivelUrgencia {
-  if (diasRestantes <= 0) return 'vencido'
-  if (diasRestantes <= 1) return 'critico'
+  if (diasRestantes < 0) return 'vencido'
+  if (diasRestantes <= 1) return 'critico' // hoje ou amanhã
   return 'atencao'
 }
 
