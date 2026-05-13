@@ -83,15 +83,18 @@ const makeUnitKey = (row: {
   ].join('|')
 }
 
-// Chave completa (com morador) — usada para casar quando ambos têm morador
+// Chave completa: unidade + tipo de serviço + morador.
+// Duplicado = mesma unidade + mesmo tipo de serviço + mesmo morador.
+// Se morador estiver vazio em ambos os lados, ainda casa (não há como distinguir).
 const makeDuplicateKey = (row: {
   uf?: string
   condominio_nome_original?: string
   bloco?: string | null
   apartamento?: string | null
   morador_nome?: string | null
+  tipo_servico?: string | null
 }): string => {
-  return makeUnitKey(row) + '|' + normText(row.morador_nome)
+  return makeUnitKey(row) + '|' + normText(row.tipo_servico) + '|' + normText(row.morador_nome)
 }
 
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
