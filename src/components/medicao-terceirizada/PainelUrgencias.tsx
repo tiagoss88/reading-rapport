@@ -24,7 +24,7 @@ interface PainelUrgenciasProps {
   onEditServico?: (servico: ServicoNacionalGas) => void
 }
 
-type NivelUrgencia = 'vencido' | 'critico' | 'atencao'
+type NivelUrgencia = 'vencido' | 'critico' | 'atencao' | 'no_prazo'
 
 interface ServicoUrgente {
   servico: ServicoNacionalGas
