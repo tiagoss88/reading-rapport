@@ -232,6 +232,9 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
     if (atencao.length > 0) {
       linhas.push(`🟡 ATENÇÃO (${atencao.length}):`, ...atencao.map(formatLinhaResumo), '')
     }
+    if (noPrazo.length > 0) {
+      linhas.push(`🟢 DENTRO DO PRAZO (${noPrazo.length}):`, ...noPrazo.map(formatLinhaResumo), '')
+    }
     return linhas.join('\n').trimEnd()
   })()
 
