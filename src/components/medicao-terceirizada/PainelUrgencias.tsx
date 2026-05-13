@@ -120,47 +120,45 @@ const nivelConfig = {
   },
 }
 
-function formatarTempoRestante(horas: number, semData: boolean): string {
+function formatarTempoRestante(dias: number, semData: boolean): string {
   if (semData) return 'Data não informada'
-  if (horas <= 0) {
-    const abs = Math.abs(horas)
-    if (abs < 1) return `Vencido há ${Math.round(abs * 60)}min`
-    return `Vencido há ${Math.round(abs)}h`
+  if (dias < 0) {
+    const abs = Math.abs(dias)
+    return `Vencido há ${abs} dia${abs > 1 ? 's' : ''} útil${abs > 1 ? 'eis' : ''}`
   }
-  if (horas < 1) return `Falta ${Math.round(horas * 60)}min úteis`
-  return `Falta ${Math.round(horas)}h úteis`
+  if (dias === 0) return 'Vence hoje'
+  if (dias === 1) return 'Vence amanhã'
+  return `Faltam ${dias} dias úteis`
 }
 
 export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrgente[] {
   const urgentes: ServicoUrgente[] = []
 
   for (const servico of servicos) {
-    // Only monitor pending/scheduled
     if (servico.status_atendimento !== 'pendente' && servico.status_atendimento !== 'agendado') continue
 
-    const prazoHoras = getPrazoHoras(servico.tipo_servico)
-    if (prazoHoras === null) continue
+    const prazoDias = getPrazoDias(servico.tipo_servico)
+    if (prazoDias === null) continue
 
     if (!servico.data_solicitacao) {
       urgentes.push({
         servico,
-        horasRestantes: -999,
+        diasRestantes: -999,
         nivel: 'vencido',
-        prazoHoras,
+        prazoDias,
         semData: true,
       })
       continue
     }
 
-    const horasRestantes = calcularHorasUteisRestantes(new Date(servico.data_solicitacao), prazoHoras)
-    const nivel = getNivel(horasRestantes, prazoHoras)
+    const dataSolic = new Date(`${servico.data_solicitacao}T00:00:00`)
+    const diasRestantes = calcularDiasUteisRestantes(dataSolic, prazoDias)
+    const nivel = getNivel(diasRestantes, prazoDias)
 
-    // Include all pending/scheduled services — badge indicates urgency level
-    urgentes.push({ servico, horasRestantes, nivel, prazoHoras, semData: false })
+    urgentes.push({ servico, diasRestantes, nivel, prazoDias, semData: false })
   }
 
-  // Sort: most urgent first
-  urgentes.sort((a, b) => a.horasRestantes - b.horasRestantes)
+  urgentes.sort((a, b) => a.diasRestantes - b.diasRestantes)
   return urgentes
 }
 
