@@ -205,7 +205,7 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
       s.condominio_nome_original,
       localizacao || null,
       s.tipo_servico,
-      formatarTempoRestante(item.horasRestantes, item.semData),
+      formatarTempoRestante(item.diasRestantes, item.semData),
     ].filter(Boolean)
     return `• ${partes.join(' — ')}`
   }
@@ -310,7 +310,7 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-muted-foreground">{item.servico.tipo_servico}</span>
                   <span className="text-xs font-medium">
-                    {formatarTempoRestante(item.horasRestantes, item.semData)}
+                    {formatarTempoRestante(item.diasRestantes, item.semData)}
                   </span>
                 </div>
               </div>
