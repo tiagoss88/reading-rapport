@@ -398,7 +398,9 @@ export default function ColetorEmpreendimentoDetalhe() {
               accept="image/*"
               capture="environment"
               onChange={handleFotoCapture('relatorio')}
-              className="hidden"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden="true"
             />
             <input
               ref={galleryRelatorioRef}
