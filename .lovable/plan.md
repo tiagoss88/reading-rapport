@@ -1,40 +1,49 @@
-## Objetivo
+## Diagnóstico
 
-Na tela do coletor de detalhes do empreendimento (`/coletor/empreendimento/:id`), adicionar uma nova seção para o técnico enviar **fotos do Relatório de Leitura impresso** (várias fotos, pois é um papel com vários clientes), separadas das fotos do "comprovante de sincronização" já existentes.
+No Android, `<input type="file" capture="environment">` com `className="hidden"` (que aplica `display:none`) é bloqueado pelo Chrome/WebView — a câmera não abre. A galeria funciona porque o seletor de arquivos não depende do mesmo gesto/visibilidade.
 
-## Mudanças
+Padrão atual em `ColetorEmpreendimentoDetalhe.tsx` (e provavelmente outras telas):
+```tsx
+<Button onClick={() => cameraInputRef.current?.click()}>Tirar Foto</Button>
+<input ref={cameraInputRef} type="file" capture="environment" className="hidden" />
+```
 
-### 1. `src/pages/ColetorEmpreendimentoDetalhe.tsx`
+## Correção
 
-- Adicionar segundo estado `fotosRelatorio: FotoItem[]` e novos refs (`cameraRelatorioRef`, `galleryRelatorioRef`).
-- Generalizar o handler `handleFotoCapture` para receber qual lista atualizar (`'sincronizacao' | 'relatorio'`) — mesma lógica de compressão.
-- Renderizar um **novo Card "Fotos do Relatório de Leitura"** logo abaixo do card de fotos do comprovante, com:
-  - Texto explicativo: "Fotos do relatório impresso de leitura do condomínio (pode adicionar várias)."
-  - Grid de previews com botão remover.
-  - Botões "Tirar Foto" (câmera) e "Galeria" (multi-seleção), no mesmo padrão visual já usado.
-- **Não obrigatório** para confirmar coleta (apenas o comprovante de sincronização permanece obrigatório), mas se houver fotos, fazem upload junto.
+Substituir `className="hidden"` por uma técnica "visualmente oculto mas acessível" no input de câmera (não em `display:none`), em ambos os cards (Sincronização e Relatório de Leitura):
 
-### 2. Upload e persistência
+```tsx
+const srOnly: React.CSSProperties = {
+  position: 'absolute',
+  width: 1, height: 1,
+  padding: 0, margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0,0,0,0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+  opacity: 0,
+}
 
-- No `confirmarColeta`:
-  - Fazer upload em paralelo das fotos do relatório para o mesmo bucket `medidor-fotos`, em prefixo `coletas/relatorio/`.
-  - Concatenar URLs no campo `observacao` da mesma row de `servicos_nacional_gas`, seguindo o padrão legado já usado no projeto:
-    
-    ```
-    Fotos comprovante: url1, url2 | Fotos relatorio: urlA, urlB | Obs: texto
-    ```
-  
-  Sem mudança de schema — mantém compatibilidade com leitura/parsing atual e respeita a regra de memória sobre o formato legado de `observacao`.
+<input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
+       style={srOnly} onChange={handleFotoCapture('sincronizacao')} />
+```
 
-### 3. Sem mudanças de banco
+Os inputs de **Galeria** podem continuar com `className="hidden"` (já funcionam).
 
-- Bucket `medidor-fotos` já existe e é público.
-- RLS de `servicos_nacional_gas` já permite inserção pelo operador.
-- Sem migração.
+## Onde aplicar
 
-## Critérios de aceite
+- `src/pages/ColetorEmpreendimentoDetalhe.tsx` — 2 inputs de câmera (sincronização + relatório).
+- Auditar e aplicar a mesma correção em outras telas com `capture="environment"`:
+  - `src/pages/ColetorLeitura.tsx`
+  - `src/components/medicao-terceirizada/ExecucaoServicoTerceirizado.tsx`
+  - qualquer outro arquivo onde `rg "capture=\"environment\""` encontrar input com classe `hidden`.
 
-- Card novo aparece abaixo do card de comprovante de sincronização.
-- Técnico consegue tirar/anexar múltiplas fotos do relatório e remover individualmente.
-- Confirmação de coleta funciona com 0 ou N fotos de relatório (continua exigindo ≥1 foto de comprovante).
-- URLs das fotos do relatório aparecem no campo `observacao` no formato concatenado acima.
+## Critério de aceite
+
+- No Android (Chrome e PWA instalado), tocar em "Tirar Foto" abre a câmera nativa.
+- iOS, desktop e botão Galeria continuam funcionando como antes.
+- Nenhuma mudança no fluxo de upload/compressão.
+
+## Memória a atualizar
+
+`mem://architecture/mobile-camera-access` — anotar que inputs de câmera devem usar style `sr-only` (não `display:none`) no Android.

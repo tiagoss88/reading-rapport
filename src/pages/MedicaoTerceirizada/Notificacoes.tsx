@@ -286,7 +286,7 @@ export default function NotificacoesMedidores() {
             <div>
               <label className="text-sm font-medium">Fotos</label>
               <div className="flex gap-2 mt-1">
-                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFotoCapture} />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={handleFotoCapture} />
                 <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFotoCapture} />
                 <Button type="button" variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()}>
                   <Camera className="h-4 w-4 mr-1" /> Câmera
