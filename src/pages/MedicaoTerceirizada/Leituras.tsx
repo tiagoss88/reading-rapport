@@ -37,6 +37,19 @@ const extrairFotosUrls = (observacao: string | null): string[] => {
   return []
 }
 
+const extrairFotosRelatorio = (observacao: string | null): string[] => {
+  if (!observacao) return []
+  const matchBrackets = observacao.match(/Fotos relatorio:\s*\[([^\]]*)\]/i)
+  if (matchBrackets) {
+    return matchBrackets[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
+  const matchNoBrackets = observacao.match(/Fotos relatorio:\s*(https?:\/\/[^|]+)/i)
+  if (matchNoBrackets) {
+    return matchNoBrackets[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
+  return []
+}
+
 const statusBadge = (status: string) => {
   switch (status) {
     case 'concluido':
