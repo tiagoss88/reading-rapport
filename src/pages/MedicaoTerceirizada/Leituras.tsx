@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus, Copy, Trash2 } from 'lucide-react'
+import { CalendarDays, CheckCircle2, Clock, Loader2, Image, ImageOff, Pencil, Plus, Copy, Trash2, FileImage } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
@@ -34,6 +34,19 @@ const extrairFotosUrls = (observacao: string | null): string[] => {
   // "Foto comprovante: url | Obs: ..."
   const matchSingle = observacao.match(/Foto comprovante:\s*(https?:\/\/[^\s|]+)/i)
   if (matchSingle) return [matchSingle[1].trim()]
+  return []
+}
+
+const extrairFotosRelatorio = (observacao: string | null): string[] => {
+  if (!observacao) return []
+  const matchBrackets = observacao.match(/Fotos relatorio:\s*\[([^\]]*)\]/i)
+  if (matchBrackets) {
+    return matchBrackets[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
+  const matchNoBrackets = observacao.match(/Fotos relatorio:\s*(https?:\/\/[^|]+)/i)
+  if (matchNoBrackets) {
+    return matchNoBrackets[1].split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u))
+  }
   return []
 }
 
@@ -229,7 +242,7 @@ export default function LeiturasTerceirizadas() {
   return (
     <Layout title="Leituras - Medição Terceirizada">
       <Tabs defaultValue="rota-dia" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="rota-dia" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             Rota do Dia
@@ -241,6 +254,10 @@ export default function LeiturasTerceirizadas() {
           <TabsTrigger value="pendentes" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Pendentes
+          </TabsTrigger>
+          <TabsTrigger value="relatorios" className="flex items-center gap-2">
+            <FileImage className="h-4 w-4" />
+            Relatório de Leitura
           </TabsTrigger>
         </TabsList>
 
@@ -564,6 +581,155 @@ export default function LeiturasTerceirizadas() {
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Aba 4 - Relatório de Leitura */}
+        <TabsContent value="relatorios">
+          <Card>
+            <CardHeader>
+              <CardTitle>Relatório de Leitura</CardTitle>
+              <div className="flex flex-wrap gap-3 mt-2">
+                <Select value={competencia} onValueChange={setCompetencia}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Competência" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {competenciaOptions.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filtroUF} onValueChange={setFiltroUF}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="UF" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas UFs</SelectItem>
+                    {ufsDisponiveis.map(uf => (
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filtroRota} onValueChange={setFiltroRota}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Rota" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas Rotas</SelectItem>
+                    {rotasDisponiveis.map(r => (
+                      <SelectItem key={r} value={String(r)}>Rota {r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Buscar condomínio..."
+                  value={buscaColeta}
+                  onChange={e => setBuscaColeta(e.target.value)}
+                  className="w-56"
+                />
+                <Select value={String(itensPorPagina)} onValueChange={v => setItensPorPagina(Number(v))}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingColetas ? (
+                <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+              ) : (() => {
+                const comRelatorio = coletasFiltradas.filter(c => /Fotos relatorio:/i.test(c.observacao || ''))
+                const buscadas = comRelatorio.filter(c => {
+                  if (!buscaColeta) return true
+                  const emp = c.empreendimentos_terceirizados as any
+                  const nome = emp?.nome || c.condominio_nome_original || ''
+                  return nome.toLowerCase().includes(buscaColeta.toLowerCase())
+                })
+                const exibidas = buscadas.slice(0, itensPorPagina)
+                return !buscadas.length ? (
+                  <p className="text-center text-muted-foreground py-8">Nenhum relatório de leitura enviado nesta competência.</p>
+                ) : (
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Condomínio</TableHead>
+                          <TableHead>UF</TableHead>
+                          <TableHead>Rota</TableHead>
+                          <TableHead>Técnico</TableHead>
+                          <TableHead>Data da Coleta</TableHead>
+                          <TableHead>Fotos do Relatório</TableHead>
+                          <TableHead>Qtd</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {exibidas.map(coleta => {
+                          const emp = coleta.empreendimentos_terceirizados as any
+                          const tecnico = coleta.operadores as any
+                          const fotos = extrairFotosRelatorio(coleta.observacao)
+                          return (
+                            <TableRow key={coleta.id}>
+                              <TableCell className="font-medium">{emp?.nome || coleta.condominio_nome_original}</TableCell>
+                              <TableCell>{emp?.uf || coleta.uf}</TableCell>
+                              <TableCell>{emp?.rota || '-'}</TableCell>
+                              <TableCell>{tecnico?.nome || 'N/A'}</TableCell>
+                              <TableCell>
+                                {coleta.data_agendamento
+                                  ? format(parseISO(coleta.data_agendamento), 'dd/MM/yyyy')
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {fotos.length === 0 ? (
+                                  <ImageOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button variant="ghost" size="icon" title="Ver fotos do relatório" className="relative">
+                                        <FileImage className="h-4 w-4 text-primary" />
+                                        {fotos.length > 1 && (
+                                          <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] leading-none rounded-full px-1 py-0.5">
+                                            {fotos.length}
+                                          </span>
+                                        )}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent side="left" className="w-auto max-w-md p-2">
+                                      <p className="text-xs font-medium mb-2 px-1">Relatório de Leitura</p>
+                                      <div className={fotos.length > 1 ? 'grid grid-cols-2 gap-2' : ''}>
+                                        {fotos.map((url, idx) => (
+                                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                                            <img
+                                              src={url}
+                                              alt={`Relatório ${idx + 1}`}
+                                              className="max-h-72 w-full object-contain rounded-md bg-muted"
+                                            />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                )}
+                              </TableCell>
+                              <TableCell>{fotos.length}</TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                    <p className="text-sm text-muted-foreground mt-3">
+                      Mostrando {exibidas.length} de {buscadas.length} relatório{buscadas.length === 1 ? '' : 's'}
+                    </p>
+                  </>
+                )
+              })()}
             </CardContent>
           </Card>
         </TabsContent>

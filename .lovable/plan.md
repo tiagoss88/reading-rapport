@@ -1,49 +1,49 @@
-## Diagnóstico
+## Objetivo
 
-No Android, `<input type="file" capture="environment">` com `className="hidden"` (que aplica `display:none`) é bloqueado pelo Chrome/WebView — a câmera não abre. A galeria funciona porque o seletor de arquivos não depende do mesmo gesto/visibilidade.
+Adicionar uma 4ª aba em `/medicao-terceirizada/leituras` chamada **"Relatório de Leitura"**, posicionada **após "Pendentes"**, que lista todas as coletas onde o técnico anexou fotos do relatório de leitura impresso (recurso recentemente adicionado no coletor).
 
-Padrão atual em `ColetorEmpreendimentoDetalhe.tsx` (e provavelmente outras telas):
-```tsx
-<Button onClick={() => cameraInputRef.current?.click()}>Tirar Foto</Button>
-<input ref={cameraInputRef} type="file" capture="environment" className="hidden" />
+## Onde os dados estão
+
+Quando o técnico envia fotos do relatório no coletor, elas são salvas dentro do campo `observacao` da tabela `servicos_nacional_gas` no formato:
+
+```
+Fotos comprovante: [urls] | Fotos relatorio: [urls] | Obs: [texto]
 ```
 
-## Correção
+Ou seja, a aba precisa listar registros de `servicos_nacional_gas` (tipo_servico = 'leitura', status = 'executado') cujo `observacao` contenha o marcador `Fotos relatorio:`.
 
-Substituir `className="hidden"` por uma técnica "visualmente oculto mas acessível" no input de câmera (não em `display:none`), em ambos os cards (Sincronização e Relatório de Leitura):
+## Mudanças (apenas em `src/pages/MedicaoTerceirizada/Leituras.tsx`)
 
-```tsx
-const srOnly: React.CSSProperties = {
-  position: 'absolute',
-  width: 1, height: 1,
-  padding: 0, margin: -1,
-  overflow: 'hidden',
-  clip: 'rect(0,0,0,0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-  opacity: 0,
-}
+### 1. TabsList
+- Mudar `grid-cols-3` → `grid-cols-4`
+- Adicionar 4º `TabsTrigger value="relatorios"` com ícone `FileImage` (lucide) e label **"Relatório de Leitura"**, após "Pendentes".
 
-<input ref={cameraInputRef} type="file" accept="image/*" capture="environment"
-       style={srOnly} onChange={handleFotoCapture('sincronizacao')} />
+### 2. Helper
+Adicionar função `extrairFotosRelatorio(observacao)` análoga ao `extrairFotosUrls` existente, mas casando o marcador `Fotos relatorio:` (com e sem colchetes).
+
+### 3. Query / dados
+Reutilizar a query `coletasRealizadas` já existente (mesmos filtros de competência) e derivar com `useMemo`:
+
+```ts
+const coletasComRelatorio = coletasRealizadas.filter(c =>
+  /Fotos relatorio:/i.test(c.observacao || '')
+)
 ```
 
-Os inputs de **Galeria** podem continuar com `className="hidden"` (já funcionam).
+Aplicar os mesmos filtros UF / Rota / busca por condomínio.
 
-## Onde aplicar
+### 4. TabsContent "relatorios"
+Card similar ao "Coletas Realizadas", com:
 
-- `src/pages/ColetorEmpreendimentoDetalhe.tsx` — 2 inputs de câmera (sincronização + relatório).
-- Auditar e aplicar a mesma correção em outras telas com `capture="environment"`:
-  - `src/pages/ColetorLeitura.tsx`
-  - `src/components/medicao-terceirizada/ExecucaoServicoTerceirizado.tsx`
-  - qualquer outro arquivo onde `rg "capture=\"environment\""` encontrar input com classe `hidden`.
+- **Filtros no header:** Competência, UF, Rota, busca por condomínio, itens por página (mesmos selects/inputs já criados — podem ser reutilizados controlando os mesmos estados).
+- **Tabela:** Condomínio · UF · Rota · Técnico · Data da Coleta · **Fotos do Relatório** (miniaturas clicáveis abrindo em nova aba, como já é feito na coluna "Foto" da aba Realizadas) · Qtd Fotos.
+- Estado vazio: "Nenhum relatório de leitura enviado nesta competência."
 
-## Critério de aceite
+### 5. Sem mudanças de backend
+Nenhuma migração, nenhuma alteração em RLS, nenhuma mudança no fluxo do coletor — apenas leitura/filtro da `observacao` já populada.
 
-- No Android (Chrome e PWA instalado), tocar em "Tirar Foto" abre a câmera nativa.
-- iOS, desktop e botão Galeria continuam funcionando como antes.
-- Nenhuma mudança no fluxo de upload/compressão.
+## Fora de escopo
 
-## Memória a atualizar
-
-`mem://architecture/mobile-camera-access` — anotar que inputs de câmera devem usar style `sr-only` (não `display:none`) no Android.
+- Não alterar como o coletor salva as fotos.
+- Não criar tabela nova (continua dentro de `observacao`).
+- Não mexer nas outras 3 abas existentes além de aumentar `grid-cols` para 4.
