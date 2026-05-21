@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { ArrowLeft, Building2, Gauge, Camera, CheckCircle, Navigation, MapPin, ImagePlus, X } from 'lucide-react'
+import { ArrowLeft, Gauge, Camera, CheckCircle, Navigation, MapPin, ImagePlus, X, FileText } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
 import { format } from 'date-fns'
@@ -16,14 +16,19 @@ interface FotoItem {
   preview: string
 }
 
+type FotoTipo = 'sincronizacao' | 'relatorio'
+
 export default function ColetorEmpreendimentoDetalhe() {
   const { empreendimentoId } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
+  const cameraRelatorioRef = useRef<HTMLInputElement>(null)
+  const galleryRelatorioRef = useRef<HTMLInputElement>(null)
 
   const [fotos, setFotos] = useState<FotoItem[]>([])
+  const [fotosRelatorio, setFotosRelatorio] = useState<FotoItem[]>([])
   const [observacao, setObservacao] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -41,12 +46,11 @@ export default function ColetorEmpreendimentoDetalhe() {
     enabled: !!empreendimentoId,
   })
 
-  const handleFotoCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFotoCapture = (tipo: FotoTipo) => async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files || files.length === 0) return
 
     const filesArray = Array.from(files)
-    // Reset input so same files can be re-selected
     event.target.value = ''
 
     const validFiles = filesArray.filter(f => isValidImageFile(f))
@@ -54,6 +58,8 @@ export default function ColetorEmpreendimentoDetalhe() {
       toast({ title: "Arquivo inválido", description: "Selecione apenas arquivos de imagem.", variant: "destructive" })
       return
     }
+
+    const setter = tipo === 'sincronizacao' ? setFotos : setFotosRelatorio
 
     if (validFiles.length > 1) {
       toast({ title: `Processando ${validFiles.length} imagens...`, description: "Otimizando as fotos." })
@@ -71,7 +77,7 @@ export default function ColetorEmpreendimentoDetalhe() {
         await new Promise<void>((resolve) => {
           const reader = new FileReader()
           reader.onloadend = () => {
-            setFotos(prev => [...prev, { file: compressedFile, preview: reader.result as string }])
+            setter(prev => [...prev, { file: compressedFile, preview: reader.result as string }])
             resolve()
           }
           reader.readAsDataURL(compressedFile)
@@ -81,7 +87,7 @@ export default function ColetorEmpreendimentoDetalhe() {
         await new Promise<void>((resolve) => {
           const reader = new FileReader()
           reader.onloadend = () => {
-            setFotos(prev => [...prev, { file, preview: reader.result as string }])
+            setter(prev => [...prev, { file, preview: reader.result as string }])
             resolve()
           }
           reader.readAsDataURL(file)
@@ -96,8 +102,29 @@ export default function ColetorEmpreendimentoDetalhe() {
     })
   }
 
-  const removerFoto = (index: number) => {
-    setFotos(prev => prev.filter((_, i) => i !== index))
+  const removerFoto = (tipo: FotoTipo, index: number) => {
+    const setter = tipo === 'sincronizacao' ? setFotos : setFotosRelatorio
+    setter(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const uploadFotos = async (lista: FotoItem[], prefixo: string) => {
+    const uploads = lista.map(async (foto) => {
+      const fileExt = foto.file.name.split('.').pop()
+      const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`
+      const filePath = `${prefixo}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('medidor-fotos')
+        .upload(filePath, foto.file)
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('medidor-fotos')
+        .getPublicUrl(filePath)
+
+      return urlData.publicUrl
+    })
+    return Promise.all(uploads)
   }
 
   const confirmarColeta = async () => {
@@ -118,35 +145,21 @@ export default function ColetorEmpreendimentoDetalhe() {
         .single()
       if (!operador) throw new Error('Operador não encontrado')
 
-      // Upload all photos in parallel
-      const uploadPromises = fotos.map(async (foto) => {
-        const fileExt = foto.file.name.split('.').pop()
-        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${fileExt}`
-        const filePath = `coletas/${fileName}`
-
-        const { error: uploadError } = await supabase.storage
-          .from('medidor-fotos')
-          .upload(filePath, foto.file)
-        if (uploadError) throw uploadError
-
-        const { data: urlData } = supabase.storage
-          .from('medidor-fotos')
-          .getPublicUrl(filePath)
-
-        return urlData.publicUrl
-      })
-
-      const urls = await Promise.all(uploadPromises)
+      const [urlsComprovante, urlsRelatorio] = await Promise.all([
+        uploadFotos(fotos, 'coletas'),
+        uploadFotos(fotosRelatorio, 'coletas/relatorio'),
+      ])
 
       const dataHojeLocal = format(new Date(), 'yyyy-MM-dd')
 
-      // Build observacao field
-      let obsText = `Fotos comprovante: ${urls.join(', ')}`
+      let obsText = `Fotos comprovante: ${urlsComprovante.join(', ')}`
+      if (urlsRelatorio.length > 0) {
+        obsText += ` | Fotos relatorio: ${urlsRelatorio.join(', ')}`
+      }
       if (observacao.trim()) {
         obsText += ` | Obs: ${observacao.trim()}`
       }
 
-      // Registrar coleta
       const { error } = await supabase
         .from('servicos_nacional_gas')
         .insert({
@@ -161,7 +174,6 @@ export default function ColetorEmpreendimentoDetalhe() {
         })
       if (error) throw error
 
-      // Best effort: update rotas_leitura
       const { data: rotasAtualizadas, error: rotaUpdateError } = await supabase
         .from('rotas_leitura')
         .update({ status: 'concluido' })
@@ -207,6 +219,29 @@ export default function ColetorEmpreendimentoDetalhe() {
       </div>
     )
   }
+
+  const renderFotoGrid = (lista: FotoItem[], tipo: FotoTipo) => (
+    lista.length > 0 && (
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {lista.map((foto, index) => (
+          <div key={index} className="relative group">
+            <img
+              src={foto.preview}
+              alt={`Foto ${index + 1}`}
+              className="w-full h-24 rounded-lg border object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => removerFoto(tipo, index)}
+              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity sm:opacity-100"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+    )
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -280,29 +315,8 @@ export default function ColetorEmpreendimentoDetalhe() {
               {fotos.length > 0 && <span className="text-muted-foreground ml-1">({fotos.length})</span>}
             </p>
 
-            {/* Grid de previews */}
-            {fotos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                {fotos.map((foto, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={foto.preview}
-                      alt={`Foto ${index + 1}`}
-                      className="w-full h-24 rounded-lg border object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removerFoto(index)}
-                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-6 h-6 flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity sm:opacity-100"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            {renderFotoGrid(fotos, 'sincronizacao')}
 
-            {/* Botões sempre visíveis */}
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
@@ -327,7 +341,7 @@ export default function ColetorEmpreendimentoDetalhe() {
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={handleFotoCapture}
+              onChange={handleFotoCapture('sincronizacao')}
               className="hidden"
             />
             <input
@@ -335,7 +349,61 @@ export default function ColetorEmpreendimentoDetalhe() {
               type="file"
               accept="image/*"
               multiple
-              onChange={handleFotoCapture}
+              onChange={handleFotoCapture('sincronizacao')}
+              className="hidden"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Fotos Relatório de Leitura */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm font-medium text-foreground">
+                Fotos do Relatório de Leitura
+                {fotosRelatorio.length > 0 && <span className="text-muted-foreground ml-1">({fotosRelatorio.length})</span>}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Fotos do relatório impresso com todos os clientes coletados (pode adicionar várias). Opcional.
+            </p>
+
+            {renderFotoGrid(fotosRelatorio, 'relatorio')}
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                className={`${fotosRelatorio.length === 0 ? 'h-32' : 'h-10'} border-dashed border-2 flex flex-col items-center justify-center gap-1 text-muted-foreground`}
+                onClick={() => cameraRelatorioRef.current?.click()}
+              >
+                <Camera className={fotosRelatorio.length === 0 ? 'w-8 h-8' : 'w-4 h-4'} />
+                <span className="text-sm">Tirar Foto</span>
+              </Button>
+              <Button
+                variant="outline"
+                className={`${fotosRelatorio.length === 0 ? 'h-32' : 'h-10'} border-dashed border-2 flex flex-col items-center justify-center gap-1 text-muted-foreground`}
+                onClick={() => galleryRelatorioRef.current?.click()}
+              >
+                <ImagePlus className={fotosRelatorio.length === 0 ? 'w-8 h-8' : 'w-4 h-4'} />
+                <span className="text-sm">Galeria</span>
+              </Button>
+            </div>
+
+            <input
+              ref={cameraRelatorioRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFotoCapture('relatorio')}
+              className="hidden"
+            />
+            <input
+              ref={galleryRelatorioRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFotoCapture('relatorio')}
               className="hidden"
             />
           </CardContent>
