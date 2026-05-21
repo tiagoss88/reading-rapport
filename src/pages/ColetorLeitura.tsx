@@ -463,7 +463,9 @@ export default function ColetorLeitura() {
           accept="image/*"
           capture="environment"
           onChange={handleFotoCapture}
-          className="hidden"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
         />
 
         {/* Botão Salvar - Fixo no final */}
