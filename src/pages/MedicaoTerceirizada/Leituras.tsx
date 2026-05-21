@@ -242,7 +242,7 @@ export default function LeiturasTerceirizadas() {
   return (
     <Layout title="Leituras - Medição Terceirizada">
       <Tabs defaultValue="rota-dia" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="rota-dia" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             Rota do Dia
@@ -254,6 +254,10 @@ export default function LeiturasTerceirizadas() {
           <TabsTrigger value="pendentes" className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Pendentes
+          </TabsTrigger>
+          <TabsTrigger value="relatorios" className="flex items-center gap-2">
+            <FileImage className="h-4 w-4" />
+            Relatório de Leitura
           </TabsTrigger>
         </TabsList>
 
