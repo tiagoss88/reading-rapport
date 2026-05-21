@@ -300,7 +300,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         <Card>
           <CardContent className="pt-4 space-y-3">
             <Label>Registro Fotográfico</Label>
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={handleFileSelect} />
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => cameraRef.current?.click()}>
