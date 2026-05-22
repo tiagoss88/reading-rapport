@@ -47,10 +47,8 @@ export default function ColetorNotificacoes() {
     setShowSuggestions(true)
   }
 
-  const handleFotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
-    for (const file of Array.from(files)) {
+  const processFiles = async (files: File[]) => {
+    for (const file of files) {
       try {
         const compressed = await smartCompress(file)
         setFotos(prev => [...prev, { file: compressed, preview: URL.createObjectURL(compressed) }])
@@ -58,7 +56,16 @@ export default function ColetorNotificacoes() {
         setFotos(prev => [...prev, { file, preview: URL.createObjectURL(file) }])
       }
     }
-    e.target.value = ''
+  }
+
+  const handleGallery = async () => {
+    const files = await pickImagesMulti()
+    if (files.length) await processFiles(files)
+  }
+
+  const handleCamera = async () => {
+    const f = await takePhotoNative()
+    if (f) await processFiles([f])
   }
 
   const removeFoto = (index: number) => {
