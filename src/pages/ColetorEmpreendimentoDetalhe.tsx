@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ArrowLeft, Gauge, Camera, CheckCircle, Navigation, MapPin, ImagePlus, X, FileText } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
+import { pickImagesMulti, takePhotoNative } from '@/lib/pickImages'
 import { format } from 'date-fns'
 
 interface FotoItem {
@@ -22,10 +23,6 @@ export default function ColetorEmpreendimentoDetalhe() {
   const { empreendimentoId } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const cameraInputRef = useRef<HTMLInputElement>(null)
-  const galleryInputRef = useRef<HTMLInputElement>(null)
-  const cameraRelatorioRef = useRef<HTMLInputElement>(null)
-  const galleryRelatorioRef = useRef<HTMLInputElement>(null)
 
   const [fotos, setFotos] = useState<FotoItem[]>([])
   const [fotosRelatorio, setFotosRelatorio] = useState<FotoItem[]>([])
@@ -46,12 +43,8 @@ export default function ColetorEmpreendimentoDetalhe() {
     enabled: !!empreendimentoId,
   })
 
-  const handleFotoCapture = (tipo: FotoTipo) => async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
-
-    const filesArray = Array.from(files)
-    event.target.value = ''
+  const processFiles = async (tipo: FotoTipo, filesArray: File[]) => {
+    if (!filesArray.length) return
 
     const validFiles = filesArray.filter(f => isValidImageFile(f))
     if (validFiles.length === 0) {
@@ -100,6 +93,16 @@ export default function ColetorEmpreendimentoDetalhe() {
       title: adicionadas > 1 ? `${adicionadas} fotos adicionadas` : "Foto adicionada",
       description: adicionadas > 1 ? "Imagens otimizadas com sucesso." : "Imagem otimizada com sucesso.",
     })
+  }
+
+  const handlePickGallery = async (tipo: FotoTipo) => {
+    const files = await pickImagesMulti()
+    await processFiles(tipo, files)
+  }
+
+  const handleTakePhoto = async (tipo: FotoTipo) => {
+    const f = await takePhotoNative()
+    if (f) await processFiles(tipo, [f])
   }
 
   const removerFoto = (tipo: FotoTipo, index: number) => {
