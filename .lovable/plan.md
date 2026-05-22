@@ -1,44 +1,30 @@
 ## Objetivo
+Permitir que o admin exclua relatórios de leitura listados na aba **Relatório de Leitura** em `/medicao-terceirizada/leituras`.
 
-Garantir que ao clicar em "Galeria" seja possível selecionar **várias fotos de uma só vez** em todos os pontos do coletor — inclusive os que ainda usam o `<input type="file">` antigo.
+## Contexto
+Cada "relatório" não é uma linha própria no banco — ele está embutido no campo `observacao` da coleta correspondente, no formato:
+`... | Fotos relatorio: [url1, url2, ...]`
 
-## Estado atual
-
-Já foi implementado multi-seleção nativa (via `@capacitor/camera` + helper `src/lib/pickImages.ts`) em:
-- `src/pages/ColetorEmpreendimentoDetalhe.tsx` (Sincronização + Relatório de Leitura)
-- `src/pages/ColetorNotificacoes.tsx`
-
-Ainda falta em:
-- `src/pages/ColetorLeitura.tsx` — usa apenas 1 foto via `<input ref capture="environment">`.
+A aba já filtra coletas que contêm `Fotos relatorio:` no `observacao`. "Excluir o relatório" significa remover apenas esse trecho do `observacao`, **mantendo a coleta/leitura intactas**.
 
 ## Mudanças
 
-### 1. `src/pages/ColetorLeitura.tsx` — suportar múltiplas fotos
+### `src/pages/MedicaoTerceirizada/Leituras.tsx`
+1. Importar `usePermissions` (`isAdmin`) e o ícone `Trash2`.
+2. Adicionar nova coluna **"Ações"** na tabela da aba Relatório de Leitura, visível apenas quando `isAdmin === true`.
+3. Por linha, um botão lixeira (vermelho, `variant="ghost" size="icon"`) que abre um `AlertDialog` de confirmação:
+   - Título: "Excluir relatório de leitura?"
+   - Descrição: cita o condomínio e avisa que as fotos serão removidas mas a leitura/coleta será mantida.
+4. Ao confirmar:
+   - Remover do `observacao` o trecho que casa `/\s*\|\s*Fotos relatorio:\s*(\[[^\]]*\]|https?:\/\/[^|]+)/i` (e também o caso em que `Fotos relatorio:` aparece no início, sem o `|` anterior).
+   - Fazer `update` em `coletas_realizadas` setando o novo `observacao` (string vazia vira `null`).
+   - Invalidar a query `['coletas-realizadas']` e exibir `toast.success`.
+5. Tratamento de erro com `toast.error`.
 
-- Trocar o estado:
-  - `foto: File | null` → `fotos: File[]`
-  - `fotoPreview: string | null` → `fotosPreview: string[]` (mantém compatibilidade com `leituraExistente.foto_url` inicial, transformando em array de 1).
-- Substituir os dois botões/inputs por **dois botões separados** (padrão já usado nas outras telas):
-  - **Câmera** → `takePhotoNative()` (1 foto, adicionada ao array).
-  - **Galeria** → `pickImagesMulti()` (várias fotos).
-- Remover o `<input ref={fileInputRef} ...>` escondido.
-- Mostrar grid de miniaturas com botão "remover" em cada uma; manter aparência compacta atual.
-- No `salvarLeitura`:
-  - Fazer upload de **todas** as fotos para `medidor-fotos/leituras/...`.
-  - Salvar a **primeira** URL em `foto_url` (mantém schema atual).
-  - Concatenar as URLs adicionais em `observacao` no padrão já documentado na memória: `Fotos comprovante: [url1 | url2 | ...] | Obs: [texto do usuário]`. Assim nada quebra no relatório/admin e fotos extras ficam acessíveis.
-- Ao editar (`leituraExistente`), pré-carregar `foto_url` como primeira miniatura e extrair eventuais URLs já concatenadas em `observacao` para o array.
-
-### 2. Sem mudanças em outras telas
-
-`ColetorEmpreendimentoDetalhe.tsx` e `ColetorNotificacoes.tsx` já estão corretos — não tocar.
-
-### 3. Build nativo
-
-Lembrar o usuário ao final: para valer no APK Android instalado é necessário `npx cap sync android` + reinstalar. No PWA o fallback web (`<input multiple>` programático) já passa a valer imediatamente.
+### Sem mudanças de banco
+Nenhuma migração necessária. A RLS atual já permite ao admin atualizar `coletas_realizadas`. As URLs no Storage `medidor-fotos` são mantidas (não são órfãs críticas; podem ser limpas depois se necessário).
 
 ## Fora de escopo
-
-- Mudar schema do banco (coluna nova de fotos).
-- Alterar fluxos de upload das outras telas.
-- Mudanças visuais além do grid de miniaturas necessário para múltiplas fotos.
+- Excluir a coleta inteira (linha de leitura). Só o relatório.
+- Limpeza dos arquivos no Storage.
+- Botão de exclusão em massa.
