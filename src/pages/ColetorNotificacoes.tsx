@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -14,6 +14,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { smartCompress } from '@/lib/imageCompression'
+import { pickImagesMulti, takePhotoNative } from '@/lib/pickImages'
 
 interface FotoItem {
   file: File
@@ -24,8 +25,6 @@ export default function ColetorNotificacoes() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { toast } = useToast()
-  const cameraInputRef = useRef<HTMLInputElement>(null)
-  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const [dataNotificacao, setDataNotificacao] = useState<Date>(new Date())
   const [condominioNome, setCondominioNome] = useState('')
