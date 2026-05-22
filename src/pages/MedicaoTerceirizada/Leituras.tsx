@@ -83,8 +83,11 @@ export default function LeiturasTerceirizadas() {
   const [resumoPendentesOpen, setResumoPendentesOpen] = useState(false)
   const [coletaExcluir, setColetaExcluir] = useState<any>(null)
   const [excluindo, setExcluindo] = useState(false)
+  const [relatorioExcluir, setRelatorioExcluir] = useState<any>(null)
+  const [excluindoRelatorio, setExcluindoRelatorio] = useState(false)
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { isAdmin } = usePermissions()
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
