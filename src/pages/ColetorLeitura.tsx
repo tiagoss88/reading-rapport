@@ -60,13 +60,39 @@ export default function ColetorLeitura() {
 
   // Inicializar form com dados da leitura existente se estiver editando
 
+  // Parse legacy observacao "Fotos comprovante: url1 | url2 | Obs: texto"
+  const parseObservacao = (raw: string | null | undefined) => {
+    if (!raw) return { urls: [] as string[], texto: '' }
+    const m = raw.match(/^Fotos comprovante:\s*(.*?)(?:\s*\|\s*Obs:\s*([\s\S]*))?$/)
+    if (!m) return { urls: [], texto: raw }
+    const urls = m[1]
+      .split(/\s*\|\s*/)
+      .map(s => s.trim())
+      .filter(u => /^https?:\/\//.test(u))
+    return { urls, texto: (m[2] || '').trim() }
+  }
+  const parsedInicial = parseObservacao(leituraExistente?.observacao)
+  const urlsExtras = parsedInicial.urls.filter(u => u !== leituraExistente?.foto_url)
+
   const [formData, setFormData] = useState({
     leitura_atual: leituraExistente?.leitura_atual?.toString() || '',
-    observacao: leituraExistente?.observacao || '',
+    observacao: parsedInicial.urls.length ? parsedInicial.texto : (leituraExistente?.observacao || ''),
     tipo_observacao: leituraExistente?.tipo_observacao || ''
   })
-  const [foto, setFoto] = useState<File | null>(null)
-  const [fotoPreview, setFotoPreview] = useState<string | null>(leituraExistente?.foto_url || null)
+  const [fotos, setFotos] = useState<File[]>([])
+  const [fotosPreview, setFotosPreview] = useState<string[]>(() => {
+    const arr: string[] = []
+    if (leituraExistente?.foto_url) arr.push(leituraExistente.foto_url)
+    arr.push(...urlsExtras)
+    return arr
+  })
+  // URLs já existentes (do banco) — não precisam re-upload
+  const [fotosExistentes, setFotosExistentes] = useState<string[]>(() => {
+    const arr: string[] = []
+    if (leituraExistente?.foto_url) arr.push(leituraExistente.foto_url)
+    arr.push(...urlsExtras)
+    return arr
+  })
   const [saving, setSaving] = useState(false)
   const [ultimaLeitura, setUltimaLeitura] = useState<number | null>(null)
   const [loadingUltimaLeitura, setLoadingUltimaLeitura] = useState(true)
