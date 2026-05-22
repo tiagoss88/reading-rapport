@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -14,6 +14,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { smartCompress } from '@/lib/imageCompression'
+import { pickImagesMulti, takePhotoNative } from '@/lib/pickImages'
 
 interface FotoItem {
   file: File
@@ -24,8 +25,6 @@ export default function ColetorNotificacoes() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { toast } = useToast()
-  const cameraInputRef = useRef<HTMLInputElement>(null)
-  const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const [dataNotificacao, setDataNotificacao] = useState<Date>(new Date())
   const [condominioNome, setCondominioNome] = useState('')
@@ -48,10 +47,8 @@ export default function ColetorNotificacoes() {
     setShowSuggestions(true)
   }
 
-  const handleFotoCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files) return
-    for (const file of Array.from(files)) {
+  const processFiles = async (files: File[]) => {
+    for (const file of files) {
       try {
         const compressed = await smartCompress(file)
         setFotos(prev => [...prev, { file: compressed, preview: URL.createObjectURL(compressed) }])
@@ -59,7 +56,16 @@ export default function ColetorNotificacoes() {
         setFotos(prev => [...prev, { file, preview: URL.createObjectURL(file) }])
       }
     }
-    e.target.value = ''
+  }
+
+  const handleGallery = async () => {
+    const files = await pickImagesMulti()
+    if (files.length) await processFiles(files)
+  }
+
+  const handleCamera = async () => {
+    const f = await takePhotoNative()
+    if (f) await processFiles([f])
   }
 
   const removeFoto = (index: number) => {
@@ -190,12 +196,10 @@ export default function ColetorNotificacoes() {
               <label className="text-sm font-medium">Fotos *</label>
               <p className="text-xs text-muted-foreground mb-2">Anexe a foto da notificação e do medidor</p>
               <div className="flex gap-2">
-                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={handleFotoCapture} />
-                <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFotoCapture} />
-                <Button type="button" variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()}>
+                <Button type="button" variant="outline" size="sm" onClick={handleCamera}>
                   <Camera className="h-4 w-4 mr-1" /> Câmera
                 </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => galleryInputRef.current?.click()}>
+                <Button type="button" variant="outline" size="sm" onClick={handleGallery}>
                   <ImagePlus className="h-4 w-4 mr-1" /> Galeria
                 </Button>
               </div>
