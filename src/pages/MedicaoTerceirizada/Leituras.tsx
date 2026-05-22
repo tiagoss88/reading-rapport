@@ -724,6 +724,19 @@ export default function LeiturasTerceirizadas() {
                                 )}
                               </TableCell>
                               <TableCell>{fotos.length}</TableCell>
+                              {isAdmin && (
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Excluir relatório"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setRelatorioExcluir(coleta)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              )}
                             </TableRow>
                           )
                         })}
