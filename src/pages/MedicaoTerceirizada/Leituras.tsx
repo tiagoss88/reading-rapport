@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
 import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
+import { usePermissions } from '@/contexts/PermissionsContext'
 
 const extrairFotosUrls = (observacao: string | null): string[] => {
   if (!observacao) return []
