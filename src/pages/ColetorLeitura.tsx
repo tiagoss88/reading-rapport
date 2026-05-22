@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Camera, Save, MapPin, User, Home } from 'lucide-react'
+import { ArrowLeft, Camera, Save, MapPin, User, Home, Image as ImageIcon, X } from 'lucide-react'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
+import { pickImagesMulti, takePhotoNative } from '@/lib/pickImages'
 import { format } from 'date-fns'
 
 interface Cliente {
@@ -32,7 +33,6 @@ export default function ColetorLeitura() {
   const location = useLocation()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const cliente = location.state?.cliente as Cliente
   const empreendimento = location.state?.empreendimento as Empreendimento
@@ -60,13 +60,39 @@ export default function ColetorLeitura() {
 
   // Inicializar form com dados da leitura existente se estiver editando
 
+  // Parse legacy observacao "Fotos comprovante: url1 | url2 | Obs: texto"
+  const parseObservacao = (raw: string | null | undefined) => {
+    if (!raw) return { urls: [] as string[], texto: '' }
+    const m = raw.match(/^Fotos comprovante:\s*(.*?)(?:\s*\|\s*Obs:\s*([\s\S]*))?$/)
+    if (!m) return { urls: [], texto: raw }
+    const urls = m[1]
+      .split(/\s*\|\s*/)
+      .map(s => s.trim())
+      .filter(u => /^https?:\/\//.test(u))
+    return { urls, texto: (m[2] || '').trim() }
+  }
+  const parsedInicial = parseObservacao(leituraExistente?.observacao)
+  const urlsExtras = parsedInicial.urls.filter(u => u !== leituraExistente?.foto_url)
+
   const [formData, setFormData] = useState({
     leitura_atual: leituraExistente?.leitura_atual?.toString() || '',
-    observacao: leituraExistente?.observacao || '',
+    observacao: parsedInicial.urls.length ? parsedInicial.texto : (leituraExistente?.observacao || ''),
     tipo_observacao: leituraExistente?.tipo_observacao || ''
   })
-  const [foto, setFoto] = useState<File | null>(null)
-  const [fotoPreview, setFotoPreview] = useState<string | null>(leituraExistente?.foto_url || null)
+  const [fotos, setFotos] = useState<File[]>([])
+  const [fotosPreview, setFotosPreview] = useState<string[]>(() => {
+    const arr: string[] = []
+    if (leituraExistente?.foto_url) arr.push(leituraExistente.foto_url)
+    arr.push(...urlsExtras)
+    return arr
+  })
+  // URLs já existentes (do banco) — não precisam re-upload
+  const [fotosExistentes, setFotosExistentes] = useState<string[]>(() => {
+    const arr: string[] = []
+    if (leituraExistente?.foto_url) arr.push(leituraExistente.foto_url)
+    arr.push(...urlsExtras)
+    return arr
+  })
   const [saving, setSaving] = useState(false)
   const [ultimaLeitura, setUltimaLeitura] = useState<number | null>(null)
   const [loadingUltimaLeitura, setLoadingUltimaLeitura] = useState(true)
@@ -117,65 +143,73 @@ export default function ColetorLeitura() {
     return consumo >= 0 ? consumo : null
   }
 
-  const handleFotoCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
+  const processarArquivos = async (arquivos: File[]) => {
+    if (!arquivos.length) return
+    const validos: File[] = []
+    for (const file of arquivos) {
       if (!isValidImageFile(file)) {
         toast({
           title: "Arquivo inválido",
-          description: "Por favor, selecione apenas arquivos de imagem.",
+          description: `${file.name}: selecione apenas imagens.`,
           variant: "destructive"
         })
-        return
+        continue
       }
-
       try {
-        // Show loading state
-        toast({
-          title: "Processando imagem...",
-          description: "Otimizando a foto para sincronização."
-        })
-
-        // Get optimal compression settings based on file size
         const fileSizeKB = file.size / 1024
-        const compressionOptions = getOptimalCompressionOptions(fileSizeKB)
-        
-        // Compress the image
-        const compressedFile = await compressImage(file, compressionOptions)
-        
-        setFoto(compressedFile)
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setFotoPreview(reader.result as string)
-        }
-        reader.readAsDataURL(compressedFile)
-
-        toast({
-          title: "Foto otimizada",
-          description: `Tamanho reduzido de ${fileSizeKB.toFixed(0)}KB para ${(compressedFile.size / 1024).toFixed(0)}KB`
-        })
-
-      } catch (error) {
-        console.error('Erro ao comprimir imagem:', error)
-        toast({
-          title: "Erro ao processar imagem",
-          description: "Usando imagem original. Verifique o formato do arquivo.",
-          variant: "destructive"
-        })
-        
-        // Fallback to original file
-        setFoto(file)
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setFotoPreview(reader.result as string)
-        }
-        reader.readAsDataURL(file)
+        const opts = getOptimalCompressionOptions(fileSizeKB)
+        const comp = await compressImage(file, opts)
+        validos.push(comp)
+      } catch (err) {
+        console.error('Erro ao comprimir:', err)
+        validos.push(file)
       }
+    }
+    if (!validos.length) return
+    setFotos(prev => [...prev, ...validos])
+    const novos = await Promise.all(validos.map(f => new Promise<string>(res => {
+      const r = new FileReader()
+      r.onloadend = () => res(r.result as string)
+      r.readAsDataURL(f)
+    })))
+    setFotosPreview(prev => [...prev, ...novos])
+    toast({
+      title: validos.length > 1 ? `${validos.length} fotos adicionadas` : 'Foto adicionada',
+      description: 'Fotos prontas para envio.'
+    })
+  }
+
+  const handleGaleria = async () => {
+    try {
+      const files = await pickImagesMulti()
+      await processarArquivos(files)
+    } catch (err) {
+      console.error('Erro ao abrir galeria:', err)
+      toast({ title: 'Erro', description: 'Falha ao abrir galeria.', variant: 'destructive' })
     }
   }
 
-  const abrirCamera = () => {
-    fileInputRef.current?.click()
+  const handleCamera = async () => {
+    try {
+      const f = await takePhotoNative()
+      if (f) await processarArquivos([f])
+    } catch (err) {
+      console.error('Erro câmera:', err)
+      toast({ title: 'Erro', description: 'Falha ao abrir câmera.', variant: 'destructive' })
+    }
+  }
+
+  const removerFoto = (idx: number) => {
+    const urlRemovida = fotosPreview[idx]
+    setFotosPreview(prev => prev.filter((_, i) => i !== idx))
+    // Se for URL existente (http), remover do array de existentes
+    if (/^https?:\/\//.test(urlRemovida)) {
+      setFotosExistentes(prev => prev.filter(u => u !== urlRemovida))
+    } else {
+      // É data URL de arquivo novo — descobrir índice correspondente em fotos
+      const existentesNoPreview = fotosPreview.slice(0, idx).filter(u => !/^https?:\/\//.test(u)).length
+      setFotos(prev => prev.filter((_, i) => i !== existentesNoPreview))
+    }
   }
 
   const salvarLeitura = async () => {
@@ -215,27 +249,31 @@ export default function ColetorLeitura() {
           return
         }
       }
-      let fotoUrl = null
-
-      // Upload da foto se existir
-      if (foto) {
-        const fileExt = foto.name.split('.').pop()
-        const fileName = `${Date.now()}.${fileExt}`
+      // Upload de todas as fotos novas
+      const novasUrls: string[] = []
+      for (let i = 0; i < fotos.length; i++) {
+        const f = fotos[i]
+        const fileExt = f.name.split('.').pop() || 'jpg'
+        const fileName = `${Date.now()}_${i}.${fileExt}`
         const filePath = `leituras/${fileName}`
-
         const { error: uploadError } = await supabase.storage
           .from('medidor-fotos')
-          .upload(filePath, foto)
-
+          .upload(filePath, f)
         if (uploadError) throw uploadError
-
-        // Use public URL for permanent access
-        const { data } = supabase.storage
-          .from('medidor-fotos')
-          .getPublicUrl(filePath)
-
-        fotoUrl = data.publicUrl
+        const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(filePath)
+        novasUrls.push(data.publicUrl)
       }
+
+      // URLs finais = existentes mantidas + novas
+      const todasUrls = [...fotosExistentes, ...novasUrls]
+      const fotoUrl = todasUrls[0] || null
+      const urlsExtrasFinais = todasUrls.slice(1)
+
+      // Monta observacao concatenada se houver fotos extras
+      const obsTexto = formData.observacao || ''
+      const observacaoFinal = urlsExtrasFinais.length
+        ? `Fotos comprovante: ${urlsExtrasFinais.join(' | ')}${obsTexto ? ' | Obs: ' + obsTexto : ''}`
+        : (obsTexto || null)
 
       // Buscar o operador atual (assumindo que está logado)
       const { data: { user } } = await supabase.auth.getUser()
@@ -250,14 +288,13 @@ export default function ColetorLeitura() {
       if (!operador) throw new Error('Operador não encontrado')
 
       if (leituraExistente) {
-        // Atualizar leitura existente
         const { error } = await supabase
           .from('leituras')
           .update({
             leitura_atual: parseFloat(formData.leitura_atual),
-            observacao: formData.observacao || null,
+            observacao: observacaoFinal,
             tipo_observacao: formData.tipo_observacao || null,
-            foto_url: fotoUrl || leituraExistente.foto_url,
+            foto_url: fotoUrl,
             data_leitura: new Date().toISOString(),
             competencia: format(new Date(), 'yyyy-MM')
           })
@@ -265,14 +302,13 @@ export default function ColetorLeitura() {
 
         if (error) throw error
       } else {
-        // Criar nova leitura
         const { error } = await supabase
           .from('leituras')
           .insert({
             cliente_id: cliente.id,
             operador_id: operador.id,
             leitura_atual: parseFloat(formData.leitura_atual),
-            observacao: formData.observacao || null,
+            observacao: observacaoFinal,
             tipo_observacao: formData.tipo_observacao || null,
             foto_url: fotoUrl,
             data_leitura: new Date().toISOString(),
@@ -361,25 +397,37 @@ export default function ColetorLeitura() {
         {/* Formulário de Leitura - Layout Grid Compacto */}
         <Card>
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm">
                 {leituraExistente ? 'Editar Dados da Leitura' : 'Dados da Leitura'}
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={abrirCamera}
-                className={`flex items-center space-x-1 text-xs px-2 py-1 h-7 ${
-                  fotoPreview 
-                    ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' 
-                    : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
-                }`}
-              >
-                <Camera className="w-3 h-3" />
-                <span>Foto</span>
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCamera}
+                  className="flex items-center space-x-1 text-xs px-2 py-1 h-7 bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200"
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>Câmera</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGaleria}
+                  className={`flex items-center space-x-1 text-xs px-2 py-1 h-7 ${
+                    fotosPreview.length
+                      ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
+                      : 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200'
+                  }`}
+                >
+                  <ImageIcon className="w-3 h-3" />
+                  <span>Galeria{fotosPreview.length ? ` (${fotosPreview.length})` : ''}</span>
+                </Button>
+              </div>
             </div>
           </CardHeader>
+
           <CardContent className="p-3 pt-0">
             <div className="grid grid-cols-2 gap-3">
               {/* Última Leitura */}
@@ -456,17 +504,30 @@ export default function ColetorLeitura() {
           </CardContent>
         </Card>
 
-        {/* Input oculto para foto */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleFotoCapture}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-        />
+        {/* Miniaturas das fotos */}
+        {fotosPreview.length > 0 && (
+          <Card>
+            <CardContent className="p-3">
+              <Label className="text-xs mb-2 block">Fotos ({fotosPreview.length})</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {fotosPreview.map((src, idx) => (
+                  <div key={idx} className="relative aspect-square">
+                    <img src={src} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover rounded border" />
+                    <button
+                      type="button"
+                      onClick={() => removerFoto(idx)}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow"
+                      aria-label="Remover foto"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* Botão Salvar - Fixo no final */}
         <div className="sticky bottom-0 bg-gradient-to-br from-blue-50 to-indigo-100 pt-2">

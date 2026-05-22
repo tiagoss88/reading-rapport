@@ -1,58 +1,44 @@
+## Objetivo
 
-## Problema
+Garantir que ao clicar em "Galeria" seja possível selecionar **várias fotos de uma só vez** em todos os pontos do coletor — inclusive os que ainda usam o `<input type="file">` antigo.
 
-Ao clicar em "Galeria" no coletor, o seletor de imagens do Android só permite escolher uma foto por vez. O usuário precisa repetir o fluxo várias vezes para anexar várias fotos.
+## Estado atual
 
-Os `<input type="file" multiple>` já estão configurados corretamente no código. O problema é o app rodando dentro do **WebView do Capacitor**: o seletor padrão acionado por `input[type=file]` no WebView Android frequentemente abre o aplicativo de galeria nativo, que **não respeita o atributo `multiple`** e devolve apenas 1 arquivo.
+Já foi implementado multi-seleção nativa (via `@capacitor/camera` + helper `src/lib/pickImages.ts`) em:
+- `src/pages/ColetorEmpreendimentoDetalhe.tsx` (Sincronização + Relatório de Leitura)
+- `src/pages/ColetorNotificacoes.tsx`
 
-A solução robusta é usar o plugin **@capacitor/camera** (`Camera.pickImages`) que abre o Android Photo Picker nativo com suporte real a múltipla seleção. Mantemos o `<input>` como fallback quando rodando no navegador (PWA puro / desktop).
+Ainda falta em:
+- `src/pages/ColetorLeitura.tsx` — usa apenas 1 foto via `<input ref capture="environment">`.
 
 ## Mudanças
 
-### 1. Instalar plugin
-- `@capacitor/camera` (compatível com Capacitor 7)
+### 1. `src/pages/ColetorLeitura.tsx` — suportar múltiplas fotos
 
-### 2. Criar helper `src/lib/pickImages.ts`
-Função única `pickImagesMulti(): Promise<File[]>` que:
-- Detecta plataforma via `Capacitor.isNativePlatform()`.
-- **Nativo (Android/iOS):** chama `Camera.pickImages({ limit: 0, quality: 90 })`, baixa cada `webPath` via `fetch` + `blob()` e converte em `File`.
-- **Web/PWA:** cria um `<input type="file" multiple accept="image/*">` programático e resolve com `Array.from(files)`.
+- Trocar o estado:
+  - `foto: File | null` → `fotos: File[]`
+  - `fotoPreview: string | null` → `fotosPreview: string[]` (mantém compatibilidade com `leituraExistente.foto_url` inicial, transformando em array de 1).
+- Substituir os dois botões/inputs por **dois botões separados** (padrão já usado nas outras telas):
+  - **Câmera** → `takePhotoNative()` (1 foto, adicionada ao array).
+  - **Galeria** → `pickImagesMulti()` (várias fotos).
+- Remover o `<input ref={fileInputRef} ...>` escondido.
+- Mostrar grid de miniaturas com botão "remover" em cada uma; manter aparência compacta atual.
+- No `salvarLeitura`:
+  - Fazer upload de **todas** as fotos para `medidor-fotos/leituras/...`.
+  - Salvar a **primeira** URL em `foto_url` (mantém schema atual).
+  - Concatenar as URLs adicionais em `observacao` no padrão já documentado na memória: `Fotos comprovante: [url1 | url2 | ...] | Obs: [texto do usuário]`. Assim nada quebra no relatório/admin e fotos extras ficam acessíveis.
+- Ao editar (`leituraExistente`), pré-carregar `foto_url` como primeira miniatura e extrair eventuais URLs já concatenadas em `observacao` para o array.
 
-Também exportar `takePhotoNative()` que usa `Camera.getPhoto({ source: CameraSource.Camera })` no nativo e fallback para `input capture="environment"` no web — útil para resolver também o problema anterior da câmera não abrir.
+### 2. Sem mudanças em outras telas
 
-### 3. Refatorar pontos de captura de fotos
-Substituir o par "botão Galeria + `<input ref>` escondido" por chamada direta ao helper nos seguintes locais (todos já têm um `handleFotoCapture` que recebe `File[]`):
+`ColetorEmpreendimentoDetalhe.tsx` e `ColetorNotificacoes.tsx` já estão corretos — não tocar.
 
-- `src/pages/ColetorEmpreendimentoDetalhe.tsx` — cards "Fotos de Sincronização" e "Fotos do Relatório de Leitura" (botões Câmera + Galeria de cada um).
-- `src/pages/ColetorNotificacoes.tsx` — botão "Galeria" (e Câmera).
-- `src/pages/ColetorLeitura.tsx` — input com `capture` e seu par de galeria.
+### 3. Build nativo
 
-Padrão de uso:
-```ts
-const files = await pickImagesMulti();
-if (files.length) await handleFotoCapture(files); // adapta a assinatura para receber File[]
-```
-
-Os `<input>` escondidos podem ser removidos (ou mantidos apenas como fallback interno do helper).
-
-### 4. Configuração Android (somente runtime nativo)
-Nenhuma permissão adicional precisa ser declarada manualmente — `@capacitor/camera` já injeta as permissões necessárias (`READ_MEDIA_IMAGES`, etc.) ao rodar `npx cap sync`. **O usuário precisará rodar `npx cap sync android` e regerar o APK** para que a mudança tenha efeito no app instalado. No PWA puro a melhoria via fallback web já passa a valer imediatamente.
-
-## Detalhes técnicos
-
-- `Camera.pickImages({ limit: 0 })` → `limit: 0` significa "sem limite" no Android Photo Picker.
-- Conversão do retorno:
-  ```ts
-  const res = await Camera.pickImages({ limit: 0 });
-  const files = await Promise.all(res.photos.map(async (p, i) => {
-    const blob = await (await fetch(p.webPath!)).blob();
-    return new File([blob], `foto_${Date.now()}_${i}.${p.format ?? 'jpg'}`, { type: blob.type });
-  }));
-  ```
-- Não alterar `smartCompress`/`compressImage` — continuam recebendo `File`.
+Lembrar o usuário ao final: para valer no APK Android instalado é necessário `npx cap sync android` + reinstalar. No PWA o fallback web (`<input multiple>` programático) já passa a valer imediatamente.
 
 ## Fora de escopo
 
-- Mudanças visuais nos cards (mantém layout atual).
-- Alterações no fluxo de upload/storage.
-- Mexer em outras telas de fotos não citadas.
+- Mudar schema do banco (coluna nova de fotos).
+- Alterar fluxos de upload das outras telas.
+- Mudanças visuais além do grid de miniaturas necessário para múltiplas fotos.
