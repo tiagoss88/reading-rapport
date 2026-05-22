@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '@/integrations/supabase/client'
 import { useToast } from '@/hooks/use-toast'
@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Camera, Save, MapPin, User, Home } from 'lucide-react'
+import { ArrowLeft, Camera, Save, MapPin, User, Home, Image as ImageIcon, X } from 'lucide-react'
 import { compressImage, isValidImageFile, getOptimalCompressionOptions } from '@/lib/imageCompression'
+import { pickImagesMulti, takePhotoNative } from '@/lib/pickImages'
 import { format } from 'date-fns'
 
 interface Cliente {
