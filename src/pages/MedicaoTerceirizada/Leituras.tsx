@@ -672,6 +672,7 @@ export default function LeiturasTerceirizadas() {
                           <TableHead>Data da Coleta</TableHead>
                           <TableHead>Fotos do Relatório</TableHead>
                           <TableHead>Qtd</TableHead>
+                          {isAdmin && <TableHead className="text-right">Ações</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
