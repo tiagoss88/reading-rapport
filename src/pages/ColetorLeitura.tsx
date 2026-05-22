@@ -249,27 +249,31 @@ export default function ColetorLeitura() {
           return
         }
       }
-      let fotoUrl = null
-
-      // Upload da foto se existir
-      if (foto) {
-        const fileExt = foto.name.split('.').pop()
-        const fileName = `${Date.now()}.${fileExt}`
+      // Upload de todas as fotos novas
+      const novasUrls: string[] = []
+      for (let i = 0; i < fotos.length; i++) {
+        const f = fotos[i]
+        const fileExt = f.name.split('.').pop() || 'jpg'
+        const fileName = `${Date.now()}_${i}.${fileExt}`
         const filePath = `leituras/${fileName}`
-
         const { error: uploadError } = await supabase.storage
           .from('medidor-fotos')
-          .upload(filePath, foto)
-
+          .upload(filePath, f)
         if (uploadError) throw uploadError
-
-        // Use public URL for permanent access
-        const { data } = supabase.storage
-          .from('medidor-fotos')
-          .getPublicUrl(filePath)
-
-        fotoUrl = data.publicUrl
+        const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(filePath)
+        novasUrls.push(data.publicUrl)
       }
+
+      // URLs finais = existentes mantidas + novas
+      const todasUrls = [...fotosExistentes, ...novasUrls]
+      const fotoUrl = todasUrls[0] || null
+      const urlsExtrasFinais = todasUrls.slice(1)
+
+      // Monta observacao concatenada se houver fotos extras
+      const obsTexto = formData.observacao || ''
+      const observacaoFinal = urlsExtrasFinais.length
+        ? `Fotos comprovante: ${urlsExtrasFinais.join(' | ')}${obsTexto ? ' | Obs: ' + obsTexto : ''}`
+        : (obsTexto || null)
 
       // Buscar o operador atual (assumindo que está logado)
       const { data: { user } } = await supabase.auth.getUser()
@@ -284,14 +288,13 @@ export default function ColetorLeitura() {
       if (!operador) throw new Error('Operador não encontrado')
 
       if (leituraExistente) {
-        // Atualizar leitura existente
         const { error } = await supabase
           .from('leituras')
           .update({
             leitura_atual: parseFloat(formData.leitura_atual),
-            observacao: formData.observacao || null,
+            observacao: observacaoFinal,
             tipo_observacao: formData.tipo_observacao || null,
-            foto_url: fotoUrl || leituraExistente.foto_url,
+            foto_url: fotoUrl,
             data_leitura: new Date().toISOString(),
             competencia: format(new Date(), 'yyyy-MM')
           })
@@ -299,14 +302,13 @@ export default function ColetorLeitura() {
 
         if (error) throw error
       } else {
-        // Criar nova leitura
         const { error } = await supabase
           .from('leituras')
           .insert({
             cliente_id: cliente.id,
             operador_id: operador.id,
             leitura_atual: parseFloat(formData.leitura_atual),
-            observacao: formData.observacao || null,
+            observacao: observacaoFinal,
             tipo_observacao: formData.tipo_observacao || null,
             foto_url: fotoUrl,
             data_leitura: new Date().toISOString(),
