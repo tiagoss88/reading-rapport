@@ -324,7 +324,7 @@ export default function ColetorEmpreendimentoDetalhe() {
               <Button
                 variant="outline"
                 className={`${fotos.length === 0 ? 'h-32' : 'h-10'} border-dashed border-2 flex flex-col items-center justify-center gap-1 text-muted-foreground`}
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={() => handleTakePhoto('sincronizacao')}
               >
                 <Camera className={fotos.length === 0 ? 'w-8 h-8' : 'w-4 h-4'} />
                 <span className="text-sm">Tirar Foto</span>
@@ -332,31 +332,12 @@ export default function ColetorEmpreendimentoDetalhe() {
               <Button
                 variant="outline"
                 className={`${fotos.length === 0 ? 'h-32' : 'h-10'} border-dashed border-2 flex flex-col items-center justify-center gap-1 text-muted-foreground`}
-                onClick={() => galleryInputRef.current?.click()}
+                onClick={() => handlePickGallery('sincronizacao')}
               >
                 <ImagePlus className={fotos.length === 0 ? 'w-8 h-8' : 'w-4 h-4'} />
                 <span className="text-sm">Galeria</span>
               </Button>
             </div>
-
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFotoCapture('sincronizacao')}
-              className="sr-only"
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-            <input
-              ref={galleryInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFotoCapture('sincronizacao')}
-              className="hidden"
-            />
           </CardContent>
         </Card>
 
@@ -380,7 +361,7 @@ export default function ColetorEmpreendimentoDetalhe() {
               <Button
                 variant="outline"
                 className={`${fotosRelatorio.length === 0 ? 'h-32' : 'h-10'} border-dashed border-2 flex flex-col items-center justify-center gap-1 text-muted-foreground`}
-                onClick={() => cameraRelatorioRef.current?.click()}
+                onClick={() => handleTakePhoto('relatorio')}
               >
                 <Camera className={fotosRelatorio.length === 0 ? 'w-8 h-8' : 'w-4 h-4'} />
                 <span className="text-sm">Tirar Foto</span>
@@ -388,31 +369,12 @@ export default function ColetorEmpreendimentoDetalhe() {
               <Button
                 variant="outline"
                 className={`${fotosRelatorio.length === 0 ? 'h-32' : 'h-10'} border-dashed border-2 flex flex-col items-center justify-center gap-1 text-muted-foreground`}
-                onClick={() => galleryRelatorioRef.current?.click()}
+                onClick={() => handlePickGallery('relatorio')}
               >
                 <ImagePlus className={fotosRelatorio.length === 0 ? 'w-8 h-8' : 'w-4 h-4'} />
                 <span className="text-sm">Galeria</span>
               </Button>
             </div>
-
-            <input
-              ref={cameraRelatorioRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFotoCapture('relatorio')}
-              className="sr-only"
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-            <input
-              ref={galleryRelatorioRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFotoCapture('relatorio')}
-              className="hidden"
-            />
           </CardContent>
         </Card>
 
