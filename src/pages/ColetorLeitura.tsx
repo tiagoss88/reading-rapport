@@ -33,7 +33,6 @@ export default function ColetorLeitura() {
   const location = useLocation()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const cliente = location.state?.cliente as Cliente
   const empreendimento = location.state?.empreendimento as Empreendimento
