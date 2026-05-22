@@ -504,17 +504,30 @@ export default function ColetorLeitura() {
           </CardContent>
         </Card>
 
-        {/* Input oculto para foto */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleFotoCapture}
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-        />
+        {/* Miniaturas das fotos */}
+        {fotosPreview.length > 0 && (
+          <Card>
+            <CardContent className="p-3">
+              <Label className="text-xs mb-2 block">Fotos ({fotosPreview.length})</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {fotosPreview.map((src, idx) => (
+                  <div key={idx} className="relative aspect-square">
+                    <img src={src} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover rounded border" />
+                    <button
+                      type="button"
+                      onClick={() => removerFoto(idx)}
+                      className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 shadow"
+                      aria-label="Remover foto"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* Botão Salvar - Fixo no final */}
         <div className="sticky bottom-0 bg-gradient-to-br from-blue-50 to-indigo-100 pt-2">
