@@ -397,25 +397,37 @@ export default function ColetorLeitura() {
         {/* Formulário de Leitura - Layout Grid Compacto */}
         <Card>
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-sm">
                 {leituraExistente ? 'Editar Dados da Leitura' : 'Dados da Leitura'}
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={abrirCamera}
-                className={`flex items-center space-x-1 text-xs px-2 py-1 h-7 ${
-                  fotoPreview 
-                    ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' 
-                    : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200'
-                }`}
-              >
-                <Camera className="w-3 h-3" />
-                <span>Foto</span>
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCamera}
+                  className="flex items-center space-x-1 text-xs px-2 py-1 h-7 bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200"
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>Câmera</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGaleria}
+                  className={`flex items-center space-x-1 text-xs px-2 py-1 h-7 ${
+                    fotosPreview.length
+                      ? 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200'
+                      : 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200'
+                  }`}
+                >
+                  <ImageIcon className="w-3 h-3" />
+                  <span>Galeria{fotosPreview.length ? ` (${fotosPreview.length})` : ''}</span>
+                </Button>
+              </div>
             </div>
           </CardHeader>
+
           <CardContent className="p-3 pt-0">
             <div className="grid grid-cols-2 gap-3">
               {/* Última Leitura */}
