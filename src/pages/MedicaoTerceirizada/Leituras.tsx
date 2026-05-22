@@ -923,6 +923,55 @@ export default function LeiturasTerceirizadas() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AlertDialog para excluir somente o relatório de leitura (admin) */}
+      <AlertDialog open={!!relatorioExcluir} onOpenChange={(open) => { if (!open) setRelatorioExcluir(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir relatório de leitura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As fotos do relatório de <strong>{relatorioExcluir?.empreendimentos_terceirizados?.nome || relatorioExcluir?.condominio_nome_original}</strong> serão removidas. A leitura/coleta será mantida. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindoRelatorio}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindoRelatorio}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault()
+                if (!relatorioExcluir) return
+                setExcluindoRelatorio(true)
+                try {
+                  const obsAtual: string = relatorioExcluir.observacao || ''
+                  // Remove trechos "Fotos relatorio: [..]" ou "Fotos relatorio: url1, url2"
+                  // tanto precedidos por " | " quanto no início da string.
+                  let novaObs = obsAtual
+                    .replace(/\s*\|\s*Fotos relatorio:\s*(\[[^\]]*\]|https?:\/\/[^|]+)/gi, '')
+                    .replace(/^\s*Fotos relatorio:\s*(\[[^\]]*\]|https?:\/\/[^|]+)\s*\|?\s*/i, '')
+                    .trim()
+                  if (novaObs.startsWith('|')) novaObs = novaObs.slice(1).trim()
+                  const { error } = await supabase
+                    .from('servicos_nacional_gas')
+                    .update({ observacao: novaObs.length ? novaObs : null })
+                    .eq('id', relatorioExcluir.id)
+                  if (error) throw error
+                  toast({ title: 'Relatório excluído com sucesso' })
+                  queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })
+                } catch (err: any) {
+                  toast({ title: 'Erro ao excluir relatório', description: err.message, variant: 'destructive' })
+                } finally {
+                  setExcluindoRelatorio(false)
+                  setRelatorioExcluir(null)
+                }
+              }}
+            >
+              {excluindoRelatorio ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   )
 }
