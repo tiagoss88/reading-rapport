@@ -143,65 +143,73 @@ export default function ColetorLeitura() {
     return consumo >= 0 ? consumo : null
   }
 
-  const handleFotoCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
+  const processarArquivos = async (arquivos: File[]) => {
+    if (!arquivos.length) return
+    const validos: File[] = []
+    for (const file of arquivos) {
       if (!isValidImageFile(file)) {
         toast({
           title: "Arquivo inválido",
-          description: "Por favor, selecione apenas arquivos de imagem.",
+          description: `${file.name}: selecione apenas imagens.`,
           variant: "destructive"
         })
-        return
+        continue
       }
-
       try {
-        // Show loading state
-        toast({
-          title: "Processando imagem...",
-          description: "Otimizando a foto para sincronização."
-        })
-
-        // Get optimal compression settings based on file size
         const fileSizeKB = file.size / 1024
-        const compressionOptions = getOptimalCompressionOptions(fileSizeKB)
-        
-        // Compress the image
-        const compressedFile = await compressImage(file, compressionOptions)
-        
-        setFoto(compressedFile)
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setFotoPreview(reader.result as string)
-        }
-        reader.readAsDataURL(compressedFile)
-
-        toast({
-          title: "Foto otimizada",
-          description: `Tamanho reduzido de ${fileSizeKB.toFixed(0)}KB para ${(compressedFile.size / 1024).toFixed(0)}KB`
-        })
-
-      } catch (error) {
-        console.error('Erro ao comprimir imagem:', error)
-        toast({
-          title: "Erro ao processar imagem",
-          description: "Usando imagem original. Verifique o formato do arquivo.",
-          variant: "destructive"
-        })
-        
-        // Fallback to original file
-        setFoto(file)
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setFotoPreview(reader.result as string)
-        }
-        reader.readAsDataURL(file)
+        const opts = getOptimalCompressionOptions(fileSizeKB)
+        const comp = await compressImage(file, opts)
+        validos.push(comp)
+      } catch (err) {
+        console.error('Erro ao comprimir:', err)
+        validos.push(file)
       }
+    }
+    if (!validos.length) return
+    setFotos(prev => [...prev, ...validos])
+    const novos = await Promise.all(validos.map(f => new Promise<string>(res => {
+      const r = new FileReader()
+      r.onloadend = () => res(r.result as string)
+      r.readAsDataURL(f)
+    })))
+    setFotosPreview(prev => [...prev, ...novos])
+    toast({
+      title: validos.length > 1 ? `${validos.length} fotos adicionadas` : 'Foto adicionada',
+      description: 'Fotos prontas para envio.'
+    })
+  }
+
+  const handleGaleria = async () => {
+    try {
+      const files = await pickImagesMulti()
+      await processarArquivos(files)
+    } catch (err) {
+      console.error('Erro ao abrir galeria:', err)
+      toast({ title: 'Erro', description: 'Falha ao abrir galeria.', variant: 'destructive' })
     }
   }
 
-  const abrirCamera = () => {
-    fileInputRef.current?.click()
+  const handleCamera = async () => {
+    try {
+      const f = await takePhotoNative()
+      if (f) await processarArquivos([f])
+    } catch (err) {
+      console.error('Erro câmera:', err)
+      toast({ title: 'Erro', description: 'Falha ao abrir câmera.', variant: 'destructive' })
+    }
+  }
+
+  const removerFoto = (idx: number) => {
+    const urlRemovida = fotosPreview[idx]
+    setFotosPreview(prev => prev.filter((_, i) => i !== idx))
+    // Se for URL existente (http), remover do array de existentes
+    if (/^https?:\/\//.test(urlRemovida)) {
+      setFotosExistentes(prev => prev.filter(u => u !== urlRemovida))
+    } else {
+      // É data URL de arquivo novo — descobrir índice correspondente em fotos
+      const existentesNoPreview = fotosPreview.slice(0, idx).filter(u => !/^https?:\/\//.test(u)).length
+      setFotos(prev => prev.filter((_, i) => i !== existentesNoPreview))
+    }
   }
 
   const salvarLeitura = async () => {
