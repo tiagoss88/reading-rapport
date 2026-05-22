@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
 import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
+import { usePermissions } from '@/contexts/PermissionsContext'
 
 const extrairFotosUrls = (observacao: string | null): string[] => {
   if (!observacao) return []
@@ -82,8 +83,11 @@ export default function LeiturasTerceirizadas() {
   const [resumoPendentesOpen, setResumoPendentesOpen] = useState(false)
   const [coletaExcluir, setColetaExcluir] = useState<any>(null)
   const [excluindo, setExcluindo] = useState(false)
+  const [relatorioExcluir, setRelatorioExcluir] = useState<any>(null)
+  const [excluindoRelatorio, setExcluindoRelatorio] = useState(false)
   const queryClient = useQueryClient()
   const { toast } = useToast()
+  const { isAdmin } = usePermissions()
 
   // Aba 1 - Rota do Dia
   const { data: rotasDoDia, isLoading: loadingRotas } = useQuery({
@@ -668,6 +672,7 @@ export default function LeiturasTerceirizadas() {
                           <TableHead>Data da Coleta</TableHead>
                           <TableHead>Fotos do Relatório</TableHead>
                           <TableHead>Qtd</TableHead>
+                          {isAdmin && <TableHead className="text-right">Ações</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -719,6 +724,19 @@ export default function LeiturasTerceirizadas() {
                                 )}
                               </TableCell>
                               <TableCell>{fotos.length}</TableCell>
+                              {isAdmin && (
+                                <TableCell className="text-right">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Excluir relatório"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setRelatorioExcluir(coleta)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              )}
                             </TableRow>
                           )
                         })}
@@ -900,6 +918,55 @@ export default function LeiturasTerceirizadas() {
               }}
             >
               {excluindo ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* AlertDialog para excluir somente o relatório de leitura (admin) */}
+      <AlertDialog open={!!relatorioExcluir} onOpenChange={(open) => { if (!open) setRelatorioExcluir(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir relatório de leitura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              As fotos do relatório de <strong>{relatorioExcluir?.empreendimentos_terceirizados?.nome || relatorioExcluir?.condominio_nome_original}</strong> serão removidas. A leitura/coleta será mantida. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindoRelatorio}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={excluindoRelatorio}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault()
+                if (!relatorioExcluir) return
+                setExcluindoRelatorio(true)
+                try {
+                  const obsAtual: string = relatorioExcluir.observacao || ''
+                  // Remove trechos "Fotos relatorio: [..]" ou "Fotos relatorio: url1, url2"
+                  // tanto precedidos por " | " quanto no início da string.
+                  let novaObs = obsAtual
+                    .replace(/\s*\|\s*Fotos relatorio:\s*(\[[^\]]*\]|https?:\/\/[^|]+)/gi, '')
+                    .replace(/^\s*Fotos relatorio:\s*(\[[^\]]*\]|https?:\/\/[^|]+)\s*\|?\s*/i, '')
+                    .trim()
+                  if (novaObs.startsWith('|')) novaObs = novaObs.slice(1).trim()
+                  const { error } = await supabase
+                    .from('servicos_nacional_gas')
+                    .update({ observacao: novaObs.length ? novaObs : null })
+                    .eq('id', relatorioExcluir.id)
+                  if (error) throw error
+                  toast({ title: 'Relatório excluído com sucesso' })
+                  queryClient.invalidateQueries({ queryKey: ['coletas-realizadas'] })
+                } catch (err: any) {
+                  toast({ title: 'Erro ao excluir relatório', description: err.message, variant: 'destructive' })
+                } finally {
+                  setExcluindoRelatorio(false)
+                  setRelatorioExcluir(null)
+                }
+              }}
+            >
+              {excluindoRelatorio ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
