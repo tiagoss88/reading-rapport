@@ -5,8 +5,9 @@ import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
-import { Loader2, Download } from 'lucide-react'
+import { Loader2, Download, Receipt } from 'lucide-react'
 import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
+import { exportarComprovantePagamento } from '@/lib/exportComprovantePagamento'
 import { useToast } from '@/hooks/use-toast'
 
 interface DetalhesExecucaoDialogProps {
@@ -52,6 +53,7 @@ function formatDate(date: string | null): string {
 export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }: DetalhesExecucaoDialogProps) {
   const { toast } = useToast()
   const [gerando, setGerando] = useState(false)
+  const [gerandoComprovante, setGerandoComprovante] = useState(false)
 
   const { data: servico, isLoading } = useQuery({
     queryKey: ['detalhes-execucao', servicoId],
@@ -108,6 +110,33 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
     }
   }
 
+  const handleGerarComprovante = async () => {
+    if (!servico) return
+    setGerandoComprovante(true)
+    try {
+      const dataHora = servico.updated_at
+        ? format(new Date(servico.updated_at), 'dd/MM/yyyy HH:mm')
+        : format(new Date(), 'dd/MM/yyyy HH:mm')
+      await exportarComprovantePagamento({
+        numero_protocolo: servico.numero_protocolo,
+        data_hora: dataHora,
+        cliente: servico.morador_nome,
+        cpf_cnpj: servico.cpf_cnpj,
+        condominio: servico.condominio_nome_original,
+        bloco: servico.bloco,
+        apartamento: servico.apartamento,
+        tipo_servico: servico.tipo_servico,
+        forma_pagamento: servico.forma_pagamento,
+        valor_servico: servico.valor_servico,
+      })
+      toast({ title: 'Comprovante gerado', description: 'O PDF foi baixado.' })
+    } catch {
+      toast({ title: 'Erro ao gerar comprovante', variant: 'destructive' })
+    } finally {
+      setGerandoComprovante(false)
+    }
+  }
+
   const tecnicoNome = (servico?.operadores as any)?.nome ?? '—'
 
   return (
@@ -137,10 +166,23 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                       Protocolo: <span className="font-semibold text-gray-600">#{servico.numero_protocolo}</span>
                     </p>
                   )}
-                  <Button variant="outline" size="sm" onClick={handleGerarPDF} disabled={gerando} className="mt-1 h-7 text-xs">
-                    {gerando ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Download className="w-3 h-3 mr-1" />}
-                    Gerar PDF
-                  </Button>
+                  <div className="flex gap-1.5 justify-end mt-1">
+                    <Button variant="outline" size="sm" onClick={handleGerarPDF} disabled={gerando} className="h-7 text-xs">
+                      {gerando ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Download className="w-3 h-3 mr-1" />}
+                      Gerar PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGerarComprovante}
+                      disabled={gerandoComprovante || !servico?.forma_pagamento || !servico?.valor_servico}
+                      title={!servico?.forma_pagamento || !servico?.valor_servico ? 'Sem pagamento registrado' : 'Gerar comprovante de pagamento'}
+                      className="h-7 text-xs"
+                    >
+                      {gerandoComprovante ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Receipt className="w-3 h-3 mr-1" />}
+                      Comprovante
+                    </Button>
+                  </div>
                 </div>
               </div>
 
