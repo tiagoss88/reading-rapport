@@ -107,7 +107,35 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
       toast({ title: 'Erro ao gerar PDF', variant: 'destructive' })
     } finally {
       setGerando(false)
+  }
+
+  const handleGerarComprovante = async () => {
+    if (!servico) return
+    setGerandoComprovante(true)
+    try {
+      const dataHora = servico.updated_at
+        ? format(new Date(servico.updated_at), 'dd/MM/yyyy HH:mm')
+        : format(new Date(), 'dd/MM/yyyy HH:mm')
+      await exportarComprovantePagamento({
+        numero_protocolo: servico.numero_protocolo,
+        data_hora: dataHora,
+        cliente: servico.morador_nome,
+        cpf_cnpj: servico.cpf_cnpj,
+        condominio: servico.condominio_nome_original,
+        bloco: servico.bloco,
+        apartamento: servico.apartamento,
+        tipo_servico: servico.tipo_servico,
+        forma_pagamento: servico.forma_pagamento,
+        valor_servico: servico.valor_servico,
+      })
+      toast({ title: 'Comprovante gerado', description: 'O PDF foi baixado.' })
+    } catch {
+      toast({ title: 'Erro ao gerar comprovante', variant: 'destructive' })
+    } finally {
+      setGerandoComprovante(false)
     }
+  }
+
   }
 
   const tecnicoNome = (servico?.operadores as any)?.nome ?? '—'
