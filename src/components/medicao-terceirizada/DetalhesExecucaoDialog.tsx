@@ -107,6 +107,7 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
       toast({ title: 'Erro ao gerar PDF', variant: 'destructive' })
     } finally {
       setGerando(false)
+    }
   }
 
   const handleGerarComprovante = async () => {
@@ -134,8 +135,6 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
     } finally {
       setGerandoComprovante(false)
     }
-  }
-
   }
 
   const tecnicoNome = (servico?.operadores as any)?.nome ?? '—'
