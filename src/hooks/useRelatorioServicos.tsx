@@ -20,6 +20,7 @@ export function useRelatorioServicos() {
         condominio_nome_original,
         uf,
         tecnico_id,
+        valor_servico,
         operadores:tecnico_id(nome)
       `)
       // Excluir registros de leitura — RDO trata só serviços (religação, desligamento, visita técnica, etc.)
