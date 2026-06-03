@@ -112,6 +112,11 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                   {item.status}
                 </span>
               </TableCell>
+              <TableCell className="text-right font-medium">
+                {item.valor_servico != null
+                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.valor_servico))
+                  : '-'}
+              </TableCell>
             </TableRow>
           );
         case 'coletas_sem_pendencia':
