@@ -20,6 +20,7 @@ export function useRelatorioServicos() {
         condominio_nome_original,
         uf,
         tecnico_id,
+        valor_servico,
         operadores:tecnico_id(nome)
       `)
       // Excluir registros de leitura — RDO trata só serviços (religação, desligamento, visita técnica, etc.)
@@ -59,6 +60,7 @@ export function useRelatorioServicos() {
         tipo_servico: s.tipo_servico,
         tecnico: s.operadores?.nome || 'Não atribuído',
         status: s.status_atendimento,
+        valor_servico: s.valor_servico ?? null,
         descricao: s.observacao || '',
       };
     });
