@@ -60,6 +60,7 @@ export function useRelatorioServicos() {
         tipo_servico: s.tipo_servico,
         tecnico: s.operadores?.nome || 'Não atribuído',
         status: s.status_atendimento,
+        valor_servico: s.valor_servico ?? null,
         descricao: s.observacao || '',
       };
     });
