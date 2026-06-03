@@ -62,13 +62,16 @@ export function exportarPDF(
       break;
 
     case 'rdo_servicos':
-      colunas = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status'];
+      colunas = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
       linhas = dados.map((item) => [
         item.data ? format(new Date(item.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-',
         item.condominio || '-',
         item.tipo_servico?.toUpperCase(),
         item.tecnico || '-',
         item.status,
+        item.valor_servico != null
+          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.valor_servico))
+          : '-',
       ]);
       break;
 
