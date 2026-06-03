@@ -38,6 +38,7 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead>Tipo Serviço</TableHead>
             <TableHead>Técnico</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="text-right">Valor (R$)</TableHead>
           </>
         );
       case 'coletas_sem_pendencia':
