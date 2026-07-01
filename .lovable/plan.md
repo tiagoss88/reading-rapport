@@ -1,43 +1,30 @@
 ## Objetivo
-Adicionar, na tela **Planejamento de Rotas** (`/medicao-terceirizada/rotas`), um botão que copia para a área de transferência um resumo formatado para WhatsApp, agrupado por **técnico (operador)**, listando os condomínios de cada rota do período selecionado.
+Mover o botão "Copiar para WhatsApp" do topo da página de Planejamento de Rotas para dentro do diálogo de cada rota (aberto pelo botão "Planejar"), permitindo copiar apenas os condomínios/técnicos daquela rota/dia específica.
 
-## Onde
-Arquivo: `src/pages/MedicaoTerceirizada/PlanejamentoRotas.tsx`
+## Alterações
 
-Novo botão ao lado de "Adicionar Dia Útil" no card de filtros:
-- Rótulo: **"Copiar para WhatsApp"** (ícone `MessageCircle` ou `Copy` do lucide).
-- Ao clicar: monta o texto, chama `navigator.clipboard.writeText(...)` e mostra `toast` de sucesso.
+### 1. `src/pages/MedicaoTerceirizada/PlanejamentoRotas.tsx`
+- Remover o botão "Copiar para WhatsApp" ao lado de "Adicionar Dia Útil".
+- Remover a função `handleCopiarWhatsApp` e o ícone `MessageCircle` do import (não usado em outro lugar da página).
 
-## Regras de agrupamento
-Escopo = mês/ano/UF selecionados nos filtros (usa dados já carregados: `diasUteis`, `rotasLeitura`, `empreendimentos`).
+### 2. `src/components/medicao-terceirizada/RotaDiariaDialog.tsx`
+- Adicionar botão "Copiar para WhatsApp" no cabeçalho do diálogo (variant outline, ícone `MessageCircle`).
+- Criar `handleCopiarWhatsApp` local que usa os dados já carregados no diálogo (empreendimentos daquela rota + técnicos atribuídos).
+- Agrupar por técnico dentro daquela rota específica (fallback "Sem técnico atribuído" quando não houver).
+- Formato do texto copiado:
+  ```text
+  *Rota NN - dd/MM (eee)*
 
-1. Percorrer `rotasLeitura` do período.
-2. Agrupar por **operador** (`operador.nome`). Rotas sem operador atribuído vão para um grupo **"Sem técnico atribuído"**.
-3. Dentro de cada técnico, agrupar por **data** (ordenada asc), e listar os condomínios daquele dia (nome do empreendimento).
-4. Deduplicar condomínios repetidos no mesmo dia/técnico.
-
-## Formato do texto (WhatsApp)
-```
-*Planejamento de Rotas - Outubro/2026 (BA)*
-
-*👷 João Silva*
-📅 05/10 (seg) - Rota 01
-  • Condomínio Sonata
-  • Condomínio Barcelona
-📅 07/10 (qua) - Rota 02
-  • Varandas do Imbuí
-
-*👷 Maria Souza*
-📅 06/10 (ter) - Rota 01
+  *👷 Nome do Técnico*
   • Condomínio X
-```
-Data no formato `dd/MM (eee)` com `date-fns` + `ptBR`.
+  • Condomínio Y
 
-## Detalhes técnicos
-- Sem mudanças no banco, sem novas queries — reaproveita `rotasLeitura` já buscada (que inclui `empreendimento.nome` e `operador.nome`).
-- Se `rotasLeitura` estiver vazio no período, exibir toast "Nada planejado para copiar".
-- Fallback de clipboard: se `navigator.clipboard` indisponível, usar `document.execCommand('copy')` via `<textarea>` temporária.
+  *👷 Outro Técnico*
+  • Condomínio Z
+  ```
+- Usar `navigator.clipboard.writeText` com fallback `document.execCommand('copy')`.
+- Toast de confirmação via `useToast` (já importado no arquivo).
 
 ## Fora do escopo
-- Envio direto ao WhatsApp (apenas cópia).
-- Alterações em outras telas.
+- Nenhuma mudança no banco de dados.
+- Nenhuma mudança na lógica de atribuição/execução de rotas.
