@@ -1,26 +1,43 @@
-## Adicionar coluna "Valor do Serviço" no RDO
+## Objetivo
+Adicionar, na tela **Planejamento de Rotas** (`/medicao-terceirizada/rotas`), um botão que copia para a área de transferência um resumo formatado para WhatsApp, agrupado por **técnico (operador)**, listando os condomínios de cada rota do período selecionado.
 
-Incluir o valor de cada serviço no relatório RDO (tela, PDF e CSV) para facilitar o cálculo de comissões.
+## Onde
+Arquivo: `src/pages/MedicaoTerceirizada/PlanejamentoRotas.tsx`
 
-### Alterações
+Novo botão ao lado de "Adicionar Dia Útil" no card de filtros:
+- Rótulo: **"Copiar para WhatsApp"** (ícone `MessageCircle` ou `Copy` do lucide).
+- Ao clicar: monta o texto, chama `navigator.clipboard.writeText(...)` e mostra `toast` de sucesso.
 
-1. **`src/hooks/useRelatorioServicos.tsx`**
-   - Incluir `valor_servico` no `select` da query em `servicos_nacional_gas`.
-   - Adicionar o campo `valor_servico` (numérico, podendo ser `null`) ao objeto retornado.
+## Regras de agrupamento
+Escopo = mês/ano/UF selecionados nos filtros (usa dados já carregados: `diasUteis`, `rotasLeitura`, `empreendimentos`).
 
-2. **`src/components/relatorios/TabelaRelatorio.tsx`** (case `rdo_servicos`)
-   - Novo `<TableHead>Valor (R$)</TableHead>` após "Status".
-   - Nova célula formatada em BRL (`Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })`), exibindo `-` quando ausente.
-   - Alinhar valor à direita.
+1. Percorrer `rotasLeitura` do período.
+2. Agrupar por **operador** (`operador.nome`). Rotas sem operador atribuído vão para um grupo **"Sem técnico atribuído"**.
+3. Dentro de cada técnico, agrupar por **data** (ordenada asc), e listar os condomínios daquele dia (nome do empreendimento).
+4. Deduplicar condomínios repetidos no mesmo dia/técnico.
 
-3. **`src/lib/exportPDF.ts`** (case `rdo_servicos`)
-   - Acrescentar coluna "Valor (R$)" e formatar valor em BRL (ou `-`).
+## Formato do texto (WhatsApp)
+```
+*Planejamento de Rotas - Outubro/2026 (BA)*
 
-4. **`src/lib/exportCSV.ts`** (case `rdo_servicos`)
-   - Acrescentar coluna "Valor (R$)" com o número formatado (vírgula decimal pt-BR).
+*👷 João Silva*
+📅 05/10 (seg) - Rota 01
+  • Condomínio Sonata
+  • Condomínio Barcelona
+📅 07/10 (qua) - Rota 02
+  • Varandas do Imbuí
 
-### Fora do escopo
+*👷 Maria Souza*
+📅 06/10 (ter) - Rota 01
+  • Condomínio X
+```
+Data no formato `dd/MM (eee)` com `date-fns` + `ptBR`.
 
-- Cálculo automático de comissão.
-- Edição do valor pelo relatório (já existe no diálogo de edição do serviço).
-- Totalizadores/somatório no rodapé (posso adicionar depois se desejado).
+## Detalhes técnicos
+- Sem mudanças no banco, sem novas queries — reaproveita `rotasLeitura` já buscada (que inclui `empreendimento.nome` e `operador.nome`).
+- Se `rotasLeitura` estiver vazio no período, exibir toast "Nada planejado para copiar".
+- Fallback de clipboard: se `navigator.clipboard` indisponível, usar `document.execCommand('copy')` via `<textarea>` temporária.
+
+## Fora do escopo
+- Envio direto ao WhatsApp (apenas cópia).
+- Alterações em outras telas.
