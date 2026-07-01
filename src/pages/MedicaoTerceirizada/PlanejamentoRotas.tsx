@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Plus, Trash2, Users, Building2, MessageCircle } from 'lucide-react'
+import { Calendar, Plus, Trash2, Users, Building2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { format, parse, lastDayOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -124,75 +124,8 @@ export default function PlanejamentoRotas() {
     setRotaDiariaDialogOpen(true)
   }
 
-  const handleCopiarWhatsApp = async () => {
-    const rotas = rotasLeitura || []
-    if (rotas.length === 0) {
-      toast({ title: 'Nada planejado para copiar', variant: 'destructive' })
-      return
-    }
 
-    // Map dia_util_id -> numero_rota (from diasUteis of the current period)
-    const diaRotaMap = new Map<string, number>()
-    diasUteis?.forEach(d => diaRotaMap.set(d.id, d.numero_rota))
 
-    // Group by operador
-    type Item = { data: string; rota: number | null; condominio: string }
-    const grupos = new Map<string, Item[]>()
-
-    rotas.forEach((r: any) => {
-      const nomeOp = r.operador?.nome || 'Sem técnico atribuído'
-      const condo = r.empreendimento?.nome
-      if (!condo) return
-      const numeroRota = r.dia_util_id ? diaRotaMap.get(r.dia_util_id) ?? null : null
-      if (!grupos.has(nomeOp)) grupos.set(nomeOp, [])
-      grupos.get(nomeOp)!.push({ data: r.data, rota: numeroRota, condominio: condo })
-    })
-
-    const mesLabel = meses.find(m => m.value === mes)?.label
-    let texto = `*Planejamento de Rotas - ${mesLabel}/${ano} (${uf})*\n`
-
-    const opsOrdenados = Array.from(grupos.keys()).sort((a, b) => a.localeCompare(b, 'pt-BR'))
-    for (const op of opsOrdenados) {
-      texto += `\n*👷 ${op}*\n`
-      const itens = grupos.get(op)!
-      // group by data+rota
-      const byDia = new Map<string, { rota: number | null; condos: Set<string> }>()
-      itens.forEach(it => {
-        const key = `${it.data}|${it.rota ?? ''}`
-        if (!byDia.has(key)) byDia.set(key, { rota: it.rota, condos: new Set() })
-        byDia.get(key)!.condos.add(it.condominio)
-      })
-      const keysOrdenadas = Array.from(byDia.keys()).sort()
-      for (const k of keysOrdenadas) {
-        const [data] = k.split('|')
-        const { rota, condos } = byDia.get(k)!
-        const dataFmt = format(parse(data, 'yyyy-MM-dd', new Date()), 'dd/MM (eee)', { locale: ptBR })
-        const rotaLabel = rota != null ? ` - Rota ${rota.toString().padStart(2, '0')}` : ''
-        texto += `📅 ${dataFmt}${rotaLabel}\n`
-        Array.from(condos).sort((a, b) => a.localeCompare(b, 'pt-BR')).forEach(c => {
-          texto += `  • ${c}\n`
-        })
-      }
-    }
-
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(texto)
-      } else {
-        const ta = document.createElement('textarea')
-        ta.value = texto
-        ta.style.position = 'fixed'
-        ta.style.opacity = '0'
-        document.body.appendChild(ta)
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-      }
-      toast({ title: 'Copiado!', description: 'Planejamento copiado para a área de transferência.' })
-    } catch {
-      toast({ title: 'Erro ao copiar', variant: 'destructive' })
-    }
-  }
 
   return (
     <Layout title="Planejamento">
@@ -239,10 +172,6 @@ export default function PlanejamentoRotas() {
               <Button onClick={() => setDiaUtilDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Dia Útil
-              </Button>
-              <Button variant="outline" onClick={handleCopiarWhatsApp}>
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Copiar para WhatsApp
               </Button>
             </div>
           </CardContent>

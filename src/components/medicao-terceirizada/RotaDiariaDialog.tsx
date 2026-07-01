@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useToast } from '@/hooks/use-toast'
 import { format, parse } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Plus, Trash2, Building2, Users, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, Building2, Users, ChevronDown, MessageCircle } from 'lucide-react'
 
 interface DiaUtil {
   id: string
@@ -219,14 +219,69 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
     concluido: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
   }
 
+  const handleCopiarWhatsApp = async () => {
+    if (groupedByEmpreendimento.length === 0) {
+      toast({ title: 'Nada planejado para copiar', variant: 'destructive' })
+      return
+    }
+
+    const porOperador = new Map<string, Set<string>>()
+    for (const g of groupedByEmpreendimento) {
+      const nomes = g.rotas.filter(r => r.operador_nome).map(r => r.operador_nome!)
+      if (nomes.length === 0) {
+        if (!porOperador.has('Sem técnico atribuído')) porOperador.set('Sem técnico atribuído', new Set())
+        porOperador.get('Sem técnico atribuído')!.add(g.nome)
+      } else {
+        for (const nome of nomes) {
+          if (!porOperador.has(nome)) porOperador.set(nome, new Set())
+          porOperador.get(nome)!.add(g.nome)
+        }
+      }
+    }
+
+    const dataFmt = format(parse(diaUtil.data, 'yyyy-MM-dd', new Date()), 'dd/MM (eee)', { locale: ptBR })
+    let texto = `*Rota ${diaUtil.numero_rota.toString().padStart(2, '0')} - ${dataFmt}*\n`
+
+    const ops = Array.from(porOperador.keys()).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+    for (const op of ops) {
+      texto += `\n*👷 ${op}*\n`
+      const condos = Array.from(porOperador.get(op)!).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      condos.forEach(c => { texto += `• ${c}\n` })
+    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(texto)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = texto
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
+      toast({ title: 'Copiado!', description: 'Rota copiada para a área de transferência.' })
+    } catch {
+      toast({ title: 'Erro ao copiar', variant: 'destructive' })
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-visible flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Planejamento - Rota {diaUtil.numero_rota.toString().padStart(2, '0')} ({diaUtil.uf})
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Planejamento - Rota {diaUtil.numero_rota.toString().padStart(2, '0')} ({diaUtil.uf})
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={handleCopiarWhatsApp} className="mr-8">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Copiar para WhatsApp
+            </Button>
+          </div>
         </DialogHeader>
         
         <div className="flex-shrink-0 mb-4 p-3 bg-muted rounded-md text-sm">
