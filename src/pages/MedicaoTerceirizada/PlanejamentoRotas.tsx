@@ -173,10 +173,6 @@ export default function PlanejamentoRotas() {
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Dia Útil
               </Button>
-              <Button variant="outline" onClick={handleCopiarWhatsApp}>
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Copiar para WhatsApp
-              </Button>
             </div>
           </CardContent>
         </Card>
