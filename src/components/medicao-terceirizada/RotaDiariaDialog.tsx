@@ -272,10 +272,16 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-visible flex flex-col">
         <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Planejamento - Rota {diaUtil.numero_rota.toString().padStart(2, '0')} ({diaUtil.uf})
-          </DialogTitle>
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Planejamento - Rota {diaUtil.numero_rota.toString().padStart(2, '0')} ({diaUtil.uf})
+            </DialogTitle>
+            <Button variant="outline" size="sm" onClick={handleCopiarWhatsApp} className="mr-8">
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Copiar para WhatsApp
+            </Button>
+          </div>
         </DialogHeader>
         
         <div className="flex-shrink-0 mb-4 p-3 bg-muted rounded-md text-sm">
