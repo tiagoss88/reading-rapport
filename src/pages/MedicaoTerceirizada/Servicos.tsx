@@ -137,7 +137,7 @@ export default function ServicosNacionalGas() {
 
   const filteredServicos = servicosSemLeitura?.filter(servico => {
     const matchesSearch = 
-      servico.condominio_nome_original.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      servico.condominio_nome_original?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       servico.morador_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       servico.apartamento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       servico.numero_protocolo?.toLowerCase().includes(searchTerm.toLowerCase())

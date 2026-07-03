@@ -1,30 +1,32 @@
-## Objetivo
-Mover o botão "Copiar para WhatsApp" do topo da página de Planejamento de Rotas para dentro do diálogo de cada rota (aberto pelo botão "Planejar"), permitindo copiar apenas os condomínios/técnicos daquela rota/dia específica.
 
-## Alterações
+## Problema
 
-### 1. `src/pages/MedicaoTerceirizada/PlanejamentoRotas.tsx`
-- Remover o botão "Copiar para WhatsApp" ao lado de "Adicionar Dia Útil".
-- Remover a função `handleCopiarWhatsApp` e o ícone `MessageCircle` do import (não usado em outro lugar da página).
+Ao digitar no campo de busca da tela **Medição Terceirizada → Serviços**, a página fica em branco (crash do React).
 
-### 2. `src/components/medicao-terceirizada/RotaDiariaDialog.tsx`
-- Adicionar botão "Copiar para WhatsApp" no cabeçalho do diálogo (variant outline, ícone `MessageCircle`).
-- Criar `handleCopiarWhatsApp` local que usa os dados já carregados no diálogo (empreendimentos daquela rota + técnicos atribuídos).
-- Agrupar por técnico dentro daquela rota específica (fallback "Sem técnico atribuído" quando não houver).
-- Formato do texto copiado:
-  ```text
-  *Rota NN - dd/MM (eee)*
+## Causa raiz
 
-  *👷 Nome do Técnico*
-  • Condomínio X
-  • Condomínio Y
+Em `src/pages/MedicaoTerceirizada/Servicos.tsx`, linha 140, o filtro chama:
 
-  *👷 Outro Técnico*
-  • Condomínio Z
-  ```
-- Usar `navigator.clipboard.writeText` com fallback `document.execCommand('copy')`.
-- Toast de confirmação via `useToast` (já importado no arquivo).
+```ts
+servico.condominio_nome_original.toLowerCase().includes(...)
+```
 
-## Fora do escopo
-- Nenhuma mudança no banco de dados.
-- Nenhuma mudança na lógica de atribuição/execução de rotas.
+Sem optional chaining. As demais linhas (`morador_nome?.`, `apartamento?.`, `numero_protocolo?.`) já usam `?.`, mas essa não. Quando existe algum serviço com `condominio_nome_original` nulo ou vazio, o `.toLowerCase()` lança `TypeError: Cannot read properties of null`, derrubando a árvore de componentes e deixando a tela branca.
+
+O bug só aparece ao digitar porque enquanto o campo está vazio o filtro nem sempre percorre todos os registros da mesma forma, mas ao mudar o `searchTerm` o React reavalia o filtro em cima de toda a lista.
+
+## Correção
+
+Arquivo: `src/pages/MedicaoTerceirizada/Servicos.tsx`
+
+Trocar a linha 140 para usar optional chaining, igual às demais:
+
+```ts
+servico.condominio_nome_original?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+```
+
+Nenhuma outra alteração é necessária. Sem mudanças de banco, RLS, edge functions ou lógica de negócio.
+
+## Validação
+
+- Abrir `/medicao-terceirizada/servicos`, digitar no campo de busca e confirmar que a lista filtra normalmente sem tela em branco.
