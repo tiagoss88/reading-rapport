@@ -376,6 +376,12 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
           </div>
         </DialogContent>
       </Dialog>
+      <RoteirizarUrgentesDialog
+        open={roteirizarOpen}
+        onOpenChange={setRoteirizarOpen}
+        urgentes={urgentesFiltrados}
+        ufAtiva={ufFiltro}
+      />
     </Card>
   )
 }
