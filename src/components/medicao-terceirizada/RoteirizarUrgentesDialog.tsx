@@ -220,7 +220,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {!gerado ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               Escolha a quantidade de técnicos e clique em <b>Gerar rotas</b>.
