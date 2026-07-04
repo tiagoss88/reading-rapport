@@ -2,12 +2,14 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
-import { Calendar, FileCheck, Wrench, Bell, Power, User } from 'lucide-react'
+import { Calendar, FileCheck, Wrench, Bell, Power, User, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications'
 import ProfileDialog from '@/components/ProfileDialog'
 import InstallAppBanner from '@/components/InstallAppBanner'
+import { clearAppCache } from '@/lib/clearAppCache'
+
 
 
 export default function ColetorMenu() {
