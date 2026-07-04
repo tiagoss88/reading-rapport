@@ -253,6 +253,9 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
           <AlertTriangle className="h-5 w-5 text-red-500" />
           <span>Serviços com Prazo Crítico</span>
           <div className="flex gap-1.5 ml-auto items-center">
+            <Button variant="outline" size="sm" onClick={() => setRoteirizarOpen(true)}>
+              <RouteIcon className="h-4 w-4 mr-1" /> Roteirizar
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setResumoOpen(true)}>
               <Copy className="h-4 w-4 mr-1" /> Copiar Resumo
             </Button>
