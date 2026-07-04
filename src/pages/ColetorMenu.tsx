@@ -38,6 +38,27 @@ export default function ColetorMenu() {
     }
   }
 
+  const handleClearCache = async () => {
+    if (!window.confirm('Limpar todo o cache e dados offline do app? Você será redirecionado para o login.')) {
+      return
+    }
+    try {
+      await clearAppCache()
+      toast({
+        title: "Cache limpo",
+        description: "Recarregando o aplicativo..."
+      })
+      window.location.href = '/coletor/login'
+    } catch (error) {
+      toast({
+        title: "Erro ao limpar cache",
+        description: "Tente novamente ou recarregue a página",
+        variant: "destructive"
+      })
+    }
+  }
+
+
   const operadorNome = user?.user_metadata?.nome || user?.email || 'Operador'
 
   const getInitials = (name: string) => {
