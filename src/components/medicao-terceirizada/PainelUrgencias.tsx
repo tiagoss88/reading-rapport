@@ -17,6 +17,7 @@ interface ServicoNacionalGas {
   status_atendimento: string
   morador_nome: string | null
   uf: string
+  empreendimento_id?: string | null
 }
 
 interface PainelUrgenciasProps {
