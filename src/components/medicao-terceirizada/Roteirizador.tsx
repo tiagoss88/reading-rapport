@@ -412,8 +412,18 @@ const Roteirizador = () => {
                       type="number"
                       min={500}
                       max={1200}
-                      value={metaPorRota}
-                      onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
+                      value={metaPorRotaInput}
+                      onChange={(e) => setMetaPorRotaInput(e.target.value)}
+                      onBlur={() => {
+                        const n = parseInt(metaPorRotaInput);
+                        if (isNaN(n)) {
+                          setMetaPorRotaInput(String(metaPorRota));
+                        } else {
+                          const clamped = Math.max(500, Math.min(1200, n));
+                          setMetaPorRota(clamped);
+                          setMetaPorRotaInput(String(clamped));
+                        }
+                      }}
                     />
                     <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
                   </div>
