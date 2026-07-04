@@ -262,7 +262,10 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
           </div>
           <div className="text-xs text-muted-foreground flex-1">
             <div>{urgentes.length} serviços na seleção {ufAtiva !== 'TODAS' && `(UF: ${ufAtiva})`}</div>
-            <div>{comCoord.length} com geolocalização · {semCoord.length} sem coordenadas</div>
+            <div>
+              {comCoord.length} com geolocalização · {semCoord.length} sem coordenadas
+              {servicoCoords.porNome > 0 && ` · ${servicoCoords.porNome} vinculados por nome`}
+            </div>
           </div>
           <Button
             onClick={() => setGerado(true)}
