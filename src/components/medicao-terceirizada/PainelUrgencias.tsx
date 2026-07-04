@@ -173,6 +173,7 @@ export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrge
 export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgenciasProps) {
   const urgentes = useMemo(() => getServicosUrgentes(servicos), [servicos])
   const [resumoOpen, setResumoOpen] = useState(false)
+  const [roteirizarOpen, setRoteirizarOpen] = useState(false)
   const [ufFiltro, setUfFiltro] = useState<string>('TODAS')
   const { toast } = useToast()
 
