@@ -11,8 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Route, Play, Save, Loader2, MapPin, Users, User } from 'lucide-react';
-import { optimizeRoutesWithConstraints, GeoPoint, ConstrainedClusterResult } from '@/lib/routeOptimizer';
+import { Route, Play, Save, Loader2, MapPin, Users, User, Sparkles, AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { optimizeRoutes, optimizeRoutesWithConstraints, GeoPoint, ConstrainedClusterResult } from '@/lib/routeOptimizer';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAnaliseRotasIA, RotaResumoIA } from '@/hooks/useAnaliseRotasIA';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
