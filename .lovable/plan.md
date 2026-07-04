@@ -1,16 +1,15 @@
-## Problema
+## Reverter comportamento do menu lateral
 
-Ao clicar num item, `handleNavClick()` faz `setCollapsed(true)` + `setHovered(false)`, mas o mouse ainda está sobre a sidebar. O React re-renderiza e o `onMouseEnter`/`onMouseOver` dispara imediatamente (ou o `setHovered(false)` é sobrescrito pelo evento pendente), voltando `hovered = true` e reexpandindo. Visualmente parece que "tentou minimizar e voltou".
+Voltar `src/components/Layout.tsx` ao comportamento original: sidebar fica no estado escolhido pelo usuário (via botão `PanelLeftOpen`/`PanelLeftClose`) e **não** minimiza sozinha ao clicar num item, nem expande no hover.
 
-## Correção em `src/components/Layout.tsx`
+## Alterações
 
-1. Adicionar estado `suppressHover` (boolean). Quando `handleNavClick()` roda: `setCollapsed(true)`, `setHovered(false)`, `setSuppressHover(true)`.
-2. O handler `onMouseEnter` só chama `setHovered(true)` se `!suppressHover`.
-3. O handler `onMouseLeave` chama `setHovered(false)` **e** `setSuppressHover(false)` — assim, quando o usuário efetivamente tirar o mouse da sidebar, o hover-expand volta a funcionar normalmente na próxima entrada.
-4. Nada mais muda: botão manual, mobile drawer, submenus e estilos continuam iguais.
+1. Remover estados `hovered` e `suppressHover`.
+2. Remover derivação `isCompact` — voltar a usar `collapsed` diretamente em todos os condicionais (largura `w-16`/`w-64`, `justify-center`, `mr-3`, exibição de rótulos e submenus).
+3. Remover handlers `onMouseEnter`/`onMouseLeave` do `<div>` da sidebar.
+4. `handleNavClick()` volta a apenas fechar o drawer mobile: `setSidebarOpen(false)`. Continuar usando esse helper nos `onClick` dos `NavLink` (equivale ao original).
+5. Botão de toggle manual volta ao `onClick={() => setCollapsed(!collapsed)}` (sem reset de hover).
 
-## Resultado esperado
-
-- Clicar em item → sidebar minimiza e permanece minimizada mesmo com o mouse ainda sobre ela.
-- Usuário tira o mouse da sidebar e passa de novo → expande temporariamente (comportamento hover atual).
-- Botão `PanelLeftOpen` continua reexpandindo manualmente.
+## Fora do escopo
+- Menu do Coletor não é afetado.
+- Nenhuma outra tela/estilo muda.
