@@ -35,16 +35,12 @@ export default function Layout({ children, title }: LayoutProps) {
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  const [suppressHover, setSuppressHover] = useState(false)
-  const isCompact = collapsed && !hovered
+  const isCompact = collapsed
 
   const handleNavClick = () => {
     setSidebarOpen(false)
-    setHovered(false)
-    setSuppressHover(true)
-    setCollapsed(true)
   }
+
 
   
   const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
@@ -100,7 +96,7 @@ export default function Layout({ children, title }: LayoutProps) {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <div onMouseEnter={() => { if (!suppressHover) setHovered(true) }} onMouseLeave={() => { setHovered(false); setSuppressHover(false) }} className={`fixed inset-y-0 left-0 z-50 ${isCompact ? 'w-16' : 'w-64'} bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 z-50 ${isCompact ? 'w-16' : 'w-64'} bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-16 items-center justify-between px-3 border-b">
           {!isCompact && (
             <div className="flex items-center gap-3 overflow-hidden">
@@ -131,7 +127,7 @@ export default function Layout({ children, title }: LayoutProps) {
             variant="ghost"
             size="icon"
             className="hidden lg:flex flex-shrink-0"
-            onClick={() => { setHovered(false); setCollapsed(!collapsed); }}
+            onClick={() => setCollapsed(!collapsed)}
             title={collapsed ? 'Expandir menu' : 'Minimizar menu'}
           >
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
