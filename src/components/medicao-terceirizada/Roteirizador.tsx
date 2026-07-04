@@ -390,36 +390,67 @@ const Roteirizador = () => {
               </div>
 
               <div>
-                <Label className="text-sm">Meta de medidores por rota</Label>
-                <Input
-                  type="number"
-                  min={500}
-                  max={1200}
-                  value={metaPorRota}
-                  onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
-              </div>
-
-              <div>
-                <Label className="text-sm">Leituristas por rota</Label>
-                <Select value={String(leituristas)} onValueChange={(v) => setLeituristas(parseInt(v))}>
+                <Label className="text-sm">Modo de cálculo</Label>
+                <Select value={modo} onValueChange={(v) => setModo(v as 'meta' | 'tecnicos')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent side="bottom" sideOffset={4} className="z-[200]">
-                    <SelectItem value="1">
-                      <span className="flex items-center gap-1"><User className="h-3 w-3" /> 1 leiturista</span>
-                    </SelectItem>
-                    <SelectItem value="2">
-                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 2 leituristas</span>
-                    </SelectItem>
+                    <SelectItem value="meta">Por meta de medidores</SelectItem>
+                    <SelectItem value="tecnicos">Por nº de técnicos</SelectItem>
                   </SelectContent>
                 </Select>
-                {leituristas === 2 && (
-                  <p className="text-xs text-muted-foreground mt-1">Meta efetiva: {metaEfetiva} medidores/rota</p>
-                )}
               </div>
+
+              {modo === 'meta' ? (
+                <>
+                  <div>
+                    <Label className="text-sm">Meta de medidores por rota</Label>
+                    <Input
+                      type="number"
+                      min={500}
+                      max={1200}
+                      value={metaPorRota}
+                      onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm">Leituristas por rota</Label>
+                    <Select value={String(leituristas)} onValueChange={(v) => setLeituristas(parseInt(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent side="bottom" sideOffset={4} className="z-[200]">
+                        <SelectItem value="1">
+                          <span className="flex items-center gap-1"><User className="h-3 w-3" /> 1 leiturista</span>
+                        </SelectItem>
+                        <SelectItem value="2">
+                          <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 2 leituristas</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {leituristas === 2 && (
+                      <p className="text-xs text-muted-foreground mt-1">Meta efetiva: {metaEfetiva} medidores/rota</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <Label className="text-sm">Nº de técnicos disponíveis</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={tecnicos}
+                    onChange={(e) => setTecnicos(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Serão criadas ~{tecnicos} rotas, distribuídas entre as UFs proporcionalmente.
+                  </p>
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-2 text-sm">
                 <Badge variant="secondary">
