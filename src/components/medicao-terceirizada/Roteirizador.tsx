@@ -11,8 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Route, Play, Save, Loader2, MapPin, Users, User } from 'lucide-react';
-import { optimizeRoutesWithConstraints, GeoPoint, ConstrainedClusterResult } from '@/lib/routeOptimizer';
+import { Route, Play, Save, Loader2, MapPin, Users, User, Sparkles, AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { optimizeRoutes, optimizeRoutesWithConstraints, GeoPoint, ConstrainedClusterResult } from '@/lib/routeOptimizer';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAnaliseRotasIA, RotaResumoIA } from '@/hooks/useAnaliseRotasIA';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
@@ -57,12 +59,15 @@ const Roteirizador = () => {
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   const [selectedUf, setSelectedUf] = useState<string>('all');
+  const [modo, setModo] = useState<'meta' | 'tecnicos'>('meta');
   const [metaPorRota, setMetaPorRota] = useState<number>(750);
   const [leituristas, setLeituristas] = useState<number>(1);
+  const [tecnicos, setTecnicos] = useState<number>(3);
   const [simulationResults, setSimulationResults] = useState<SimulationResult[]>([]);
   const [assignments, setAssignments] = useState<Record<string, number>>({});
   const [mapReady, setMapReady] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>('');
+  const analiseIA = useAnaliseRotasIA();
 
   const metaEfetiva = metaPorRota * leituristas;
   const metaMin = 700 * leituristas;
@@ -207,14 +212,59 @@ const Roteirizador = () => {
       grupo: e.uf,
     }));
 
-    const results = optimizeRoutesWithConstraints(points, metaEfetiva, metaMax);
-
     const newAssignments: Record<string, number> = {};
     const grupoByRota: Record<number, string> = {};
-    results.forEach(r => {
-      newAssignments[r.id] = r.rota;
-      grupoByRota[r.rota] = r.grupo;
-    });
+
+    if (modo === 'meta') {
+      const results = optimizeRoutesWithConstraints(points, metaEfetiva, metaMax);
+      results.forEach(r => {
+        newAssignments[r.id] = r.rota;
+        grupoByRota[r.rota] = r.grupo;
+      });
+    } else {
+      // Modo por nº de técnicos: distribui técnicos entre UFs proporcionalmente ao peso
+      const grupos: Record<string, GeoPoint[]> = {};
+      for (const p of points) {
+        const g = p.grupo || 'SEM_UF';
+        if (!grupos[g]) grupos[g] = [];
+        grupos[g].push(p);
+      }
+      const totalPeso = points.reduce((s, p) => s + p.peso, 0);
+      const grupoKeys = Object.keys(grupos).sort();
+      let offset = 0;
+
+      // Aloca técnicos por UF proporcional ao peso; mínimo 1 por UF
+      const alocacao: Record<string, number> = {};
+      let alocados = 0;
+      grupoKeys.forEach((g, idx) => {
+        const pesoG = grupos[g].reduce((s, p) => s + p.peso, 0);
+        const prop = Math.max(1, Math.round((pesoG / totalPeso) * tecnicos));
+        alocacao[g] = prop;
+        alocados += prop;
+      });
+      // Ajusta se estourou/faltou o total
+      let diff = tecnicos - alocados;
+      const ordered = grupoKeys.sort((a, b) => grupos[b].reduce((s, p) => s + p.peso, 0) - grupos[a].reduce((s, p) => s + p.peso, 0));
+      let i = 0;
+      while (diff !== 0 && ordered.length > 0) {
+        const g = ordered[i % ordered.length];
+        if (diff > 0) { alocacao[g] += 1; diff--; }
+        else if (alocacao[g] > 1) { alocacao[g] -= 1; diff++; }
+        i++;
+        if (i > 1000) break;
+      }
+
+      grupoKeys.sort().forEach(g => {
+        const k = alocacao[g];
+        const results = optimizeRoutes(grupos[g], k, undefined);
+        results.forEach(r => {
+          newAssignments[r.id] = r.rota + offset;
+          grupoByRota[r.rota + offset] = g;
+        });
+        offset += k;
+      });
+    }
+
     setAssignments(newAssignments);
 
     // Build summary
@@ -242,6 +292,7 @@ const Roteirizador = () => {
       .sort((a, b) => a.rota - b.rota);
 
     setSimulationResults(summary);
+    analiseIA.reset();
     toast.success(`Simulação concluída: ${summary.length} rotas criadas.`);
 
     // Fit map bounds
@@ -252,6 +303,36 @@ const Roteirizador = () => {
       });
       map.current.fitBounds(bounds, { padding: 50 });
     }
+  };
+
+  // Análise IA
+  const handleAnalisarIA = () => {
+    if (simulationResults.length === 0) return;
+    const payload: RotaResumoIA[] = simulationResults.map(r => {
+      const lats = r.empreendimentos.map(e => e.latitude!).filter(Boolean);
+      const lngs = r.empreendimentos.map(e => e.longitude!).filter(Boolean);
+      const cLat = lats.reduce((s, v) => s + v, 0) / (lats.length || 1);
+      const cLng = lngs.reduce((s, v) => s + v, 0) / (lngs.length || 1);
+      // distância média (graus → km aprox * 111)
+      const distMedia = r.empreendimentos.reduce((s, e) => {
+        if (e.latitude == null || e.longitude == null) return s;
+        const dLat = e.latitude - cLat;
+        const dLng = e.longitude - cLng;
+        return s + Math.sqrt(dLat * dLat + dLng * dLng);
+      }, 0) / (r.empreendimentos.length || 1) * 111;
+      return {
+        rota: r.rota,
+        uf: r.uf,
+        centroide: { lat: +cLat.toFixed(4), lng: +cLng.toFixed(4) },
+        total_medidores: r.totalMedidores,
+        qtd_pontos: r.empreendimentos.length,
+        distancia_media_km: +distMedia.toFixed(2),
+      };
+    });
+    analiseIA.mutate({
+      rotas: payload,
+      meta: { tecnicos: modo === 'tecnicos' ? tecnicos : undefined, meta_medidores: modo === 'meta' ? metaEfetiva : undefined },
+    });
   };
 
   // Apply routes mutation
@@ -309,36 +390,67 @@ const Roteirizador = () => {
               </div>
 
               <div>
-                <Label className="text-sm">Meta de medidores por rota</Label>
-                <Input
-                  type="number"
-                  min={500}
-                  max={1200}
-                  value={metaPorRota}
-                  onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
-                />
-                <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
-              </div>
-
-              <div>
-                <Label className="text-sm">Leituristas por rota</Label>
-                <Select value={String(leituristas)} onValueChange={(v) => setLeituristas(parseInt(v))}>
+                <Label className="text-sm">Modo de cálculo</Label>
+                <Select value={modo} onValueChange={(v) => setModo(v as 'meta' | 'tecnicos')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent side="bottom" sideOffset={4} className="z-[200]">
-                    <SelectItem value="1">
-                      <span className="flex items-center gap-1"><User className="h-3 w-3" /> 1 leiturista</span>
-                    </SelectItem>
-                    <SelectItem value="2">
-                      <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 2 leituristas</span>
-                    </SelectItem>
+                    <SelectItem value="meta">Por meta de medidores</SelectItem>
+                    <SelectItem value="tecnicos">Por nº de técnicos</SelectItem>
                   </SelectContent>
                 </Select>
-                {leituristas === 2 && (
-                  <p className="text-xs text-muted-foreground mt-1">Meta efetiva: {metaEfetiva} medidores/rota</p>
-                )}
               </div>
+
+              {modo === 'meta' ? (
+                <>
+                  <div>
+                    <Label className="text-sm">Meta de medidores por rota</Label>
+                    <Input
+                      type="number"
+                      min={500}
+                      max={1200}
+                      value={metaPorRota}
+                      onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm">Leituristas por rota</Label>
+                    <Select value={String(leituristas)} onValueChange={(v) => setLeituristas(parseInt(v))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent side="bottom" sideOffset={4} className="z-[200]">
+                        <SelectItem value="1">
+                          <span className="flex items-center gap-1"><User className="h-3 w-3" /> 1 leiturista</span>
+                        </SelectItem>
+                        <SelectItem value="2">
+                          <span className="flex items-center gap-1"><Users className="h-3 w-3" /> 2 leituristas</span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {leituristas === 2 && (
+                      <p className="text-xs text-muted-foreground mt-1">Meta efetiva: {metaEfetiva} medidores/rota</p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <Label className="text-sm">Nº de técnicos disponíveis</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={tecnicos}
+                    onChange={(e) => setTecnicos(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Serão criadas ~{tecnicos} rotas, distribuídas entre as UFs proporcionalmente.
+                  </p>
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-2 text-sm">
                 <Badge variant="secondary">
@@ -376,40 +488,92 @@ const Roteirizador = () => {
                   </div>
 
                   <div className="space-y-2">
-                    {simulationResults.map(result => (
-                      <div
-                        key={result.rota}
-                        className="flex items-center gap-3 p-2 rounded-md border"
-                        style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm flex items-center gap-1">
-                            Rota {result.rota}
-                            <span className="text-xs text-muted-foreground">({result.uf})</span>
+                    {simulationResults.map(result => {
+                      const iaRota = analiseIA.data?.rotas?.find(r => r.rota === result.rota);
+                      return (
+                        <div
+                          key={result.rota}
+                          className="flex items-start gap-3 p-2 rounded-md border"
+                          style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
+                              Rota {result.rota}
+                              <span className="text-xs text-muted-foreground">({result.uf})</span>
+                              {iaRota?.nome_sugerido && (
+                                <span className="text-xs text-primary font-normal">· {iaRota.nome_sugerido}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              <span>{result.empreendimentos.length} emprend.</span>
+                              <span>·</span>
+                              <Badge
+                                variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
+                                className={
+                                  result.dentroMeta === 'ok'
+                                    ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
+                                    : result.dentroMeta === 'baixo'
+                                    ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
+                                    : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
+                                }
+                              >
+                                {result.totalMedidores} med.
+                              </Badge>
+                            </div>
+                            {iaRota?.observacao && (
+                              <p className="text-[11px] text-muted-foreground mt-1 italic">{iaRota.observacao}</p>
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <span>{result.empreendimentos.length} emprend.</span>
-                            <span>·</span>
-                            <Badge
-                              variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
-                              className={
-                                result.dentroMeta === 'ok'
-                                  ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
-                                  : result.dentroMeta === 'baixo'
-                                  ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
-                                  : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
-                              }
-                            >
-                              {result.totalMedidores} med.
-                            </Badge>
+                          <div className="flex-shrink-0 text-muted-foreground pt-0.5" title={`${result.leituristas} leiturista(s)`}>
+                            {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
                           </div>
                         </div>
-                        <div className="flex-shrink-0 text-muted-foreground" title={`${result.leituristas} leiturista(s)`}>
-                          {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+
+                  <Button
+                    onClick={handleAnalisarIA}
+                    disabled={analiseIA.isPending}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {analiseIA.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    Analisar com IA
+                  </Button>
+
+                  {analiseIA.data && (
+                    <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                      {analiseIA.data.resumo_geral && (
+                        <div className="flex gap-2 text-xs">
+                          <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
+                          <p className="text-foreground">{analiseIA.data.resumo_geral}</p>
+                        </div>
+                      )}
+                      {analiseIA.data.alertas && analiseIA.data.alertas.length > 0 && (
+                        <div className="space-y-1.5">
+                          {analiseIA.data.alertas.map((a, idx) => {
+                            const Icon = a.severidade === 'critico' ? AlertCircle : a.severidade === 'aviso' ? AlertTriangle : Info;
+                            const cls = a.severidade === 'critico'
+                              ? 'border-red-500/50 text-red-700 dark:text-red-400'
+                              : a.severidade === 'aviso'
+                              ? 'border-yellow-500/50 text-yellow-700 dark:text-yellow-400'
+                              : 'border-blue-500/50 text-blue-700 dark:text-blue-400';
+                            return (
+                              <Alert key={idx} className={`py-2 ${cls}`}>
+                                <Icon className="h-3.5 w-3.5" />
+                                <AlertDescription className="text-xs ml-1">{a.mensagem}</AlertDescription>
+                              </Alert>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
