@@ -194,11 +194,11 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
         let atual = restante.shift()!
         ordenado.push(atual)
         while (restante.length) {
-          const cAtual = coordsMap.get(atual.servico.empreendimento_id!)!
+          const cAtual = servicoCoords.map.get(atual.servico.id)!
           let idxMin = 0
           let dMin = Infinity
           for (let i = 0; i < restante.length; i++) {
-            const cx = coordsMap.get(restante[i].servico.empreendimento_id!)!
+            const cx = servicoCoords.map.get(restante[i].servico.id)!
             const d = distancia(cAtual, cx)
             if (d < dMin) { dMin = d; idxMin = i }
           }
