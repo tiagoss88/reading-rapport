@@ -407,10 +407,11 @@ export default function ServicosNacionalGas() {
                                 })()}
                               </TableCell>
                               <TableCell className="py-1.5 px-2 whitespace-nowrap">
-                                {servico.data_solicitacao
-                                  ? format(new Date(servico.data_solicitacao + 'T00:00:00'), 'dd/MM/yyyy')
-                                  : '-'
-                                }
+                                {(() => {
+                                  if (!servico.data_solicitacao) return '-';
+                                  const d = new Date(servico.data_solicitacao + 'T00:00:00');
+                                  return isNaN(d.getTime()) ? '-' : format(d, 'dd/MM/yyyy');
+                                })()}
                               </TableCell>
                               <TableCell className="py-1.5 px-2 max-w-[180px]">
                                 <div className="flex flex-col">
