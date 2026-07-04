@@ -169,7 +169,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
     for (const uf of Object.keys(porUf).sort()) {
       const items = porUf[uf]
       const points: GeoPoint[] = items.map(u => {
-        const c = coordsMap.get(u.servico.empreendimento_id!)!
+        const c = servicoCoords.map.get(u.servico.id)!
         return { id: u.servico.id, lat: c.lat, lng: c.lng, peso: 1, grupo: uf }
       })
 
