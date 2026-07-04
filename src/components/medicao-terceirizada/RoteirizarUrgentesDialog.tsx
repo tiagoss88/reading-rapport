@@ -62,42 +62,95 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
     if (!open) setGerado(false)
   }, [open])
 
-  const empIds = useMemo(
-    () => Array.from(new Set(urgentes.map(u => u.servico.empreendimento_id).filter(Boolean) as string[])),
-    [urgentes]
-  )
-
   const { data: empreendimentos, isLoading } = useQuery({
-    queryKey: ['emp-terc-coords', empIds],
-    enabled: open && empIds.length > 0,
+    queryKey: ['emp-terc-todos-coords'],
+    enabled: open,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('empreendimentos_terceirizados')
-        .select('id, latitude, longitude, endereco')
-        .in('id', empIds)
+        .select('id, nome, uf, latitude, longitude, endereco')
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
       if (error) throw error
       return data ?? []
     },
   })
 
-  const coordsMap = useMemo(() => {
-    const m = new Map<string, { lat: number; lng: number; endereco: string | null }>()
+  const normalizeName = (s: string) =>
+    (s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/^ba\s+/, '')
+      .replace(/\bcond(?:ominio|\.)?\s+/g, '')
+      .replace(/\bresidencial\s+/g, '')
+      .replace(/\bedificio\s+/g, '')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+  const empIndex = useMemo(() => {
+    const byId = new Map<string, { lat: number; lng: number }>()
+    const byKey = new Map<string, { lat: number; lng: number }>()
+    const list: { uf: string; nomeNorm: string; lat: number; lng: number }[] = []
     for (const e of empreendimentos ?? []) {
-      if (e.latitude != null && e.longitude != null) {
-        m.set(e.id, { lat: Number(e.latitude), lng: Number(e.longitude), endereco: e.endereco })
+      if (e.latitude == null || e.longitude == null) continue
+      const coord = { lat: Number(e.latitude), lng: Number(e.longitude) }
+      byId.set(e.id, coord)
+      const uf = (e.uf || '').toUpperCase()
+      const nomeNorm = normalizeName(e.nome || '')
+      if (uf && nomeNorm) {
+        byKey.set(`${uf}|${nomeNorm}`, coord)
+        list.push({ uf, nomeNorm, lat: coord.lat, lng: coord.lng })
       }
     }
-    return m
+    return { byId, byKey, list }
   }, [empreendimentos])
 
+  // Resolve por id -> nome exato normalizado -> match parcial (mesma UF)
+  const resolveCoord = (u: UrgenteItem): { coord: { lat: number; lng: number } | null; via: 'id' | 'nome' | null } => {
+    const id = u.servico.empreendimento_id
+    if (id) {
+      const c = empIndex.byId.get(id)
+      if (c) return { coord: c, via: 'id' }
+    }
+    const uf = (u.servico.uf || '').toUpperCase()
+    const nomeNorm = normalizeName(u.servico.condominio_nome_original)
+    if (!uf || !nomeNorm) return { coord: null, via: null }
+    const exato = empIndex.byKey.get(`${uf}|${nomeNorm}`)
+    if (exato) return { coord: exato, via: 'nome' }
+    // match parcial: um contém o outro
+    for (const e of empIndex.list) {
+      if (e.uf !== uf) continue
+      if (e.nomeNorm.includes(nomeNorm) || nomeNorm.includes(e.nomeNorm)) {
+        return { coord: { lat: e.lat, lng: e.lng }, via: 'nome' }
+      }
+    }
+    return { coord: null, via: null }
+  }
+
+  const servicoCoords = useMemo(() => {
+    const m = new Map<string, { lat: number; lng: number }>()
+    let porNome = 0
+    for (const u of urgentes) {
+      const r = resolveCoord(u)
+      if (r.coord) {
+        m.set(u.servico.id, r.coord)
+        if (r.via === 'nome') porNome++
+      }
+    }
+    return { map: m, porNome }
+  }, [urgentes, empIndex])
+
   const comCoord = useMemo(
-    () => urgentes.filter(u => u.servico.empreendimento_id && coordsMap.has(u.servico.empreendimento_id!)),
-    [urgentes, coordsMap]
+    () => urgentes.filter(u => servicoCoords.map.has(u.servico.id)),
+    [urgentes, servicoCoords]
   )
   const semCoord = useMemo(
-    () => urgentes.filter(u => !u.servico.empreendimento_id || !coordsMap.has(u.servico.empreendimento_id!)),
-    [urgentes, coordsMap]
+    () => urgentes.filter(u => !servicoCoords.map.has(u.servico.id)),
+    [urgentes, servicoCoords]
   )
+
 
   const rotas = useMemo(() => {
     if (!gerado || comCoord.length === 0) return []
