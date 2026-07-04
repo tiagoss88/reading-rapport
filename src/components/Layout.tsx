@@ -100,7 +100,7 @@ export default function Layout({ children, title }: LayoutProps) {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className={`fixed inset-y-0 left-0 z-50 ${isCompact ? 'w-16' : 'w-64'} bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div onMouseEnter={() => { if (!suppressHover) setHovered(true) }} onMouseLeave={() => { setHovered(false); setSuppressHover(false) }} className={`fixed inset-y-0 left-0 z-50 ${isCompact ? 'w-16' : 'w-64'} bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-16 items-center justify-between px-3 border-b">
           {!isCompact && (
             <div className="flex items-center gap-3 overflow-hidden">
