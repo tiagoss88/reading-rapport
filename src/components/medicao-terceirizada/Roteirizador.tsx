@@ -455,8 +455,18 @@ const Roteirizador = () => {
                     type="number"
                     min={1}
                     max={20}
-                    value={tecnicos}
-                    onChange={(e) => setTecnicos(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                    value={tecnicosInput}
+                    onChange={(e) => setTecnicosInput(e.target.value)}
+                    onBlur={() => {
+                      const n = parseInt(tecnicosInput);
+                      if (isNaN(n)) {
+                        setTecnicosInput(String(tecnicos));
+                      } else {
+                        const clamped = Math.max(1, Math.min(20, n));
+                        setTecnicos(clamped);
+                        setTecnicosInput(String(clamped));
+                      }
+                    }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Serão criadas ~{tecnicos} rotas, distribuídas entre as UFs proporcionalmente.
