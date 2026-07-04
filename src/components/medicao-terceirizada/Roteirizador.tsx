@@ -61,8 +61,10 @@ const Roteirizador = () => {
   const [selectedUf, setSelectedUf] = useState<string>('all');
   const [modo, setModo] = useState<'meta' | 'tecnicos'>('meta');
   const [metaPorRota, setMetaPorRota] = useState<number>(750);
+  const [metaPorRotaInput, setMetaPorRotaInput] = useState<string>('750');
   const [leituristas, setLeituristas] = useState<number>(1);
   const [tecnicos, setTecnicos] = useState<number>(3);
+  const [tecnicosInput, setTecnicosInput] = useState<string>('3');
   const [simulationResults, setSimulationResults] = useState<SimulationResult[]>([]);
   const [assignments, setAssignments] = useState<Record<string, number>>({});
   const [mapReady, setMapReady] = useState(false);
@@ -410,8 +412,18 @@ const Roteirizador = () => {
                       type="number"
                       min={500}
                       max={1200}
-                      value={metaPorRota}
-                      onChange={(e) => setMetaPorRota(Math.max(500, Math.min(1200, parseInt(e.target.value) || 750)))}
+                      value={metaPorRotaInput}
+                      onChange={(e) => setMetaPorRotaInput(e.target.value)}
+                      onBlur={() => {
+                        const n = parseInt(metaPorRotaInput);
+                        if (isNaN(n)) {
+                          setMetaPorRotaInput(String(metaPorRota));
+                        } else {
+                          const clamped = Math.max(500, Math.min(1200, n));
+                          setMetaPorRota(clamped);
+                          setMetaPorRotaInput(String(clamped));
+                        }
+                      }}
                     />
                     <p className="text-xs text-muted-foreground mt-1">Faixa ideal: 700–850</p>
                   </div>
@@ -443,8 +455,18 @@ const Roteirizador = () => {
                     type="number"
                     min={1}
                     max={20}
-                    value={tecnicos}
-                    onChange={(e) => setTecnicos(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                    value={tecnicosInput}
+                    onChange={(e) => setTecnicosInput(e.target.value)}
+                    onBlur={() => {
+                      const n = parseInt(tecnicosInput);
+                      if (isNaN(n)) {
+                        setTecnicosInput(String(tecnicos));
+                      } else {
+                        const clamped = Math.max(1, Math.min(20, n));
+                        setTecnicos(clamped);
+                        setTecnicosInput(String(clamped));
+                      }
+                    }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Serão criadas ~{tecnicos} rotas, distribuídas entre as UFs proporcionalmente.
