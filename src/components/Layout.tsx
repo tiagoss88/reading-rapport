@@ -35,16 +35,12 @@ export default function Layout({ children, title }: LayoutProps) {
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
-  const [hovered, setHovered] = useState(false)
-  const [suppressHover, setSuppressHover] = useState(false)
-  const isCompact = collapsed && !hovered
+  const isCompact = collapsed
 
   const handleNavClick = () => {
     setSidebarOpen(false)
-    setHovered(false)
-    setSuppressHover(true)
-    setCollapsed(true)
   }
+
 
   
   const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
