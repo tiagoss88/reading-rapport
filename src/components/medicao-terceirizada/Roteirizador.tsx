@@ -61,8 +61,10 @@ const Roteirizador = () => {
   const [selectedUf, setSelectedUf] = useState<string>('all');
   const [modo, setModo] = useState<'meta' | 'tecnicos'>('meta');
   const [metaPorRota, setMetaPorRota] = useState<number>(750);
+  const [metaPorRotaInput, setMetaPorRotaInput] = useState<string>('750');
   const [leituristas, setLeituristas] = useState<number>(1);
   const [tecnicos, setTecnicos] = useState<number>(3);
+  const [tecnicosInput, setTecnicosInput] = useState<string>('3');
   const [simulationResults, setSimulationResults] = useState<SimulationResult[]>([]);
   const [assignments, setAssignments] = useState<Record<string, number>>({});
   const [mapReady, setMapReady] = useState(false);
