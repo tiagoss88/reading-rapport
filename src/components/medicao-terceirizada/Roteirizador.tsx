@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Route, Play, Save, Loader2, MapPin, Users, User, Sparkles, AlertTriangle, Info, AlertCircle } from 'lucide-react';
+import { Route, Play, Save, Loader2, MapPin, Users, User, Sparkles, AlertTriangle, Info, AlertCircle, ChevronRight, ChevronDown } from 'lucide-react';
 import { optimizeRoutes, optimizeRoutesWithConstraints, GeoPoint, ConstrainedClusterResult } from '@/lib/routeOptimizer';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAnaliseRotasIA, RotaResumoIA } from '@/hooks/useAnaliseRotasIA';
@@ -66,6 +66,7 @@ const Roteirizador = () => {
   const [tecnicos, setTecnicos] = useState<number>(3);
   const [tecnicosInput, setTecnicosInput] = useState<string>('3');
   const [simulationResults, setSimulationResults] = useState<SimulationResult[]>([]);
+  const [expandedRotas, setExpandedRotas] = useState<Set<number>>(new Set());
   const [assignments, setAssignments] = useState<Record<string, number>>({});
   const [mapReady, setMapReady] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>('');
@@ -507,52 +508,116 @@ const Roteirizador = () => {
                       <span className="text-muted-foreground">Média por rota</span>
                       <span className="font-medium">{mediaPorRota} med.</span>
                     </div>
+                    <div className="flex justify-end gap-1 pt-1">
+                      <button
+                        type="button"
+                        className="text-[11px] text-primary hover:underline"
+                        onClick={() => setExpandedRotas(new Set(simulationResults.map(r => r.rota)))}
+                      >
+                        Expandir todas
+                      </button>
+                      <span className="text-muted-foreground text-[11px]">·</span>
+                      <button
+                        type="button"
+                        className="text-[11px] text-primary hover:underline"
+                        onClick={() => setExpandedRotas(new Set())}
+                      >
+                        Recolher todas
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
                     {simulationResults.map(result => {
                       const iaRota = analiseIA.data?.rotas?.find(r => r.rota === result.rota);
+                      const isExpanded = expandedRotas.has(result.rota);
+                      const toggle = () => {
+                        setExpandedRotas(prev => {
+                          const next = new Set(prev);
+                          if (next.has(result.rota)) next.delete(result.rota);
+                          else next.add(result.rota);
+                          return next;
+                        });
+                      };
+                      const sortedEmps = [...result.empreendimentos].sort((a, b) => a.nome.localeCompare(b.nome));
                       return (
                         <div
                           key={result.rota}
-                          className="flex items-start gap-3 p-2 rounded-md border"
+                          className="rounded-md border overflow-hidden"
                           style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
                         >
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
-                              Rota {result.rota}
-                              <span className="text-xs text-muted-foreground">({result.uf})</span>
-                              {iaRota?.nome_sugerido && (
-                                <span className="text-xs text-primary font-normal">· {iaRota.nome_sugerido}</span>
+                          <button
+                            type="button"
+                            onClick={toggle}
+                            className="w-full flex items-start gap-2 p-2 text-left hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex-shrink-0 pt-0.5 text-muted-foreground">
+                              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
+                                Rota {result.rota}
+                                <span className="text-xs text-muted-foreground">({result.uf})</span>
+                                {iaRota?.nome_sugerido && (
+                                  <span className="text-xs text-primary font-normal">· {iaRota.nome_sugerido}</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                <span>{result.empreendimentos.length} emprend.</span>
+                                <span>·</span>
+                                <Badge
+                                  variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
+                                  className={
+                                    result.dentroMeta === 'ok'
+                                      ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
+                                      : result.dentroMeta === 'baixo'
+                                      ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
+                                      : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
+                                  }
+                                >
+                                  {result.totalMedidores} med.
+                                </Badge>
+                              </div>
+                              {iaRota?.observacao && (
+                                <p className="text-[11px] text-muted-foreground mt-1 italic">{iaRota.observacao}</p>
                               )}
                             </div>
-                            <div className="text-xs text-muted-foreground flex items-center gap-2">
-                              <span>{result.empreendimentos.length} emprend.</span>
-                              <span>·</span>
-                              <Badge
-                                variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
-                                className={
-                                  result.dentroMeta === 'ok'
-                                    ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
-                                    : result.dentroMeta === 'baixo'
-                                    ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
-                                    : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
-                                }
-                              >
-                                {result.totalMedidores} med.
-                              </Badge>
+                            <div className="flex-shrink-0 text-muted-foreground pt-0.5" title={`${result.leituristas} leiturista(s)`}>
+                              {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
                             </div>
-                            {iaRota?.observacao && (
-                              <p className="text-[11px] text-muted-foreground mt-1 italic">{iaRota.observacao}</p>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0 text-muted-foreground pt-0.5" title={`${result.leituristas} leiturista(s)`}>
-                            {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                          </div>
+                          </button>
+
+                          {isExpanded && (
+                            <ul className="border-t bg-muted/20 divide-y">
+                              {sortedEmps.map(emp => (
+                                <li key={emp.id}>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (map.current && emp.latitude && emp.longitude) {
+                                        map.current.flyTo({ center: [emp.longitude, emp.latitude], zoom: 15, duration: 800 });
+                                      }
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 hover:bg-muted/50 transition-colors flex items-start gap-2"
+                                  >
+                                    <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" style={{ color: result.color }} />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-xs font-medium truncate">{emp.nome}</div>
+                                      <div className="text-[10px] text-muted-foreground truncate">{emp.endereco}</div>
+                                    </div>
+                                    <span className="text-[10px] text-muted-foreground flex-shrink-0 pt-0.5">
+                                      {emp.quantidade_medidores} med.
+                                    </span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       );
                     })}
                   </div>
+
 
                   <Button
                     onClick={handleAnalisarIA}

@@ -1,24 +1,23 @@
 ## Problema
 
-O input "Meta de medidores por rota" tem clamping (`Math.max(500, Math.min(1200, ...))`) e fallback (`|| 750`) no `onChange`. Isso quebra a digitação:
-
-- Apagar o campo → volta a 750 imediatamente.
-- Digitar "8" (para começar "800") → vira 500 na hora.
-- Qualquer valor intermediário abaixo de 500 é sobrescrito antes do usuário terminar.
-
-O mesmo problema existe no campo "Nº de técnicos" que adicionei.
+No card de resumo das rotas simuladas, cada rota mostra apenas a contagem (`42 emprend.`) e o total de medidores, mas não lista **quais empreendimentos** foram alocados. O usuário precisa ver os nomes para conferir a distribuição.
 
 ## Correção
 
-Trocar a estratégia: aceitar qualquer entrada durante a digitação e só validar/clampar no `onBlur` (ou quando o valor é usado no cálculo). Usar string local para permitir o campo ficar vazio enquanto o usuário digita.
+Tornar cada linha de rota expansível: um clique revela a lista dos empreendimentos daquela rota.
 
 **Arquivo**: `src/components/medicao-terceirizada/Roteirizador.tsx`
 
 **Mudanças**:
-1. `metaPorRota` e `tecnicos` continuam como número (usados no cálculo).
-2. Adicionar estados de string espelho (`metaPorRotaInput`, `tecnicosInput`) para o `value` do Input.
-3. `onChange` só atualiza a string (sem clamp).
-4. `onBlur` faz o parse + clamp e sincroniza o estado numérico. Se ficar inválido/vazio, volta ao último válido.
-5. Manter `min`/`max` como dica visual do browser, sem forçar via JS durante a digitação.
+1. Adicionar estado `expandedRotas: Set<number>` para controlar quais rotas estão abertas.
+2. Envolver cada linha de rota em um botão clicável com chevron (▶/▼) que alterna a expansão.
+3. Quando expandido, renderizar uma lista compacta abaixo da linha com:
+   - Nome do empreendimento
+   - Endereço curto (truncado)
+   - Quantidade de medidores
+   - Ordenados por nome
+4. Adicionar botões "Expandir todas" / "Recolher todas" no topo do resumo (ao lado do total de rotas).
+5. Manter altura contida com scroll — a `ScrollArea` do painel já cuida disso.
+6. Ao clicar em um item da lista, centralizar/zoomar o mapa no marcador daquele empreendimento (bônus curto, reaproveita `map.current.flyTo`).
 
-Sem mudanças de layout, backend ou lógica de cálculo.
+Sem alteração de backend, cálculo ou layout geral — só progressão de UI da lista existente.
