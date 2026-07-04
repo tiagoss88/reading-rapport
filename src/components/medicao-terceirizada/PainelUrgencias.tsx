@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { AlertTriangle, Clock, Pencil, Copy } from 'lucide-react'
+import { AlertTriangle, Clock, Pencil, Copy, Route as RouteIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
+import RoteirizarUrgentesDialog from './RoteirizarUrgentesDialog'
 
 interface ServicoNacionalGas {
   id: string
