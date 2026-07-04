@@ -187,7 +187,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RouteIcon className="h-5 w-5" /> Roteirizar Serviços Urgentes
