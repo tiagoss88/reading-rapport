@@ -21,9 +21,23 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: null,
+      devOptions: { enabled: false },
       workbox: {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/~oauth/],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-navigations',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 32, maxAgeSeconds: 60 * 60 * 24 },
+            },
+          },
+        ],
       },
       manifest: {
         name: 'AGASEN - Coletor',
