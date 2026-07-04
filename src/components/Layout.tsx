@@ -127,7 +127,7 @@ export default function Layout({ children, title }: LayoutProps) {
             variant="ghost"
             size="icon"
             className="hidden lg:flex flex-shrink-0"
-            onClick={() => { setHovered(false); setCollapsed(!collapsed); }}
+            onClick={() => setCollapsed(!collapsed)}
             title={collapsed ? 'Expandir menu' : 'Minimizar menu'}
           >
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
