@@ -215,7 +215,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
       rotaOffset += kUf
     }
     return resultado
-  }, [gerado, comCoord, techs, coordsMap])
+  }, [gerado, comCoord, techs, servicoCoords])
 
   const formatLinhaItem = (u: UrgenteItem, i: number) => {
     const loc = [u.servico.bloco && `Bloco ${u.servico.bloco}`, u.servico.apartamento && `Apto ${u.servico.apartamento}`]
