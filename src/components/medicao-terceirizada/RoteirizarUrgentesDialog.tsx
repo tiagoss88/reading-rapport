@@ -296,7 +296,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
               )}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )
