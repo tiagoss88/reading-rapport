@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { AlertTriangle, Clock, Pencil, Copy } from 'lucide-react'
+import { AlertTriangle, Clock, Pencil, Copy, Route as RouteIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
+import RoteirizarUrgentesDialog from './RoteirizarUrgentesDialog'
 
 interface ServicoNacionalGas {
   id: string
@@ -17,6 +18,7 @@ interface ServicoNacionalGas {
   status_atendimento: string
   morador_nome: string | null
   uf: string
+  empreendimento_id?: string | null
 }
 
 interface PainelUrgenciasProps {
@@ -171,6 +173,7 @@ export function getServicosUrgentes(servicos: ServicoNacionalGas[]): ServicoUrge
 export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgenciasProps) {
   const urgentes = useMemo(() => getServicosUrgentes(servicos), [servicos])
   const [resumoOpen, setResumoOpen] = useState(false)
+  const [roteirizarOpen, setRoteirizarOpen] = useState(false)
   const [ufFiltro, setUfFiltro] = useState<string>('TODAS')
   const { toast } = useToast()
 
@@ -250,6 +253,9 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
           <AlertTriangle className="h-5 w-5 text-red-500" />
           <span>Serviços com Prazo Crítico</span>
           <div className="flex gap-1.5 ml-auto items-center">
+            <Button variant="outline" size="sm" onClick={() => setRoteirizarOpen(true)}>
+              <RouteIcon className="h-4 w-4 mr-1" /> Roteirizar
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setResumoOpen(true)}>
               <Copy className="h-4 w-4 mr-1" /> Copiar Resumo
             </Button>
@@ -370,6 +376,12 @@ export default function PainelUrgencias({ servicos, onEditServico }: PainelUrgen
           </div>
         </DialogContent>
       </Dialog>
+      <RoteirizarUrgentesDialog
+        open={roteirizarOpen}
+        onOpenChange={setRoteirizarOpen}
+        urgentes={urgentesFiltrados}
+        ufAtiva={ufFiltro}
+      />
     </Card>
   )
 }
