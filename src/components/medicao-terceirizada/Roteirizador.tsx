@@ -66,6 +66,7 @@ const Roteirizador = () => {
   const [tecnicos, setTecnicos] = useState<number>(3);
   const [tecnicosInput, setTecnicosInput] = useState<string>('3');
   const [simulationResults, setSimulationResults] = useState<SimulationResult[]>([]);
+  const [expandedRotas, setExpandedRotas] = useState<Set<number>>(new Set());
   const [assignments, setAssignments] = useState<Record<string, number>>({});
   const [mapReady, setMapReady] = useState(false);
   const [mapboxToken, setMapboxToken] = useState<string>('');
