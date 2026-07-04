@@ -212,14 +212,59 @@ const Roteirizador = () => {
       grupo: e.uf,
     }));
 
-    const results = optimizeRoutesWithConstraints(points, metaEfetiva, metaMax);
-
     const newAssignments: Record<string, number> = {};
     const grupoByRota: Record<number, string> = {};
-    results.forEach(r => {
-      newAssignments[r.id] = r.rota;
-      grupoByRota[r.rota] = r.grupo;
-    });
+
+    if (modo === 'meta') {
+      const results = optimizeRoutesWithConstraints(points, metaEfetiva, metaMax);
+      results.forEach(r => {
+        newAssignments[r.id] = r.rota;
+        grupoByRota[r.rota] = r.grupo;
+      });
+    } else {
+      // Modo por nº de técnicos: distribui técnicos entre UFs proporcionalmente ao peso
+      const grupos: Record<string, GeoPoint[]> = {};
+      for (const p of points) {
+        const g = p.grupo || 'SEM_UF';
+        if (!grupos[g]) grupos[g] = [];
+        grupos[g].push(p);
+      }
+      const totalPeso = points.reduce((s, p) => s + p.peso, 0);
+      const grupoKeys = Object.keys(grupos).sort();
+      let offset = 0;
+
+      // Aloca técnicos por UF proporcional ao peso; mínimo 1 por UF
+      const alocacao: Record<string, number> = {};
+      let alocados = 0;
+      grupoKeys.forEach((g, idx) => {
+        const pesoG = grupos[g].reduce((s, p) => s + p.peso, 0);
+        const prop = Math.max(1, Math.round((pesoG / totalPeso) * tecnicos));
+        alocacao[g] = prop;
+        alocados += prop;
+      });
+      // Ajusta se estourou/faltou o total
+      let diff = tecnicos - alocados;
+      const ordered = grupoKeys.sort((a, b) => grupos[b].reduce((s, p) => s + p.peso, 0) - grupos[a].reduce((s, p) => s + p.peso, 0));
+      let i = 0;
+      while (diff !== 0 && ordered.length > 0) {
+        const g = ordered[i % ordered.length];
+        if (diff > 0) { alocacao[g] += 1; diff--; }
+        else if (alocacao[g] > 1) { alocacao[g] -= 1; diff++; }
+        i++;
+        if (i > 1000) break;
+      }
+
+      grupoKeys.sort().forEach(g => {
+        const k = alocacao[g];
+        const results = optimizeRoutes(grupos[g], k, undefined);
+        results.forEach(r => {
+          newAssignments[r.id] = r.rota + offset;
+          grupoByRota[r.rota + offset] = g;
+        });
+        offset += k;
+      });
+    }
+
     setAssignments(newAssignments);
 
     // Build summary
@@ -247,6 +292,7 @@ const Roteirizador = () => {
       .sort((a, b) => a.rota - b.rota);
 
     setSimulationResults(summary);
+    analiseIA.reset();
     toast.success(`Simulação concluída: ${summary.length} rotas criadas.`);
 
     // Fit map bounds
@@ -257,6 +303,36 @@ const Roteirizador = () => {
       });
       map.current.fitBounds(bounds, { padding: 50 });
     }
+  };
+
+  // Análise IA
+  const handleAnalisarIA = () => {
+    if (simulationResults.length === 0) return;
+    const payload: RotaResumoIA[] = simulationResults.map(r => {
+      const lats = r.empreendimentos.map(e => e.latitude!).filter(Boolean);
+      const lngs = r.empreendimentos.map(e => e.longitude!).filter(Boolean);
+      const cLat = lats.reduce((s, v) => s + v, 0) / (lats.length || 1);
+      const cLng = lngs.reduce((s, v) => s + v, 0) / (lngs.length || 1);
+      // distância média (graus → km aprox * 111)
+      const distMedia = r.empreendimentos.reduce((s, e) => {
+        if (e.latitude == null || e.longitude == null) return s;
+        const dLat = e.latitude - cLat;
+        const dLng = e.longitude - cLng;
+        return s + Math.sqrt(dLat * dLat + dLng * dLng);
+      }, 0) / (r.empreendimentos.length || 1) * 111;
+      return {
+        rota: r.rota,
+        uf: r.uf,
+        centroide: { lat: +cLat.toFixed(4), lng: +cLng.toFixed(4) },
+        total_medidores: r.totalMedidores,
+        qtd_pontos: r.empreendimentos.length,
+        distancia_media_km: +distMedia.toFixed(2),
+      };
+    });
+    analiseIA.mutate({
+      rotas: payload,
+      meta: { tecnicos: modo === 'tecnicos' ? tecnicos : undefined, meta_medidores: modo === 'meta' ? metaEfetiva : undefined },
+    });
   };
 
   // Apply routes mutation
