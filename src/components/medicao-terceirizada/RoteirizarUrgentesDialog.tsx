@@ -187,7 +187,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-3xl h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RouteIcon className="h-5 w-5" /> Roteirizar Serviços Urgentes
@@ -220,7 +220,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
           </Button>
         </div>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {!gerado ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
               Escolha a quantidade de técnicos e clique em <b>Gerar rotas</b>.
@@ -296,7 +296,7 @@ export default function RoteirizarUrgentesDialog({ open, onOpenChange, urgentes,
               )}
             </div>
           )}
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )
