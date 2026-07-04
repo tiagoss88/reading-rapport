@@ -2,12 +2,14 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import { Button } from '@/components/ui/button'
-import { Calendar, FileCheck, Wrench, Bell, Power, User } from 'lucide-react'
+import { Calendar, FileCheck, Wrench, Bell, Power, User, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useLocationTracking } from '@/hooks/useLocationTracking'
 import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications'
 import ProfileDialog from '@/components/ProfileDialog'
 import InstallAppBanner from '@/components/InstallAppBanner'
+import { clearAppCache } from '@/lib/clearAppCache'
+
 
 
 export default function ColetorMenu() {
@@ -35,6 +37,27 @@ export default function ColetorMenu() {
       })
     }
   }
+
+  const handleClearCache = async () => {
+    if (!window.confirm('Limpar todo o cache e dados offline do app? Você será redirecionado para o login.')) {
+      return
+    }
+    try {
+      await clearAppCache()
+      toast({
+        title: "Cache limpo",
+        description: "Recarregando o aplicativo..."
+      })
+      window.location.href = '/coletor/login'
+    } catch (error) {
+      toast({
+        title: "Erro ao limpar cache",
+        description: "Tente novamente ou recarregue a página",
+        variant: "destructive"
+      })
+    }
+  }
+
 
   const operadorNome = user?.user_metadata?.nome || user?.email || 'Operador'
 
@@ -95,7 +118,15 @@ export default function ColetorMenu() {
           </div>
 
           {/* Logout */}
-          <div className="border-t border-gray-100 p-4 flex justify-center">
+          <div className="border-t border-gray-100 p-4 flex justify-center gap-3">
+            <button
+              onClick={handleClearCache}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors"
+              title="Limpar cache do aplicativo"
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpar cache
+            </button>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#F8D7DA] text-[#721C24] text-sm font-medium hover:bg-[#f5c6cb] transition-colors"
@@ -104,6 +135,7 @@ export default function ColetorMenu() {
               Sair
             </button>
           </div>
+
         </div>
 
         {/* Footer Info */}
