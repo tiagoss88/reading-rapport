@@ -488,40 +488,92 @@ const Roteirizador = () => {
                   </div>
 
                   <div className="space-y-2">
-                    {simulationResults.map(result => (
-                      <div
-                        key={result.rota}
-                        className="flex items-center gap-3 p-2 rounded-md border"
-                        style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm flex items-center gap-1">
-                            Rota {result.rota}
-                            <span className="text-xs text-muted-foreground">({result.uf})</span>
+                    {simulationResults.map(result => {
+                      const iaRota = analiseIA.data?.rotas?.find(r => r.rota === result.rota);
+                      return (
+                        <div
+                          key={result.rota}
+                          className="flex items-start gap-3 p-2 rounded-md border"
+                          style={{ borderLeftColor: result.color, borderLeftWidth: 4 }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm flex items-center gap-1 flex-wrap">
+                              Rota {result.rota}
+                              <span className="text-xs text-muted-foreground">({result.uf})</span>
+                              {iaRota?.nome_sugerido && (
+                                <span className="text-xs text-primary font-normal">· {iaRota.nome_sugerido}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                              <span>{result.empreendimentos.length} emprend.</span>
+                              <span>·</span>
+                              <Badge
+                                variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
+                                className={
+                                  result.dentroMeta === 'ok'
+                                    ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
+                                    : result.dentroMeta === 'baixo'
+                                    ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
+                                    : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
+                                }
+                              >
+                                {result.totalMedidores} med.
+                              </Badge>
+                            </div>
+                            {iaRota?.observacao && (
+                              <p className="text-[11px] text-muted-foreground mt-1 italic">{iaRota.observacao}</p>
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <span>{result.empreendimentos.length} emprend.</span>
-                            <span>·</span>
-                            <Badge
-                              variant={result.dentroMeta === 'ok' ? 'default' : 'outline'}
-                              className={
-                                result.dentroMeta === 'ok'
-                                  ? 'bg-green-600 text-white text-[10px] px-1.5 py-0'
-                                  : result.dentroMeta === 'baixo'
-                                  ? 'border-yellow-500 text-yellow-600 text-[10px] px-1.5 py-0'
-                                  : 'border-red-500 text-red-600 text-[10px] px-1.5 py-0'
-                              }
-                            >
-                              {result.totalMedidores} med.
-                            </Badge>
+                          <div className="flex-shrink-0 text-muted-foreground pt-0.5" title={`${result.leituristas} leiturista(s)`}>
+                            {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
                           </div>
                         </div>
-                        <div className="flex-shrink-0 text-muted-foreground" title={`${result.leituristas} leiturista(s)`}>
-                          {result.leituristas === 2 ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+
+                  <Button
+                    onClick={handleAnalisarIA}
+                    disabled={analiseIA.isPending}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {analiseIA.isPending ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    Analisar com IA
+                  </Button>
+
+                  {analiseIA.data && (
+                    <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+                      {analiseIA.data.resumo_geral && (
+                        <div className="flex gap-2 text-xs">
+                          <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
+                          <p className="text-foreground">{analiseIA.data.resumo_geral}</p>
+                        </div>
+                      )}
+                      {analiseIA.data.alertas && analiseIA.data.alertas.length > 0 && (
+                        <div className="space-y-1.5">
+                          {analiseIA.data.alertas.map((a, idx) => {
+                            const Icon = a.severidade === 'critico' ? AlertCircle : a.severidade === 'aviso' ? AlertTriangle : Info;
+                            const cls = a.severidade === 'critico'
+                              ? 'border-red-500/50 text-red-700 dark:text-red-400'
+                              : a.severidade === 'aviso'
+                              ? 'border-yellow-500/50 text-yellow-700 dark:text-yellow-400'
+                              : 'border-blue-500/50 text-blue-700 dark:text-blue-400';
+                            return (
+                              <Alert key={idx} className={`py-2 ${cls}`}>
+                                <Icon className="h-3.5 w-3.5" />
+                                <AlertDescription className="text-xs ml-1">{a.mensagem}</AlertDescription>
+                              </Alert>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
