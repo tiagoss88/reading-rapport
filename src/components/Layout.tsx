@@ -81,14 +81,14 @@ export default function Layout({ children, title }: LayoutProps) {
   ]
 
   const navLinkClass = (isActive: boolean) =>
-    `flex items-center ${collapsed ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+    `flex items-center ${isCompact ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-md transition-colors ${
       isActive
         ? 'bg-primary text-primary-foreground'
         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
     }`
 
   const subNavLinkClass = (isActive: boolean) =>
-    `flex items-center ${collapsed ? 'justify-center' : ''} px-3 py-2 text-sm rounded-md transition-colors ${
+    `flex items-center ${isCompact ? 'justify-center' : ''} px-3 py-2 text-sm rounded-md transition-colors ${
       isActive
         ? 'bg-primary text-primary-foreground'
         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -97,9 +97,9 @@ export default function Layout({ children, title }: LayoutProps) {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 ${collapsed ? 'w-16' : 'w-64'} bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} className={`fixed inset-y-0 left-0 z-50 ${isCompact ? 'w-16' : 'w-64'} bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex h-16 items-center justify-between px-3 border-b">
-          {!collapsed && (
+          {!isCompact && (
             <div className="flex items-center gap-3 overflow-hidden">
               <img 
                 src={agasenLogo}
@@ -109,7 +109,7 @@ export default function Layout({ children, title }: LayoutProps) {
               <h1 className="text-lg font-semibold whitespace-nowrap">Sistema de Leituras</h1>
             </div>
           )}
-          {collapsed && (
+          {isCompact && (
             <img 
               src={agasenLogo}
               alt="Agasen Logo" 
@@ -120,7 +120,7 @@ export default function Layout({ children, title }: LayoutProps) {
             variant="ghost"
             size="icon"
             className="lg:hidden flex-shrink-0"
-            onClick={() => setSidebarOpen(false)}
+            onClick={handleNavClick}
           >
             <Menu className="h-5 w-5" />
           </Button>
@@ -128,7 +128,7 @@ export default function Layout({ children, title }: LayoutProps) {
             variant="ghost"
             size="icon"
             className="hidden lg:flex flex-shrink-0"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={() => { setHovered(false); setCollapsed(!collapsed); }}
             title={collapsed ? 'Expandir menu' : 'Minimizar menu'}
           >
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
@@ -143,10 +143,10 @@ export default function Layout({ children, title }: LayoutProps) {
                   to={item.href}
                   title={item.name}
                   className={({ isActive }) => navLinkClass(isActive)}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={handleNavClick}
                 >
-                  <item.icon className={`h-5 w-5 flex-shrink-0 ${collapsed ? '' : 'mr-3'}`} />
-                  {!collapsed && item.name}
+                  <item.icon className={`h-5 w-5 flex-shrink-0 ${isCompact ? '' : 'mr-3'}`} />
+                  {!isCompact && item.name}
                 </NavLink>
               </ProtectedComponent>
             ))}
@@ -154,12 +154,12 @@ export default function Layout({ children, title }: LayoutProps) {
             {/* Medição Terceirizada Dropdown */}
             <ProtectedComponent roles={["admin", "gestor_empreendimento"]}>
               <div className="space-y-1">
-                {collapsed ? (
+                {isCompact ? (
                   <NavLink
                     to="/medicao-terceirizada/empreendimentos"
                     title="Medição"
                     className={({ isActive }) => navLinkClass(isActive || pathname.startsWith('/medicao-terceirizada'))}
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={handleNavClick}
                   >
                     <Handshake className="h-5 w-5 flex-shrink-0" />
                   </NavLink>
@@ -184,7 +184,7 @@ export default function Layout({ children, title }: LayoutProps) {
                             to={item.href}
                             title={item.name}
                             className={({ isActive }) => subNavLinkClass(isActive)}
-                            onClick={() => setSidebarOpen(false)}
+                            onClick={handleNavClick}
                           >
                             <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
                             {item.name}
@@ -200,12 +200,12 @@ export default function Layout({ children, title }: LayoutProps) {
             {/* Relatórios Dropdown */}
             <ProtectedComponent permission="view_relatorios">
               <div className="space-y-1">
-                {collapsed ? (
+                {isCompact ? (
                   <NavLink
                     to="/relatorios/leituras"
                     title="Relatórios"
                     className={({ isActive }) => navLinkClass(isActive || pathname.startsWith('/relatorios'))}
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={handleNavClick}
                   >
                     <BarChart3 className="h-5 w-5 flex-shrink-0" />
                   </NavLink>
@@ -230,7 +230,7 @@ export default function Layout({ children, title }: LayoutProps) {
                             to={item.href}
                             title={item.name}
                             className={({ isActive }) => subNavLinkClass(isActive)}
-                            onClick={() => setSidebarOpen(false)}
+                            onClick={handleNavClick}
                           >
                             <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
                             {item.name}
@@ -250,10 +250,10 @@ export default function Layout({ children, title }: LayoutProps) {
                   to={item.href}
                   title={item.name}
                   className={({ isActive }) => navLinkClass(isActive)}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={handleNavClick}
                 >
-                  <item.icon className={`h-5 w-5 flex-shrink-0 ${collapsed ? '' : 'mr-3'}`} />
-                  {!collapsed && item.name}
+                  <item.icon className={`h-5 w-5 flex-shrink-0 ${isCompact ? '' : 'mr-3'}`} />
+                  {!isCompact && item.name}
                 </NavLink>
               </ProtectedComponent>
             ))}
@@ -261,12 +261,12 @@ export default function Layout({ children, title }: LayoutProps) {
             {/* Configurações Dropdown */}
             <ProtectedComponent permissions={["manage_operadores"]} roles={["admin"]}>
               <div className="space-y-1">
-                {collapsed ? (
+                {isCompact ? (
                   <NavLink
                     to="/configuracoes/sistema"
                     title="Configurações"
                     className={({ isActive }) => navLinkClass(isActive || ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))}
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={handleNavClick}
                   >
                     <Settings className="h-5 w-5 flex-shrink-0" />
                   </NavLink>
@@ -295,7 +295,7 @@ export default function Layout({ children, title }: LayoutProps) {
                               to={item.href}
                               title={item.name}
                               className={({ isActive }) => subNavLinkClass(isActive)}
-                              onClick={() => setSidebarOpen(false)}
+                              onClick={handleNavClick}
                             >
                               <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
                               {item.name}
@@ -318,8 +318,8 @@ export default function Layout({ children, title }: LayoutProps) {
             className="w-full"
             title="Sair"
           >
-            <LogOut className={`h-4 w-4 ${collapsed ? '' : 'mr-2'}`} />
-            {!collapsed && 'Sair'}
+            <LogOut className={`h-4 w-4 ${isCompact ? '' : 'mr-2'}`} />
+            {!isCompact && 'Sair'}
           </Button>
         </div>
       </div>
@@ -328,7 +328,7 @@ export default function Layout({ children, title }: LayoutProps) {
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={handleNavClick}
         />
       )}
 
