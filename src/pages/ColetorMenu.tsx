@@ -118,7 +118,15 @@ export default function ColetorMenu() {
           </div>
 
           {/* Logout */}
-          <div className="border-t border-gray-100 p-4 flex justify-center">
+          <div className="border-t border-gray-100 p-4 flex justify-center gap-3">
+            <button
+              onClick={handleClearCache}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors"
+              title="Limpar cache do aplicativo"
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpar cache
+            </button>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#F8D7DA] text-[#721C24] text-sm font-medium hover:bg-[#f5c6cb] transition-colors"
@@ -127,6 +135,7 @@ export default function ColetorMenu() {
               Sair
             </button>
           </div>
+
         </div>
 
         {/* Footer Info */}
