@@ -35,6 +35,14 @@ export default function Layout({ children, title }: LayoutProps) {
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
+  const [hovered, setHovered] = useState(false)
+  const isCompact = collapsed && !hovered
+
+  const handleNavClick = () => {
+    setSidebarOpen(false)
+    setHovered(false)
+    setCollapsed(true)
+  }
   
   const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
   const [relatoriosOpen, setRelatoriosOpen] = useState(() => pathname.startsWith('/relatorios'))
