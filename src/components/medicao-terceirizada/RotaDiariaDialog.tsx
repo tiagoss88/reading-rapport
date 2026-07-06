@@ -11,7 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useToast } from '@/hooks/use-toast'
 import { format, parse } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Plus, Trash2, Building2, Users, ChevronDown, MessageCircle } from 'lucide-react'
+import { Plus, Trash2, Building2, Users, ChevronDown, MessageCircle, Wand2 } from 'lucide-react'
+import SugerirDivisaoDialog from './SugerirDivisaoDialog'
 
 interface DiaUtil {
   id: string
