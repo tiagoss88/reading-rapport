@@ -214,6 +214,17 @@ export default function SugerirDivisaoDialog({
               />
               <Label className="text-sm cursor-pointer">Agrupar por proximidade</Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={priorizarRegiao}
+                disabled={!proximidade}
+                onCheckedChange={v => {
+                  setPriorizarRegiao(v)
+                  setSugestao(null)
+                }}
+              />
+              <Label className="text-sm cursor-pointer">Priorizar região (mais rígido)</Label>
+            </div>
           </div>
 
           <Button onClick={handleGerar} className="w-full">
