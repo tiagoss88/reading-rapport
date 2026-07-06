@@ -39,6 +39,7 @@ export default function SugerirDivisaoDialog({
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [balancear, setBalancear] = useState(true)
   const [proximidade, setProximidade] = useState(true)
+  const [priorizarRegiao, setPriorizarRegiao] = useState(true)
   const [sugestao, setSugestao] = useState<SugestaoResultado | null>(null)
 
   const totalMedidores = useMemo(
@@ -74,7 +75,7 @@ export default function SugerirDivisaoDialog({
     const resultado = sugerirDivisao({
       empreendimentos,
       tecnicos: tecnicos.map(t => ({ id: t.id, nome: t.nome })),
-      opcoes: { balancearMedidores: balancear, agruparProximidade: proximidade },
+      opcoes: { balancearMedidores: balancear, agruparProximidade: proximidade, priorizarRegiao },
     })
     setSugestao(resultado)
   }
@@ -213,6 +214,17 @@ export default function SugerirDivisaoDialog({
               />
               <Label className="text-sm cursor-pointer">Agrupar por proximidade</Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={priorizarRegiao}
+                disabled={!proximidade}
+                onCheckedChange={v => {
+                  setPriorizarRegiao(v)
+                  setSugestao(null)
+                }}
+              />
+              <Label className="text-sm cursor-pointer">Priorizar região (mais rígido)</Label>
+            </div>
           </div>
 
           <Button onClick={handleGerar} className="w-full">
@@ -238,6 +250,9 @@ export default function SugerirDivisaoDialog({
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {t.empreendimentoIds.length} condos • {t.totalMedidores} medidores
+                      {t.compactacaoKm > 0 && (
+                        <> • <span title="Distância média ao centro do cluster">~{t.compactacaoKm.toFixed(1)} km</span></>
+                      )}
                     </div>
                     <ul className="text-xs space-y-0.5 max-h-48 overflow-y-auto">
                       {t.empreendimentoIds.map(id => (
