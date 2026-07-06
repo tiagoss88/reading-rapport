@@ -45,6 +45,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [selectedEmpreendimento, setSelectedEmpreendimento] = useState<string>('')
+  const [sugerirOpen, setSugerirOpen] = useState(false)
 
   const { data: empreendimentos } = useQuery({
     queryKey: ['empreendimentos-terceirizados-rota', diaUtil.numero_rota, diaUtil.uf],
