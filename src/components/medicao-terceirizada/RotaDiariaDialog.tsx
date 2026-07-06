@@ -11,7 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useToast } from '@/hooks/use-toast'
 import { format, parse } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Plus, Trash2, Building2, Users, ChevronDown, MessageCircle } from 'lucide-react'
+import { Plus, Trash2, Building2, Users, ChevronDown, MessageCircle, Wand2 } from 'lucide-react'
+import SugerirDivisaoDialog from './SugerirDivisaoDialog'
 
 interface DiaUtil {
   id: string
@@ -44,6 +45,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [selectedEmpreendimento, setSelectedEmpreendimento] = useState<string>('')
+  const [sugerirOpen, setSugerirOpen] = useState(false)
 
   const { data: empreendimentos } = useQuery({
     queryKey: ['empreendimentos-terceirizados-rota', diaUtil.numero_rota, diaUtil.uf],
@@ -277,10 +279,21 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
               <Building2 className="h-5 w-5" />
               Planejamento - Rota {diaUtil.numero_rota.toString().padStart(2, '0')} ({diaUtil.uf})
             </DialogTitle>
-            <Button variant="outline" size="sm" onClick={handleCopiarWhatsApp} className="mr-8">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Copiar para WhatsApp
-            </Button>
+            <div className="flex items-center gap-2 mr-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSugerirOpen(true)}
+                disabled={groupedByEmpreendimento.length === 0}
+              >
+                <Wand2 className="mr-2 h-4 w-4" />
+                Sugerir divisão
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopiarWhatsApp}>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Copiar para WhatsApp
+              </Button>
+            </div>
           </div>
         </DialogHeader>
         
@@ -430,6 +443,24 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
           )}
         </div>
       </DialogContent>
+
+      <SugerirDivisaoDialog
+        open={sugerirOpen}
+        onOpenChange={setSugerirOpen}
+        data={diaUtil.data}
+        empreendimentos={groupedByEmpreendimento.map(g => {
+          const emp = empreendimentos?.find(e => e.id === g.empreendimento_id)
+          return {
+            id: g.empreendimento_id,
+            nome: g.nome,
+            quantidade_medidores: g.quantidade_medidores,
+            latitude: emp?.latitude ?? null,
+            longitude: emp?.longitude ?? null,
+          }
+        })}
+        operadores={operadores?.map(o => ({ id: o.id, nome: o.nome })) || []}
+        onApplied={invalidateAll}
+      />
     </Dialog>
   )
 }
