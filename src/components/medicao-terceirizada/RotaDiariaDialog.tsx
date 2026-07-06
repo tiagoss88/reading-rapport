@@ -443,6 +443,24 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
           )}
         </div>
       </DialogContent>
+
+      <SugerirDivisaoDialog
+        open={sugerirOpen}
+        onOpenChange={setSugerirOpen}
+        data={diaUtil.data}
+        empreendimentos={groupedByEmpreendimento.map(g => {
+          const emp = empreendimentos?.find(e => e.id === g.empreendimento_id)
+          return {
+            id: g.empreendimento_id,
+            nome: g.nome,
+            quantidade_medidores: g.quantidade_medidores,
+            latitude: emp?.latitude ?? null,
+            longitude: emp?.longitude ?? null,
+          }
+        })}
+        operadores={operadores?.map(o => ({ id: o.id, nome: o.nome })) || []}
+        onApplied={invalidateAll}
+      />
     </Dialog>
   )
 }
