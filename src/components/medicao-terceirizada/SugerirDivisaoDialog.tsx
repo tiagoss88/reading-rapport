@@ -39,6 +39,7 @@ export default function SugerirDivisaoDialog({
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
   const [balancear, setBalancear] = useState(true)
   const [proximidade, setProximidade] = useState(true)
+  const [priorizarRegiao, setPriorizarRegiao] = useState(true)
   const [sugestao, setSugestao] = useState<SugestaoResultado | null>(null)
 
   const totalMedidores = useMemo(
