@@ -75,7 +75,7 @@ export default function SugerirDivisaoDialog({
     const resultado = sugerirDivisao({
       empreendimentos,
       tecnicos: tecnicos.map(t => ({ id: t.id, nome: t.nome })),
-      opcoes: { balancearMedidores: balancear, agruparProximidade: proximidade },
+      opcoes: { balancearMedidores: balancear, agruparProximidade: proximidade, priorizarRegiao },
     })
     setSugestao(resultado)
   }
