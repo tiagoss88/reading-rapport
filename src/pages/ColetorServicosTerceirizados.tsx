@@ -304,7 +304,11 @@ export default function ColetorServicosTerceirizados() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">Agendamento</p>
                     <p className="font-medium">
-                      {format(new Date(selectedServico.data_agendamento + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                      {(() => {
+                        const iso = String(selectedServico.data_agendamento).slice(0, 10);
+                        const d = new Date(iso + 'T00:00:00');
+                        return isNaN(d.getTime()) ? '—' : format(d, "dd/MM/yyyy", { locale: ptBR });
+                      })()}
                       {selectedServico.turno && ` - ${getTurnoLabel(selectedServico.turno)}`}
                     </p>
                   </div>
