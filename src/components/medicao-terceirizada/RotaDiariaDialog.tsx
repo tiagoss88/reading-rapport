@@ -227,16 +227,20 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
       return
     }
 
-    const porOperador = new Map<string, Set<string>>()
+    const porOperador = new Map<string, { condos: Set<string>, medidores: number }>()
     for (const g of groupedByEmpreendimento) {
       const nomes = g.rotas.filter(r => r.operador_nome).map(r => r.operador_nome!)
       if (nomes.length === 0) {
-        if (!porOperador.has('Sem técnico atribuído')) porOperador.set('Sem técnico atribuído', new Set())
-        porOperador.get('Sem técnico atribuído')!.add(g.nome)
+        if (!porOperador.has('Sem técnico atribuído')) porOperador.set('Sem técnico atribuído', { condos: new Set(), medidores: 0 })
+        const entry = porOperador.get('Sem técnico atribuído')!
+        entry.condos.add(g.nome)
+        entry.medidores += g.quantidade_medidores
       } else {
         for (const nome of nomes) {
-          if (!porOperador.has(nome)) porOperador.set(nome, new Set())
-          porOperador.get(nome)!.add(g.nome)
+          if (!porOperador.has(nome)) porOperador.set(nome, { condos: new Set(), medidores: 0 })
+          const entry = porOperador.get(nome)!
+          entry.condos.add(g.nome)
+          entry.medidores += g.quantidade_medidores
         }
       }
     }
@@ -246,8 +250,9 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
 
     const ops = Array.from(porOperador.keys()).sort((a, b) => a.localeCompare(b, 'pt-BR'))
     for (const op of ops) {
-      texto += `\n*👷 ${op}*\n`
-      const condos = Array.from(porOperador.get(op)!).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      const entry = porOperador.get(op)!
+      texto += `\n*👷 ${op} — ${entry.medidores} medidor(es)*\n`
+      const condos = Array.from(entry.condos).sort((a, b) => a.localeCompare(b, 'pt-BR'))
       condos.forEach(c => { texto += `• ${c}\n` })
     }
 
