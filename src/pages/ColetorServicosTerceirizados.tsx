@@ -427,9 +427,12 @@ export default function ColetorServicosTerceirizados() {
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Clock className="w-3.5 h-3.5" />
               <span>
-                {servico.data_agendamento
-                  ? format(new Date(servico.data_agendamento + 'T00:00:00'), 'dd/MM', { locale: ptBR })
-                  : 'Sem data'}
+                {(() => {
+                  if (!servico.data_agendamento) return 'Sem data';
+                  const iso = String(servico.data_agendamento).slice(0, 10);
+                  const d = new Date(iso + 'T00:00:00');
+                  return isNaN(d.getTime()) ? 'Sem data' : format(d, 'dd/MM', { locale: ptBR });
+                })()}
                 {servico.turno && ` · ${getTurnoLabel(servico.turno)}`}
               </span>
             </div>
