@@ -279,10 +279,21 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
               <Building2 className="h-5 w-5" />
               Planejamento - Rota {diaUtil.numero_rota.toString().padStart(2, '0')} ({diaUtil.uf})
             </DialogTitle>
-            <Button variant="outline" size="sm" onClick={handleCopiarWhatsApp} className="mr-8">
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Copiar para WhatsApp
-            </Button>
+            <div className="flex items-center gap-2 mr-8">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSugerirOpen(true)}
+                disabled={groupedByEmpreendimento.length === 0}
+              >
+                <Wand2 className="mr-2 h-4 w-4" />
+                Sugerir divisão
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCopiarWhatsApp}>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Copiar para WhatsApp
+              </Button>
+            </div>
           </div>
         </DialogHeader>
         
