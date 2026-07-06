@@ -304,7 +304,11 @@ export default function ColetorServicosTerceirizados() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground">Agendamento</p>
                     <p className="font-medium">
-                      {format(new Date(selectedServico.data_agendamento + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR })}
+                      {(() => {
+                        const iso = String(selectedServico.data_agendamento).slice(0, 10);
+                        const d = new Date(iso + 'T00:00:00');
+                        return isNaN(d.getTime()) ? '—' : format(d, "dd/MM/yyyy", { locale: ptBR });
+                      })()}
                       {selectedServico.turno && ` - ${getTurnoLabel(selectedServico.turno)}`}
                     </p>
                   </div>
@@ -427,9 +431,12 @@ export default function ColetorServicosTerceirizados() {
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <Clock className="w-3.5 h-3.5" />
               <span>
-                {servico.data_agendamento
-                  ? format(new Date(servico.data_agendamento + 'T00:00:00'), 'dd/MM', { locale: ptBR })
-                  : 'Sem data'}
+                {(() => {
+                  if (!servico.data_agendamento) return 'Sem data';
+                  const iso = String(servico.data_agendamento).slice(0, 10);
+                  const d = new Date(iso + 'T00:00:00');
+                  return isNaN(d.getTime()) ? 'Sem data' : format(d, 'dd/MM', { locale: ptBR });
+                })()}
                 {servico.turno && ` · ${getTurnoLabel(servico.turno)}`}
               </span>
             </div>
