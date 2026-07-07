@@ -1,16 +1,18 @@
-## Problema
+## Diagnóstico
 
-O erro "Failed to send a request to the Edge Function" ao clicar em "Gerar Nova Senha" ocorre porque a Edge Function `reset-password` não está implantada no backend (não há logs registrados e o navegador recebe "Failed to fetch" sem status HTTP).
+A Edge Function `reset-password` foi implantada com sucesso e está respondendo corretamente ao testá-la diretamente (retorna 401 "Autenticação necessária" quando chamada sem token, como esperado). Os logs de rede que vi na sessão são anteriores ao deploy, então o erro pode não estar mais ocorrendo.
 
-## Solução
+## Verificação pedida
 
-Implantar a Edge Function `reset-password` que já existe no código (`supabase/functions/reset-password/index.ts`) e está declarada em `supabase/config.toml`.
+Antes de mudar código, preciso confirmar se o erro persiste com a função já implantada:
 
-### Passo único
-- Fazer deploy da função `reset-password` no backend.
+1. Recarregue a página `/operadores` (Ctrl+Shift+R para limpar cache) e tente "Gerar Nova Senha" novamente.
+2. Se ainda falhar, me diga a mensagem exata do toast e/ou o status HTTP mostrado no console.
 
-Não são necessárias mudanças de código — o arquivo já contém validação de auth, checagem de permissão `manage_operadores`/admin, e geração de senha segura.
+## Se ainda falhar após reload
 
-## Verificação
-- Após deploy, testar chamando a função via botão "Gerar Nova Senha" em /operadores.
-- Confirmar que retorna `{ success: true, generated_password: "..." }`.
+Investigarei as duas causas prováveis:
+- **CORS preflight**: comparar cabeçalhos permitidos com o que o navegador envia.
+- **Permissão**: confirmar que o usuário tem `role=admin` ou `permission=manage_operadores` (o log já mostrou `role=admin`, então improvável).
+
+Depois farei o ajuste pontual necessário.
