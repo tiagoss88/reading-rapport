@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -35,6 +35,7 @@ export default function Operadores() {
   const [generatedPassword, setGeneratedPassword] = useState('')
   const [resettingPassword, setResettingPassword] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [resetPasswordError, setResetPasswordError] = useState('')
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -214,6 +215,7 @@ export default function Operadores() {
     if (!resetPasswordOperador) return
 
     setResettingPassword(true)
+    setResetPasswordError('')
     try {
       const { data, error } = await supabase.functions.invoke('reset-password', {
         body: { operador_id: resetPasswordOperador.id }
@@ -226,8 +228,12 @@ export default function Operadores() {
       toast({ title: "Sucesso", description: "Nova senha gerada com sucesso" })
     } catch (error: any) {
       console.error('Erro ao redefinir senha:', error)
-      toast({ title: "Erro", description: error.message || "Erro ao redefinir senha", variant: "destructive" })
-      setResetPasswordOperador(null)
+      const message = error?.message === 'Failed to send a request to the Edge Function'
+        ? 'Não foi possível chamar a função de redefinição. Recarregue a página e tente novamente.'
+        : error?.message || 'Erro ao redefinir senha'
+
+      setResetPasswordError(message)
+      toast({ title: "Erro", description: message, variant: "destructive" })
     } finally {
       setResettingPassword(false)
     }
@@ -449,10 +455,13 @@ export default function Operadores() {
         </Card>
 
         {/* Dialog de Redefinir Senha */}
-        <Dialog open={!!resetPasswordOperador} onOpenChange={(open) => { if (!open) { setResetPasswordOperador(null); setGeneratedPassword('') } }}>
+        <Dialog open={!!resetPasswordOperador} onOpenChange={(open) => { if (!open) { setResetPasswordOperador(null); setGeneratedPassword(''); setResetPasswordError('') } }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Redefinir Senha - {resetPasswordOperador?.nome}</DialogTitle>
+              <DialogDescription>
+                Gere uma senha temporária para este operador acessar o sistema.
+              </DialogDescription>
             </DialogHeader>
             {generatedPassword ? (
               <div className="space-y-4">
@@ -472,11 +481,16 @@ export default function Operadores() {
                 <p className="text-sm text-muted-foreground">
                   Deseja gerar uma nova senha aleatória para <strong>{resetPasswordOperador?.nome}</strong>?
                 </p>
+                {resetPasswordError && (
+                  <p className="text-sm text-destructive">
+                    {resetPasswordError}
+                  </p>
+                )}
                 <div className="flex gap-2 pt-2">
                   <Button onClick={handleResetPassword} className="flex-1" disabled={resettingPassword}>
                     {resettingPassword ? 'Gerando...' : 'Gerar Nova Senha'}
                   </Button>
-                  <Button variant="outline" onClick={() => setResetPasswordOperador(null)}>
+                  <Button variant="outline" onClick={() => { setResetPasswordOperador(null); setResetPasswordError('') }}>
                     Cancelar
                   </Button>
                 </div>
