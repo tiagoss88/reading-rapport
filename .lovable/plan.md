@@ -1,18 +1,36 @@
-## Diagnóstico
+## Plano
 
-A Edge Function `reset-password` foi implantada com sucesso e está respondendo corretamente ao testá-la diretamente (retorna 401 "Autenticação necessária" quando chamada sem token, como esperado). Os logs de rede que vi na sessão são anteriores ao deploy, então o erro pode não estar mais ocorrendo.
+1. Confirmar a origem do erro
+   - A chamada atual no navegador está indo para um backend antigo/diferente (`mxof...`), enquanto o backend ativo deste projeto é outro.
+   - Isso explica por que a função testada diretamente respondeu, mas a tela continua com `Failed to fetch`.
 
-## Verificação pedida
+2. Ajustar a configuração usada pelo app
+   - Verificar onde a aplicação está lendo as variáveis públicas do backend.
+   - Corrigir a divergência para que o frontend chame o backend atual do projeto.
+   - Não editar o cliente auto-gerado diretamente; usar o caminho compatível com a estrutura do projeto.
 
-Antes de mudar código, preciso confirmar se o erro persiste com a função já implantada:
+3. Revisar a função `reset-password`
+   - Garantir CORS completo para a chamada do navegador.
+   - Manter validação por JWT dentro da função.
+   - Manter checagem de permissão/admin antes de alterar senha.
+   - Retornar mensagens de erro úteis para a interface.
 
-1. Recarregue a página `/operadores` (Ctrl+Shift+R para limpar cache) e tente "Gerar Nova Senha" novamente.
-2. Se ainda falhar, me diga a mensagem exata do toast e/ou o status HTTP mostrado no console.
+4. Melhorar o tratamento de erro na tela de Operadores
+   - Exibir uma mensagem mais clara quando a função não puder ser chamada.
+   - Evitar fechar o modal automaticamente sem mostrar o motivo.
 
-## Se ainda falhar após reload
+5. Validar o fluxo
+   - Testar a chamada da função após o ajuste.
+   - Verificar se a senha gerada aparece no modal e pode ser copiada.
+   - Confirmar que não há novo erro de CORS ou `Failed to fetch`.
 
-Investigarei as duas causas prováveis:
-- **CORS preflight**: comparar cabeçalhos permitidos com o que o navegador envia.
-- **Permissão**: confirmar que o usuário tem `role=admin` ou `permission=manage_operadores` (o log já mostrou `role=admin`, então improvável).
+## Observação técnica
 
-Depois farei o ajuste pontual necessário.
+O log de rede mostra:
+
+```text
+POST ...mxoflglqsxupkzrbodkm.../functions/v1/reset-password
+Error: Failed to fetch
+```
+
+Mas o backend ativo informado pelo projeto é diferente. Portanto, sim: pode ser uma alteração/configuração manual antiga ou uma divergência de ambiente que deixou o frontend apontando para outro backend.
