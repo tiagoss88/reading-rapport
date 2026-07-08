@@ -4,13 +4,18 @@ import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { Wand2, Users, Building2, Loader2 } from 'lucide-react'
-import { sugerirDivisao, type EmpreendimentoInput, type SugestaoResultado } from '@/lib/sugerirDivisaoRota'
+import {
+  sugerirDivisao,
+  type EmpreendimentoInput,
+  type SugestaoResultado,
+  type ToleranciaBalanceamento,
+} from '@/lib/sugerirDivisaoRota'
 
 interface Operador {
   id: string
@@ -37,9 +42,7 @@ export default function SugerirDivisaoDialog({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
-  const [balancear, setBalancear] = useState(true)
-  const [proximidade, setProximidade] = useState(true)
-  const [priorizarRegiao, setPriorizarRegiao] = useState(true)
+  const [tolerancia, setTolerancia] = useState<ToleranciaBalanceamento>('media')
   const [sugestao, setSugestao] = useState<SugestaoResultado | null>(null)
 
   const totalMedidores = useMemo(
@@ -75,7 +78,7 @@ export default function SugerirDivisaoDialog({
     const resultado = sugerirDivisao({
       empreendimentos,
       tecnicos: tecnicos.map(t => ({ id: t.id, nome: t.nome })),
-      opcoes: { balancearMedidores: balancear, agruparProximidade: proximidade, priorizarRegiao },
+      opcoes: { tolerancia },
     })
     setSugestao(resultado)
   }
@@ -193,38 +196,24 @@ export default function SugerirDivisaoDialog({
             </ScrollArea>
           </div>
 
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={balancear}
-                onCheckedChange={v => {
-                  setBalancear(v)
-                  setSugestao(null)
-                }}
-              />
-              <Label className="text-sm cursor-pointer">Balancear medidores</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={proximidade}
-                onCheckedChange={v => {
-                  setProximidade(v)
-                  setSugestao(null)
-                }}
-              />
-              <Label className="text-sm cursor-pointer">Agrupar por proximidade</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={priorizarRegiao}
-                disabled={!proximidade}
-                onCheckedChange={v => {
-                  setPriorizarRegiao(v)
-                  setSugestao(null)
-                }}
-              />
-              <Label className="text-sm cursor-pointer">Priorizar região (mais rígido)</Label>
-            </div>
+          <div className="flex items-center gap-3">
+            <Label className="text-sm shrink-0">Tolerância de balanceamento</Label>
+            <Select
+              value={tolerancia}
+              onValueChange={(v: ToleranciaBalanceamento) => {
+                setTolerancia(v)
+                setSugestao(null)
+              }}
+            >
+              <SelectTrigger className="h-8 w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rigida">Rígida (±10%)</SelectItem>
+                <SelectItem value="media">Média (±20%)</SelectItem>
+                <SelectItem value="frouxa">Frouxa (±30%)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Button onClick={handleGerar} className="w-full">
@@ -251,7 +240,10 @@ export default function SugerirDivisaoDialog({
                     <div className="text-xs text-muted-foreground">
                       {t.empreendimentoIds.length} condos • {t.totalMedidores} medidores
                       {t.compactacaoKm > 0 && (
-                        <> • <span title="Distância média ao centro do cluster">~{t.compactacaoKm.toFixed(1)} km</span></>
+                        <> • <span title="Distância média ao centro do cluster">média ~{t.compactacaoKm.toFixed(1)} km</span></>
+                      )}
+                      {t.raioMaxKm > 0 && (
+                        <> • <span title="Distância do ponto mais distante ao centro">raio {t.raioMaxKm.toFixed(1)} km</span></>
                       )}
                     </div>
                     <ul className="text-xs space-y-0.5 max-h-48 overflow-y-auto">
