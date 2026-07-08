@@ -196,38 +196,24 @@ export default function SugerirDivisaoDialog({
             </ScrollArea>
           </div>
 
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={balancear}
-                onCheckedChange={v => {
-                  setBalancear(v)
-                  setSugestao(null)
-                }}
-              />
-              <Label className="text-sm cursor-pointer">Balancear medidores</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={proximidade}
-                onCheckedChange={v => {
-                  setProximidade(v)
-                  setSugestao(null)
-                }}
-              />
-              <Label className="text-sm cursor-pointer">Agrupar por proximidade</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={priorizarRegiao}
-                disabled={!proximidade}
-                onCheckedChange={v => {
-                  setPriorizarRegiao(v)
-                  setSugestao(null)
-                }}
-              />
-              <Label className="text-sm cursor-pointer">Priorizar região (mais rígido)</Label>
-            </div>
+          <div className="flex items-center gap-3">
+            <Label className="text-sm shrink-0">Tolerância de balanceamento</Label>
+            <Select
+              value={tolerancia}
+              onValueChange={(v: ToleranciaBalanceamento) => {
+                setTolerancia(v)
+                setSugestao(null)
+              }}
+            >
+              <SelectTrigger className="h-8 w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rigida">Rígida (±10%)</SelectItem>
+                <SelectItem value="media">Média (±20%)</SelectItem>
+                <SelectItem value="frouxa">Frouxa (±30%)</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Button onClick={handleGerar} className="w-full">
