@@ -240,7 +240,10 @@ export default function SugerirDivisaoDialog({
                     <div className="text-xs text-muted-foreground">
                       {t.empreendimentoIds.length} condos • {t.totalMedidores} medidores
                       {t.compactacaoKm > 0 && (
-                        <> • <span title="Distância média ao centro do cluster">~{t.compactacaoKm.toFixed(1)} km</span></>
+                        <> • <span title="Distância média ao centro do cluster">média ~{t.compactacaoKm.toFixed(1)} km</span></>
+                      )}
+                      {t.raioMaxKm > 0 && (
+                        <> • <span title="Distância do ponto mais distante ao centro">raio {t.raioMaxKm.toFixed(1)} km</span></>
                       )}
                     </div>
                     <ul className="text-xs space-y-0.5 max-h-48 overflow-y-auto">
