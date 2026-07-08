@@ -42,9 +42,7 @@ export default function SugerirDivisaoDialog({
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set())
-  const [balancear, setBalancear] = useState(true)
-  const [proximidade, setProximidade] = useState(true)
-  const [priorizarRegiao, setPriorizarRegiao] = useState(true)
+  const [tolerancia, setTolerancia] = useState<ToleranciaBalanceamento>('media')
   const [sugestao, setSugestao] = useState<SugestaoResultado | null>(null)
 
   const totalMedidores = useMemo(
@@ -80,7 +78,7 @@ export default function SugerirDivisaoDialog({
     const resultado = sugerirDivisao({
       empreendimentos,
       tecnicos: tecnicos.map(t => ({ id: t.id, nome: t.nome })),
-      opcoes: { balancearMedidores: balancear, agruparProximidade: proximidade, priorizarRegiao },
+      opcoes: { tolerancia },
     })
     setSugestao(resultado)
   }
