@@ -1,5 +1,7 @@
 // Sugestão automática de divisão de empreendimentos entre técnicos.
-// Funções puras — sem dependência de rede, banco ou React.
+// Algoritmo: k-means++ ponderado por medidores + atribuição capacitada
+// com distância Haversine (km reais). Roda várias inicializações e escolhe
+// a partição com menor inércia ponderada.
 
 export interface EmpreendimentoInput {
   id: string
@@ -9,10 +11,10 @@ export interface EmpreendimentoInput {
   longitude: number | null
 }
 
+export type ToleranciaBalanceamento = 'rigida' | 'media' | 'frouxa'
+
 export interface SugestaoOpcoes {
-  balancearMedidores: boolean
-  agruparProximidade: boolean
-  priorizarRegiao: boolean
+  tolerancia: ToleranciaBalanceamento
 }
 
 export interface EstatisticaTecnico {
@@ -21,6 +23,7 @@ export interface EstatisticaTecnico {
   empreendimentoIds: string[]
   totalMedidores: number
   compactacaoKm: number
+  raioMaxKm: number
 }
 
 export interface SugestaoResultado {
@@ -33,210 +36,171 @@ interface TecnicoInput {
   nome: string
 }
 
-type Ponto = { id: string; lat: number; lng: number }
-type Centroide = { lat: number; lng: number } | null
+type LatLng = { lat: number; lng: number }
+type Ponto = { id: string; lat: number; lng: number; peso: number }
 
-function dist2(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
-  const dLat = a.lat - b.lat
-  const dLng = a.lng - b.lng
-  return dLat * dLat + dLng * dLng
+const R_KM = 6371
+const N_INITS = 12
+const MAX_ITER = 30
+
+function toRad(g: number): number {
+  return (g * Math.PI) / 180
 }
 
-// Sementes k-means++: primeira aleatória (determinística = índice 0),
-// próximas com probabilidade proporcional ao quadrado da distância mínima.
-function kmeansPlusPlus(pontos: Ponto[], k: number): Array<{ lat: number; lng: number }> {
+function haversineKm(a: LatLng, b: LatLng): number {
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2
+  return 2 * R_KM * Math.asin(Math.min(1, Math.sqrt(s)))
+}
+
+// Seleciona k sementes com k-means++ (aleatoriedade ponderada por d²·peso).
+function kmeansPlusPlus(pontos: Ponto[], k: number): LatLng[] {
   if (pontos.length === 0) return []
-  const seeds: Array<{ lat: number; lng: number }> = [{ lat: pontos[0].lat, lng: pontos[0].lng }]
+  const first = pontos[Math.floor(Math.random() * pontos.length)]
+  const seeds: LatLng[] = [{ lat: first.lat, lng: first.lng }]
 
   while (seeds.length < k && seeds.length < pontos.length) {
-    const distancias = pontos.map(p => Math.min(...seeds.map(s => dist2(s, p))))
-    const total = distancias.reduce((a, b) => a + b, 0)
+    const dists = pontos.map(p => {
+      const d = Math.min(...seeds.map(s => haversineKm(s, p)))
+      return d * d * Math.max(1, p.peso)
+    })
+    const total = dists.reduce((a, b) => a + b, 0)
     if (total === 0) break
-    // Escolha determinística: pega o ponto com maior d² ponderada acumulada no meio.
-    // Usa amostragem por posição fixa (metade do peso total) — reprodutível.
-    const alvo = total * 0.5
-    let acc = 0
-    let escolhido = pontos[0]
-    for (let i = 0; i < pontos.length; i++) {
-      acc += distancias[i]
-      if (acc >= alvo) {
-        escolhido = pontos[i]
+    let r = Math.random() * total
+    let idx = 0
+    for (let i = 0; i < dists.length; i++) {
+      r -= dists[i]
+      if (r <= 0) {
+        idx = i
         break
       }
     }
-    if (seeds.some(s => s.lat === escolhido.lat && s.lng === escolhido.lng)) {
-      // Fallback: escolhe o de maior distância
-      let melhor = pontos[0]
-      let melhorD = -1
-      for (let i = 0; i < pontos.length; i++) {
-        if (distancias[i] > melhorD) {
-          melhorD = distancias[i]
-          melhor = pontos[i]
-        }
-      }
-      escolhido = melhor
-    }
-    seeds.push({ lat: escolhido.lat, lng: escolhido.lng })
+    const p = pontos[idx]
+    seeds.push({ lat: p.lat, lng: p.lng })
   }
-
   return seeds
 }
 
-function kmeansGeo(
-  empreendimentos: EmpreendimentoInput[],
-  k: number
-): { clusters: string[][]; centroides: Centroide[] } {
-  const comGeo: Ponto[] = empreendimentos
-    .filter(e => e.latitude != null && e.longitude != null)
-    .map(e => ({ id: e.id, lat: Number(e.latitude), lng: Number(e.longitude) }))
+// Centroide ponderado (média de lat/lng ponderada pelos medidores).
+function centroidePonderado(pts: Ponto[]): LatLng | null {
+  if (pts.length === 0) return null
+  let wLat = 0
+  let wLng = 0
+  let w = 0
+  for (const p of pts) {
+    const peso = Math.max(1, p.peso)
+    wLat += p.lat * peso
+    wLng += p.lng * peso
+    w += peso
+  }
+  return { lat: wLat / w, lng: wLng / w }
+}
 
-  if (comGeo.length === 0) {
-    return {
-      clusters: Array.from({ length: k }, () => []),
-      centroides: Array.from({ length: k }, () => null),
+// Uma iteração completa: atribui pontos ao cluster mais próximo respeitando teto.
+function atribuirCapacitado(
+  pontos: Ponto[],
+  centroides: LatLng[],
+  teto: number
+): number[] {
+  const k = centroides.length
+  const totais = new Array(k).fill(0)
+  const assignments = new Array(pontos.length).fill(-1)
+
+  // Ordena por medidores desc (aloca os "grandes" primeiro).
+  const ordem = pontos
+    .map((_, i) => i)
+    .sort((a, b) => pontos[b].peso - pontos[a].peso)
+
+  for (const i of ordem) {
+    const p = pontos[i]
+    const ranking = centroides
+      .map((c, ci) => ({ ci, d: haversineKm(p, c) }))
+      .sort((a, b) => a.d - b.d)
+
+    let escolhido = -1
+    for (const r of ranking) {
+      if (totais[r.ci] + p.peso <= teto) {
+        escolhido = r.ci
+        break
+      }
     }
+    if (escolhido === -1) escolhido = ranking[0].ci // nenhum coube → mais próximo
+    assignments[i] = escolhido
+    totais[escolhido] += p.peso
+  }
+  return assignments
+}
+
+// Roda k-means capacitado com um teto; retorna clusters, centroides e inércia.
+function rodadaCapacitada(
+  pontos: Ponto[],
+  k: number,
+  teto: number
+): { clusters: number[][]; centroides: LatLng[]; inercia: number } {
+  let centroides = kmeansPlusPlus(pontos, k)
+  while (centroides.length < k) {
+    centroides.push(centroides[centroides.length - 1] || { lat: 0, lng: 0 })
   }
 
-  let centroides = kmeansPlusPlus(comGeo, k)
-  while (centroides.length < k) centroides.push(centroides[centroides.length - 1])
+  let assignments: number[] = new Array(pontos.length).fill(-1)
 
-  let assignments: number[] = comGeo.map(() => 0)
-
-  for (let iter = 0; iter < 15; iter++) {
-    const novas = comGeo.map(p => {
-      let best = 0
-      let bestDist = Infinity
-      for (let i = 0; i < k; i++) {
-        const d = dist2(p, centroides[i])
-        if (d < bestDist) {
-          bestDist = d
-          best = i
-        }
-      }
-      return best
-    })
-
+  for (let iter = 0; iter < MAX_ITER; iter++) {
+    const novas = atribuirCapacitado(pontos, centroides, teto)
     const mudou = novas.some((a, i) => a !== assignments[i])
     assignments = novas
-    if (!mudou) break
+    if (!mudou && iter > 0) break
 
-    const somas = Array.from({ length: k }, () => ({ lat: 0, lng: 0, n: 0 }))
-    comGeo.forEach((p, i) => {
-      const c = somas[assignments[i]]
-      c.lat += p.lat
-      c.lng += p.lng
-      c.n += 1
-    })
-    centroides = somas.map((s, i) =>
-      s.n > 0 ? { lat: s.lat / s.n, lng: s.lng / s.n } : centroides[i]
+    const grupos: Ponto[][] = Array.from({ length: k }, () => [])
+    assignments.forEach((c, i) => grupos[c].push(pontos[i]))
+    centroides = grupos.map(
+      (g, i) => centroidePonderado(g) || centroides[i]
     )
   }
 
-  const clusters: string[][] = Array.from({ length: k }, () => [])
-  comGeo.forEach((p, i) => clusters[assignments[i]].push(p.id))
-  return { clusters, centroides }
+  const clusters: number[][] = Array.from({ length: k }, () => [])
+  assignments.forEach((c, i) => clusters[c].push(i))
+
+  let inercia = 0
+  clusters.forEach((idxs, ci) => {
+    const c = centroides[ci]
+    if (!c) return
+    for (const i of idxs) {
+      const p = pontos[i]
+      const d = haversineKm(p, c)
+      inercia += d * d * Math.max(1, p.peso)
+    }
+  })
+  return { clusters, centroides, inercia }
 }
 
-function totalMedidores(ids: string[], mapa: Map<string, EmpreendimentoInput>): number {
-  return ids.reduce((acc, id) => acc + (mapa.get(id)?.quantidade_medidores || 0), 0)
+function totalPeso(idxs: number[], pontos: Ponto[]): number {
+  return idxs.reduce((a, i) => a + pontos[i].peso, 0)
 }
 
-function recalcCentroide(ids: string[], mapa: Map<string, EmpreendimentoInput>): Centroide {
-  const pts = ids
-    .map(id => mapa.get(id))
-    .filter((e): e is EmpreendimentoInput => !!e && e.latitude != null && e.longitude != null)
-  if (pts.length === 0) return null
-  const lat = pts.reduce((a, e) => a + Number(e.latitude), 0) / pts.length
-  const lng = pts.reduce((a, e) => a + Number(e.longitude), 0) / pts.length
-  return { lat, lng }
-}
-
-// Rebalanceamento com restrição geográfica: só move um empreendimento se a distância
-// ao novo centróide não for muito maior que a distância ao atual.
-function rebalancearPorMedidores(
-  clusters: string[][],
-  centroides: Centroide[],
-  mapa: Map<string, EmpreendimentoInput>,
-  tolerancia: number,
-  travaDistancia: number
-) {
-  const totais = clusters.map(ids => totalMedidores(ids, mapa))
-  const media = totais.reduce((a, b) => a + b, 0) / clusters.length
-  const limite = Math.max(1, media * tolerancia)
-
-  for (let trocas = 0; trocas < 50; trocas++) {
-    let maxIdx = 0
-    let minIdx = 0
-    clusters.forEach((_, i) => {
-      if (totais[i] > totais[maxIdx]) maxIdx = i
-      if (totais[i] < totais[minIdx]) minIdx = i
-    })
-    if (totais[maxIdx] - totais[minIdx] <= limite) break
-
-    const cAtual = centroides[maxIdx]
-    const cNovo = centroides[minIdx]
-    if (!cAtual || !cNovo) break
-
-    const candidatos = clusters[maxIdx]
-      .map(id => {
-        const e = mapa.get(id)
-        if (!e || e.latitude == null || e.longitude == null) return null
-        const p = { lat: Number(e.latitude), lng: Number(e.longitude) }
-        const dAtual = Math.sqrt(dist2(p, cAtual))
-        const dNovo = Math.sqrt(dist2(p, cNovo))
-        return { id, medidores: e.quantidade_medidores, dAtual, dNovo }
-      })
-      .filter((v): v is { id: string; medidores: number; dAtual: number; dNovo: number } => v !== null)
-      // Trava geográfica: só considera quem NÃO se afasta demais
-      .filter(c => c.dNovo <= travaDistancia * Math.max(c.dAtual, 0.0001))
-      // Prioriza os mais próximos do novo centróide
-      .sort((a, b) => a.dNovo - b.dNovo)
-
-    if (candidatos.length === 0) break
-
-    const escolhido = candidatos.find(c => {
-      const novoMax = totais[maxIdx] - c.medidores
-      const novoMin = totais[minIdx] + c.medidores
-      return Math.abs(novoMax - novoMin) < totais[maxIdx] - totais[minIdx]
-    })
-    if (!escolhido) break
-
-    clusters[maxIdx] = clusters[maxIdx].filter(id => id !== escolhido.id)
-    clusters[minIdx].push(escolhido.id)
-    totais[maxIdx] -= escolhido.medidores
-    totais[minIdx] += escolhido.medidores
-    centroides[maxIdx] = recalcCentroide(clusters[maxIdx], mapa)
-    centroides[minIdx] = recalcCentroide(clusters[minIdx], mapa)
+function raioMaxKm(idxs: number[], pontos: Ponto[], c: LatLng | null): number {
+  if (!c || idxs.length === 0) return 0
+  let max = 0
+  for (const i of idxs) {
+    const d = haversineKm(pontos[i], c)
+    if (d > max) max = d
   }
+  return max
 }
 
-// Média das distâncias ao centróide (em km aprox: 1 grau ≈ 111 km).
-function calcularCompactacao(ids: string[], mapa: Map<string, EmpreendimentoInput>): number {
-  const pts = ids
-    .map(id => mapa.get(id))
-    .filter((e): e is EmpreendimentoInput => !!e && e.latitude != null && e.longitude != null)
-    .map(e => ({ lat: Number(e.latitude), lng: Number(e.longitude) }))
-  if (pts.length < 2) return 0
-  const lat = pts.reduce((a, p) => a + p.lat, 0) / pts.length
-  const lng = pts.reduce((a, p) => a + p.lng, 0) / pts.length
-  const media =
-    pts.reduce((a, p) => a + Math.sqrt(dist2(p, { lat, lng })), 0) / pts.length
-  return media * 111
+function compactacaoKm(idxs: number[], pontos: Ponto[], c: LatLng | null): number {
+  if (!c || idxs.length < 2) return 0
+  let soma = 0
+  for (const i of idxs) soma += haversineKm(pontos[i], c)
+  return soma / idxs.length
 }
 
-function greedyPorMedidores(empreendimentos: EmpreendimentoInput[], k: number): string[][] {
-  const clusters: string[][] = Array.from({ length: k }, () => [])
-  const totais = new Array(k).fill(0)
-  const ordenados = [...empreendimentos].sort(
-    (a, b) => b.quantidade_medidores - a.quantidade_medidores
-  )
-  for (const e of ordenados) {
-    let idx = 0
-    for (let i = 1; i < k; i++) if (totais[i] < totais[idx]) idx = i
-    clusters[idx].push(e.id)
-    totais[idx] += e.quantidade_medidores
-  }
-  return clusters
+function toleranciaFrac(t: ToleranciaBalanceamento): number {
+  if (t === 'rigida') return 0.1
+  if (t === 'frouxa') return 0.3
+  return 0.2
 }
 
 export function sugerirDivisao(params: {
@@ -255,63 +219,119 @@ export function sugerirDivisao(params: {
         empreendimentoIds: [],
         totalMedidores: 0,
         compactacaoKm: 0,
+        raioMaxKm: 0,
       })),
       semCoordenadas: empreendimentos.map(e => e.id),
     }
   }
 
-  const mapa = new Map(empreendimentos.map(e => [e.id, e]))
-  const comGeo = empreendimentos.filter(e => e.latitude != null && e.longitude != null)
+  const pontos: Ponto[] = empreendimentos
+    .filter(e => e.latitude != null && e.longitude != null)
+    .map(e => ({
+      id: e.id,
+      lat: Number(e.latitude),
+      lng: Number(e.longitude),
+      peso: Math.max(1, Number(e.quantidade_medidores) || 1),
+    }))
+
   const semGeoIds = empreendimentos
     .filter(e => e.latitude == null || e.longitude == null)
     .map(e => e.id)
 
-  let clusters: string[][]
-  let centroides: Centroide[] = Array.from({ length: k }, () => null)
+  // Se há menos pontos com geo do que técnicos, cria clusters vazios para o restante.
+  const kEfetivo = Math.min(k, Math.max(1, pontos.length))
 
-  if (opcoes.agruparProximidade) {
-    const geoResult = kmeansGeo(comGeo, k)
-    clusters = geoResult.clusters
-    centroides = geoResult.centroides
+  let melhor: { clusters: number[][]; centroides: LatLng[]; inercia: number } | null = null
 
-    if (opcoes.balancearMedidores) {
-      // Priorizar região = tolerância mais frouxa + trava geográfica apertada
-      const tolerancia = opcoes.priorizarRegiao ? 0.4 : 0.25
-      const travaDistancia = opcoes.priorizarRegiao ? 1.2 : 1.5
-      rebalancearPorMedidores(clusters, centroides, mapa, tolerancia, travaDistancia)
+  if (pontos.length > 0) {
+    const somaPeso = pontos.reduce((a, p) => a + p.peso, 0)
+    const media = somaPeso / kEfetivo
+    const frac = toleranciaFrac(opcoes.tolerancia)
+
+    for (let init = 0; init < N_INITS; init++) {
+      let teto = Math.max(1, media * (1 + frac))
+      let resultado = rodadaCapacitada(pontos, kEfetivo, teto)
+
+      // Se algum cluster ficou vazio ou o teto foi violado seriamente,
+      // relaxa o teto e refaz (até 4 tentativas).
+      let tentativa = 0
+      while (
+        tentativa < 4 &&
+        resultado.clusters.some(c => c.length === 0)
+      ) {
+        teto *= 1.15
+        resultado = rodadaCapacitada(pontos, kEfetivo, teto)
+        tentativa++
+      }
+
+      if (!melhor || resultado.inercia < melhor.inercia) {
+        melhor = resultado
+      }
     }
-  } else if (opcoes.balancearMedidores) {
-    clusters = greedyPorMedidores(comGeo, k)
-  } else {
-    clusters = Array.from({ length: k }, () => [])
-    comGeo.forEach((e, i) => clusters[i % k].push(e.id))
   }
 
-  // Distribui os sem coordenadas nos técnicos mais leves (sugestão inicial).
-  for (const id of semGeoIds) {
-    const totais = clusters.map(ids => totalMedidores(ids, mapa))
-    let idx = 0
-    for (let i = 1; i < k; i++) if (totais[i] < totais[idx]) idx = i
-    clusters[idx].push(id)
-  }
+  // Materializa clusters (por índice de técnico) — se kEfetivo < k, sobram vazios.
+  const clustersIds: string[][] = Array.from({ length: k }, () => [])
+  const centroidesCluster: (LatLng | null)[] = Array.from({ length: k }, () => null)
 
-  // Ordena clusters por latitude média (norte→sul) e casa com a ordem dos técnicos
-  const ordemClusters = clusters
-    .map((ids, i) => {
-      const c = recalcCentroide(ids, mapa)
-      return { i, lat: c?.lat ?? 0 }
+  if (melhor) {
+    // Ordena clusters por (longitude, latitude) para casar em sequência visual O→L, N→S.
+    const ordem = melhor.clusters
+      .map((idxs, i) => ({ i, c: melhor!.centroides[i] }))
+      .filter(x => x.c != null)
+      .sort((a, b) => {
+        const dLng = (a.c!.lng - b.c!.lng)
+        if (Math.abs(dLng) > 0.2) return dLng
+        return b.c!.lat - a.c!.lat
+      })
+      .map(x => x.i)
+
+    ordem.forEach((clusterIdx, ordemIdx) => {
+      const idxs = melhor!.clusters[clusterIdx]
+      clustersIds[ordemIdx] = idxs.map(i => pontos[i].id)
+      centroidesCluster[ordemIdx] = melhor!.centroides[clusterIdx]
     })
-    .sort((a, b) => b.lat - a.lat)
-    .map(x => x.i)
+  }
 
-  const porTecnico: EstatisticaTecnico[] = tecnicos.map((t, ordem) => {
-    const ids = clusters[ordemClusters[ordem]] || []
+  // Distribui os sem coordenadas no técnico com menor total atual.
+  const totaisMedidores = clustersIds.map(ids =>
+    ids.reduce(
+      (a, id) => a + (empreendimentos.find(e => e.id === id)?.quantidade_medidores || 0),
+      0
+    )
+  )
+  for (const id of semGeoIds) {
+    let idx = 0
+    for (let i = 1; i < k; i++) if (totaisMedidores[i] < totaisMedidores[idx]) idx = i
+    clustersIds[idx].push(id)
+    const med = empreendimentos.find(e => e.id === id)?.quantidade_medidores || 0
+    totaisMedidores[idx] += med
+  }
+
+  const porTecnico: EstatisticaTecnico[] = tecnicos.map((t, i) => {
+    const ids = clustersIds[i] || []
+    // Recalcula pontos do cluster (só os com geo) para métricas.
+    const pts: Ponto[] = ids
+      .map(id => {
+        const e = empreendimentos.find(x => x.id === id)
+        if (!e || e.latitude == null || e.longitude == null) return null
+        return {
+          id: e.id,
+          lat: Number(e.latitude),
+          lng: Number(e.longitude),
+          peso: Math.max(1, e.quantidade_medidores || 1),
+        }
+      })
+      .filter((p): p is Ponto => p !== null)
+    const c = centroidePonderado(pts)
+    const idxsLocais = pts.map((_, i) => i)
     return {
       operadorId: t.id,
       operadorNome: t.nome,
       empreendimentoIds: ids,
-      totalMedidores: totalMedidores(ids, mapa),
-      compactacaoKm: calcularCompactacao(ids, mapa),
+      totalMedidores: totaisMedidores[i],
+      compactacaoKm: compactacaoKm(idxsLocais, pts, c),
+      raioMaxKm: raioMaxKm(idxsLocais, pts, c),
     }
   })
 
