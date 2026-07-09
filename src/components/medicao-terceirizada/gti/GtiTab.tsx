@@ -508,7 +508,8 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
     }
     setImporting(true)
     const { data: userRes } = await supabase.auth.getUser()
-    const payload = validos.map(r => ({
+    const importadoEm = new Date().toISOString()
+    const tablePayload = validos.map(r => ({
       uf: r.uf,
       condominio: r.condominio,
       leitura_anterior: r.leitura_anterior,
@@ -517,14 +518,41 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
       mes_referencia: mes,
       ano_referencia: ano,
       importado_por: userRes.user?.id,
-      importado_em: new Date().toISOString(),
+      importado_em: importadoEm,
     }))
+    const configPayload: Row[] = tablePayload.map(r => ({
+      id: crypto.randomUUID(),
+      uf: r.uf as 'CE' | 'BA',
+      condominio: r.condominio,
+      leitura_anterior: r.leitura_anterior,
+      prazo_inicial: r.prazo_inicial,
+      prazo_final: r.prazo_final,
+      mes_referencia: r.mes_referencia,
+      ano_referencia: r.ano_referencia,
+      importado_em: r.importado_em,
+    }))
+
     const { error } = await supabase.from('gti_leituras_mensais' as any)
-      .upsert(payload, { onConflict: 'uf,condominio,ano_referencia,mes_referencia' })
+      .upsert(tablePayload, { onConflict: 'uf,condominio,ano_referencia,mes_referencia' })
 
     setImporting(false)
     if (error) {
-      toast({ title: 'Erro ao importar', description: getGtiErrorMessage(error), variant: 'destructive' })
+      if (isMissingGtiTableError(error)) {
+        try {
+          await upsertGtiRowsInConfig(configPayload)
+          toast({
+            title: 'Importação concluída',
+            description: `${validos.length} linha(s) processada(s) no armazenamento compatível. ${invalidos.length} rejeitada(s).`,
+          })
+          qc.invalidateQueries({ queryKey: ['gti-leituras'] })
+          reset()
+          onOpenChange(false)
+        } catch (fallbackError) {
+          toast({ title: 'Erro ao importar', description: getGtiErrorMessage(fallbackError), variant: 'destructive' })
+        }
+      } else {
+        toast({ title: 'Erro ao importar', description: getGtiErrorMessage(error), variant: 'destructive' })
+      }
     } else {
       toast({ title: 'Importação concluída', description: `${validos.length} linha(s) processada(s). ${invalidos.length} rejeitada(s).` })
       qc.invalidateQueries({ queryKey: ['gti-leituras'] })
