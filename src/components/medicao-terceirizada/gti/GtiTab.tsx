@@ -27,6 +27,11 @@ type Row = {
   importado_em: string
 }
 
+type GtiQueryResult = {
+  rows: Row[]
+  storage: 'table' | 'config'
+}
+
 const MESES = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
@@ -80,13 +85,94 @@ const HEADER_ALIASES: Record<string, string> = {
 
 const anoAtual = new Date().getFullYear()
 const mesAtual = new Date().getMonth() + 1
+const GTI_CONFIG_KEY = 'gti_leituras_mensais'
+
+function isMissingGtiTableError(error: unknown) {
+  const err = error as { code?: string; message?: string } | null
+  return err?.code === 'PGRST205' || !!err?.message?.includes('schema cache')
+}
 
 function getGtiErrorMessage(error: unknown) {
   const err = error as { code?: string; message?: string } | null
-  if (err?.code === 'PGRST205' || err?.message?.includes('schema cache')) {
+  if (isMissingGtiTableError(error)) {
     return 'A tabela GTI ainda não está disponível no backend conectado a este app. Atualize o app e tente novamente; se persistir, o backend ativo precisa receber a migração da tabela GTI.'
   }
   return err?.message || 'Não foi possível carregar os registros GTI.'
+}
+
+function parseConfigRows(valor: string | null): Row[] {
+  if (!valor) return []
+  try {
+    const parsed = JSON.parse(valor)
+    const rawRows = Array.isArray(parsed) ? parsed : parsed?.rows
+    if (!Array.isArray(rawRows)) return []
+    return rawRows.filter((r: Partial<Row>) => r?.id && r?.condominio && r?.uf && r?.mes_referencia && r?.ano_referencia) as Row[]
+  } catch {
+    return []
+  }
+}
+
+async function fetchGtiConfigRows() {
+  const { data, error } = await supabase
+    .from('configuracoes_sistema' as any)
+    .select('id, valor')
+    .eq('chave', GTI_CONFIG_KEY)
+    .order('updated_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return { configId: data?.id as string | undefined, rows: parseConfigRows(data?.valor ?? null) }
+}
+
+async function saveGtiConfigRows(rows: Row[], configId?: string) {
+  const valor = JSON.stringify({ rows, updated_at: new Date().toISOString() })
+  const payload = {
+    chave: GTI_CONFIG_KEY,
+    valor,
+    descricao: 'Planilha GTI — Coletas CE/BA',
+    tipo: 'json',
+  }
+
+  const result = configId
+    ? await supabase.from('configuracoes_sistema' as any).update(payload).eq('id', configId)
+    : await supabase.from('configuracoes_sistema' as any).insert(payload)
+
+  if (result.error) throw result.error
+}
+
+function rowKey(r: Pick<Row, 'uf' | 'condominio' | 'ano_referencia' | 'mes_referencia'>) {
+  return `${r.uf}::${r.condominio.trim().toUpperCase()}::${r.ano_referencia}::${r.mes_referencia}`
+}
+
+async function fetchGtiRowsFromConfig(ano: number, mes: number, uf: 'TODOS' | 'CE' | 'BA') {
+  const { rows } = await fetchGtiConfigRows()
+  return rows
+    .filter(r => r.ano_referencia === ano && r.mes_referencia === mes && (uf === 'TODOS' || r.uf === uf))
+    .sort((a, b) => a.uf.localeCompare(b.uf) || a.condominio.localeCompare(b.condominio))
+}
+
+async function upsertGtiRowsInConfig(rowsToSave: Row[]) {
+  const { configId, rows } = await fetchGtiConfigRows()
+  const merged = new Map(rows.map(r => [rowKey(r), r]))
+
+  rowsToSave.forEach(row => {
+    const key = rowKey(row)
+    const existing = merged.get(key)
+    merged.set(key, { ...existing, ...row, id: existing?.id ?? row.id })
+  })
+
+  await saveGtiConfigRows(Array.from(merged.values()), configId)
+}
+
+async function updateGtiRowInConfig(row: Row) {
+  const { configId, rows } = await fetchGtiConfigRows()
+  await saveGtiConfigRows(rows.map(r => r.id === row.id ? row : r), configId)
+}
+
+async function deleteGtiRowFromConfig(rowId: string) {
+  const { configId, rows } = await fetchGtiConfigRows()
+  await saveGtiConfigRows(rows.filter(r => r.id !== rowId), configId)
 }
 
 export default function GtiTab() {
@@ -104,7 +190,7 @@ export default function GtiTab() {
   const [editRow, setEditRow] = useState<Row | null>(null)
   const [delRow, setDelRow] = useState<Row | null>(null)
 
-  const { data: registros = [], isLoading, error: loadError, refetch, isFetching } = useQuery({
+  const { data: queryResult, isLoading, error: loadError, refetch, isFetching } = useQuery<GtiQueryResult>({
     queryKey: ['gti-leituras', ano, mes, uf],
     queryFn: async () => {
       let q = supabase.from('gti_leituras_mensais' as any)
@@ -115,11 +201,19 @@ export default function GtiTab() {
         .order('condominio', { ascending: true })
       if (uf !== 'TODOS') q = q.eq('uf', uf)
       const { data, error } = await q
-      if (error) throw error
-      return (data as any as Row[]) || []
+      if (error) {
+        if (isMissingGtiTableError(error)) {
+          return { rows: await fetchGtiRowsFromConfig(ano, mes, uf), storage: 'config' }
+        }
+        throw error
+      }
+      return { rows: (data as any as Row[]) || [], storage: 'table' }
     },
     retry: (failureCount, error: any) => error?.code !== 'PGRST205' && failureCount < 2,
   })
+
+  const registros = queryResult?.rows ?? []
+  const usandoCompatibilidade = queryResult?.storage === 'config'
 
   const filtrados = useMemo(() => {
     if (!busca) return registros
@@ -152,28 +246,38 @@ export default function GtiTab() {
 
   const excluir = async () => {
     if (!delRow) return
-    const { error } = await supabase.from('gti_leituras_mensais' as any).delete().eq('id', delRow.id)
-    if (error) {
-      toast({ title: 'Erro ao excluir', description: error.message, variant: 'destructive' })
-    } else {
+    try {
+      if (usandoCompatibilidade) {
+        await deleteGtiRowFromConfig(delRow.id)
+      } else {
+        const { error } = await supabase.from('gti_leituras_mensais' as any).delete().eq('id', delRow.id)
+        if (error) throw error
+      }
       toast({ title: 'Registro excluído' })
       qc.invalidateQueries({ queryKey: ['gti-leituras'] })
+    } catch (error) {
+      toast({ title: 'Erro ao excluir', description: getGtiErrorMessage(error), variant: 'destructive' })
     }
     setDelRow(null)
   }
 
   const salvarEdicao = async (r: Row) => {
-    const { error } = await supabase.from('gti_leituras_mensais' as any).update({
-      leitura_anterior: r.leitura_anterior,
-      prazo_inicial: r.prazo_inicial,
-      prazo_final: r.prazo_final,
-    }).eq('id', r.id)
-    if (error) {
-      toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' })
-    } else {
+    try {
+      if (usandoCompatibilidade) {
+        await updateGtiRowInConfig(r)
+      } else {
+        const { error } = await supabase.from('gti_leituras_mensais' as any).update({
+          leitura_anterior: r.leitura_anterior,
+          prazo_inicial: r.prazo_inicial,
+          prazo_final: r.prazo_final,
+        }).eq('id', r.id)
+        if (error) throw error
+      }
       toast({ title: 'Atualizado com sucesso' })
       qc.invalidateQueries({ queryKey: ['gti-leituras'] })
       setEditRow(null)
+    } catch (error) {
+      toast({ title: 'Erro ao salvar', description: getGtiErrorMessage(error), variant: 'destructive' })
     }
   }
 
@@ -238,6 +342,12 @@ export default function GtiTab() {
                 <RefreshCw className={`h-4 w-4 mr-1 ${isFetching ? 'animate-spin' : ''}`} /> Tentar novamente
               </Button>
             </div>
+          </div>
+        )}
+
+        {usandoCompatibilidade && !loadError && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+            Usando armazenamento compatível para a planilha GTI enquanto a tabela dedicada não está disponível neste backend.
           </div>
         )}
 
