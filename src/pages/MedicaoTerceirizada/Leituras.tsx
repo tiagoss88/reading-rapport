@@ -756,6 +756,10 @@ export default function LeiturasTerceirizadas() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="gti">
+          <GtiTab />
+        </TabsContent>
       </Tabs>
 
 
