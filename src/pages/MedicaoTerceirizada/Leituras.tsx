@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import EditarColetaDialog from '@/components/medicao-terceirizada/EditarColetaDialog'
 import NovaColetaManualDialog from '@/components/medicao-terceirizada/NovaColetaManualDialog'
 import { usePermissions } from '@/contexts/PermissionsContext'
+import GtiTab from '@/components/medicao-terceirizada/gti/GtiTab'
 
 const extrairFotosUrls = (observacao: string | null): string[] => {
   if (!observacao) return []
@@ -246,7 +247,7 @@ export default function LeiturasTerceirizadas() {
   return (
     <Layout title="Leituras - Medição Terceirizada">
       <Tabs defaultValue="rota-dia" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="rota-dia" className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
             Rota do Dia
@@ -262,6 +263,10 @@ export default function LeiturasTerceirizadas() {
           <TabsTrigger value="relatorios" className="flex items-center gap-2">
             <FileImage className="h-4 w-4" />
             Relatório de Leitura
+          </TabsTrigger>
+          <TabsTrigger value="gti" className="flex items-center gap-2">
+            <FileImage className="h-4 w-4" />
+            GTI
           </TabsTrigger>
         </TabsList>
 
@@ -750,6 +755,10 @@ export default function LeiturasTerceirizadas() {
               })()}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="gti">
+          <GtiTab />
         </TabsContent>
       </Tabs>
 
