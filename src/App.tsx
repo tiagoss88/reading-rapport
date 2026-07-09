@@ -259,6 +259,7 @@ const App = () => (
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
+                <Route path="/limpar-cache" element={<LimparCache />} />
                 <Route path="/not-authorized" element={<NotAuthorized />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
