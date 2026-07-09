@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet } from 'lucide-react'
+import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet, AlertTriangle, RefreshCw } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
@@ -81,6 +81,14 @@ const HEADER_ALIASES: Record<string, string> = {
 const anoAtual = new Date().getFullYear()
 const mesAtual = new Date().getMonth() + 1
 
+function getGtiErrorMessage(error: unknown) {
+  const err = error as { code?: string; message?: string } | null
+  if (err?.code === 'PGRST205' || err?.message?.includes('schema cache')) {
+    return 'A tabela GTI ainda não está disponível no backend conectado a este app. Atualize o app e tente novamente; se persistir, o backend ativo precisa receber a migração da tabela GTI.'
+  }
+  return err?.message || 'Não foi possível carregar os registros GTI.'
+}
+
 export default function GtiTab() {
   const { toast } = useToast()
   const qc = useQueryClient()
@@ -96,7 +104,7 @@ export default function GtiTab() {
   const [editRow, setEditRow] = useState<Row | null>(null)
   const [delRow, setDelRow] = useState<Row | null>(null)
 
-  const { data: registros = [], isLoading } = useQuery({
+  const { data: registros = [], isLoading, error: loadError, refetch, isFetching } = useQuery({
     queryKey: ['gti-leituras', ano, mes, uf],
     queryFn: async () => {
       let q = supabase.from('gti_leituras_mensais' as any)
@@ -110,6 +118,7 @@ export default function GtiTab() {
       if (error) throw error
       return (data as any as Row[]) || []
     },
+    retry: (failureCount, error: any) => error?.code !== 'PGRST205' && failureCount < 2,
   })
 
   const filtrados = useMemo(() => {
@@ -214,6 +223,23 @@ export default function GtiTab() {
           />
           <Badge variant="secondary" className="ml-auto self-center">{filtrados.length} registro(s)</Badge>
         </div>
+
+        {loadError && (
+          <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+                <div>
+                  <p className="font-medium text-destructive">Erro ao carregar planilha GTI</p>
+                  <p className="text-xs text-muted-foreground">{getGtiErrorMessage(loadError)}</p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+                <RefreshCw className={`h-4 w-4 mr-1 ${isFetching ? 'animate-spin' : ''}`} /> Tentar novamente
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="border rounded-md overflow-x-auto">
           <Table>
@@ -387,7 +413,7 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
 
     setImporting(false)
     if (error) {
-      toast({ title: 'Erro ao importar', description: error.message, variant: 'destructive' })
+      toast({ title: 'Erro ao importar', description: getGtiErrorMessage(error), variant: 'destructive' })
     } else {
       toast({ title: 'Importação concluída', description: `${validos.length} linha(s) processada(s). ${invalidos.length} rejeitada(s).` })
       qc.invalidateQueries({ queryKey: ['gti-leituras'] })
