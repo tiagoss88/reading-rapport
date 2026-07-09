@@ -43,6 +43,7 @@ import NotFound from "./pages/NotFound";
 import NotAuthorized from '@/pages/NotAuthorized'
 import AdminAtualizarRotasCE from '@/pages/AdminAtualizarRotasCE'
 import AdminGerarSQLRotas from '@/pages/AdminGerarSQLRotas'
+import LimparCache from '@/pages/LimparCache'
 
 const queryClient = new QueryClient();
 
@@ -258,6 +259,7 @@ const App = () => (
                     </PermissionRoute>
                   </ColetorProtectedRoute>
                 } />
+                <Route path="/limpar-cache" element={<LimparCache />} />
                 <Route path="/not-authorized" element={<NotAuthorized />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
