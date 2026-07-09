@@ -122,7 +122,8 @@ async function fetchGtiConfigRows() {
     .maybeSingle()
 
   if (error) throw error
-  return { configId: data?.id as string | undefined, rows: parseConfigRows(data?.valor ?? null) }
+  const config = data as any as { id?: string; valor?: string | null } | null
+  return { configId: config?.id, rows: parseConfigRows(config?.valor ?? null) }
 }
 
 async function saveGtiConfigRows(rows: Row[], configId?: string) {
