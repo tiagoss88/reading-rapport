@@ -1,57 +1,62 @@
-## Problema
 
-Hoje a sugestão de divisão gera clusters ruins mesmo com todos os condomínios georreferenciados. Revisando `src/lib/sugerirDivisaoRota.ts`, encontrei as causas:
+## Objetivo
 
-1. **Distância errada** — usa distância euclidiana em graus (`Δlat² + Δlng²`). Como 1° de longitude ≠ 1° de latitude fora do equador, clusters ficam "esticados" no eixo E-O.
-2. **K-means++ pseudo-determinístico** — a primeira semente é sempre o índice 0 e as próximas escolhem sempre o ponto na "metade do peso acumulado", sem múltiplas inicializações. Resultado: uma única partição, geralmente subótima.
-3. **Centroides não-ponderados** — todos os condos pesam igual, mas o objetivo é balancear medidores. Um condo de 500 medidores desloca menos o centroide que deveria.
-4. **Rebalanceamento destrói a compactação** — move condo por condo entre "mais pesado ↔ mais leve" apenas comparando distâncias ao centroide, com uma "trava" arbitrária (`1.2×` / `1.5×`). Em UFs com poucos condos isso troca pontos entre regiões distantes.
-5. **Sem-coordenadas jogados no técnico mais leve** — mesmo quando poderiam ser inferidos por cidade/bairro (mas isso é secundário; ver nota).
-6. **Ordenação de clusters só por latitude** — o casamento cluster → técnico é feito só pela latitude média, ignorando longitude/vizinhança.
+Adicionar uma nova aba **"GTI"** dentro de `/medicao-terceirizada/leituras` para armazenar mensalmente a planilha enviada pela GTI com dados de coleta dos clientes de CE e BA (leitura anterior + janela de coleta do mês corrente), mantendo histórico por competência.
 
-## Nova metodologia
+## Estrutura da tabela (banco)
 
-Substituir o algoritmo por um **k-means ponderado + capacitado geográfico**:
+Nova tabela `gti_leituras_mensais`:
 
-1. **Distância Haversine** (km reais) em vez de euclidiana em graus.
-2. **K-means++ real, best-of-N inicializações** (ex.: 10 rodadas com sementes aleatórias ponderadas por d², escolhe a partição com menor inércia total = soma das distâncias ao centroide, ponderada por medidores).
-3. **Centroides ponderados por medidores** — deslocamento proporcional ao peso do condo.
-4. **Atribuição capacitada** — em vez de "mover do maior pro menor", cada iteração atribui os condos ao cluster mais próximo respeitando um teto (`média × (1 + tolerância)`). Ordena condos por medidores decrescentes e aloca cada um no cluster mais próximo que ainda cabe. Isso mantém compactação e balanceamento juntos.
-5. **Tolerância única e clara** — expor no dialog "Tolerância de balanceamento" (10% / 20% / 30%), removendo os 3 switches confusos e a "trava" mágica.
-6. **Casamento cluster → técnico por proximidade sequencial** — ordena por longitude e depois latitude (varredura O-L, N-S) em vez de só latitude.
-7. **Sem-coordenadas** — mantém a distribuição atual (técnico mais leve), mas destaca no resumo.
-8. **Métricas visíveis no resultado** — além de "desvio %" e "km", mostrar "raio máximo (km)" do cluster para deixar óbvia a qualidade geográfica.
+- `uf` (text, CE ou BA)
+- `condominio` (text)
+- `leitura_anterior` (date) — data da coleta do mês anterior (informada pela GTI)
+- `prazo_inicial` (date) — início da janela de coleta do mês corrente
+- `prazo_final` (date) — fim da janela de coleta do mês corrente
+- `mes_referencia` (int, 1–12) e `ano_referencia` (int) — competência
+- `importado_por` (uuid), `importado_em` (timestamp)
+- padrão: `id`, `created_at`, `updated_at`
 
-## Mudanças no dialog (`SugerirDivisaoDialog.tsx`)
+Índices: `(ano_referencia, mes_referencia)`, `(uf)`.
+Unicidade: `(uf, condominio, ano_referencia, mes_referencia)` — reimportar o mesmo mês sobrescreve o registro (upsert).
 
-- Remover switches `Balancear medidores` / `Agrupar por proximidade` / `Priorizar região` (o novo algoritmo faz os dois sempre).
-- Adicionar um seletor único: **Tolerância de balanceamento**: `Rígida (±10%)` / `Média (±20%)` / `Frouxa (±30%)`. Default: Média.
-- Adicionar coluna "raio máx" no card de cada técnico.
+RLS + GRANT:
+- Admin e gestores: full CRUD
+- Demais usuários autenticados: apenas leitura
+- `service_role`: ALL
 
-## Arquivos afetados
+## UI
 
-- `src/lib/sugerirDivisaoRota.ts` — reescrita do algoritmo (mantém a mesma assinatura pública `sugerirDivisao` para não quebrar callers; `SugestaoOpcoes` passa a ter `tolerancia: 'rigida' | 'media' | 'frouxa'`).
-- `src/components/medicao-terceirizada/SugerirDivisaoDialog.tsx` — troca os 3 switches pelo seletor de tolerância e mostra o raio máx.
+### Nova aba "GTI" em `MedicaoTerceirizada/Leituras.tsx`
+Ao lado das abas existentes. Ao entrar:
 
-Sem mudanças no banco, nas rotas ou na lógica de aplicação (`rotas_leitura` continua igual).
+- Filtros no topo: **Mês/Ano de referência** (default: mês corrente), **UF** (Todas / CE / BA), busca por condomínio.
+- Botão **"Importar planilha (Excel/CSV)"** (admin/gestor apenas).
+- Botão **"Exportar CSV"** do que está filtrado.
+- Tabela compacta (padrão do sistema, `text-xs`, `h-9`) com colunas:
+  `UF | Condomínio | Leitura anterior | Prazo inicial | Prazo final | Importado em | Ações`
+- Ações por linha: editar datas (dialog), excluir (admin).
 
-## Detalhes técnicos
+### Diálogo de importação
+- Aceita `.xlsx` e `.csv`.
+- Seleção obrigatória de **Mês** e **Ano de referência** antes de importar.
+- Cabeçalhos esperados (case-insensitive, com aliases):
+  `UF | CONDOMINIO | LEITURA ANTERIOR | PRAZO INICIAL | PRAZO FINAL`
+- Validação:
+  - UF deve ser CE ou BA (rejeita outras)
+  - Datas parseadas com suporte a `dd/mm/yyyy` e serial Excel
+  - Condomínio obrigatório; normaliza prefixo `BA ` conforme regra do projeto
+- Pré-visualização das primeiras 10 linhas + contagem total antes de confirmar.
+- Upsert em lote na chave `(uf, condominio, ano_referencia, mes_referencia)`; relatório final: X inseridos, Y atualizados, Z rejeitados (com motivo).
 
-```text
-Haversine(a,b) = 2R·asin(√(sin²(Δφ/2) + cos(φa)·cos(φb)·sin²(Δλ/2))),  R=6371 km
+## Arquivos a alterar/criar
 
-Loop principal (por inicialização):
-  centroides ← kmeans++ ponderado por medidores
-  repetir até estabilizar (máx 30 iter):
-    ordena condos por medidores desc
-    para cada condo c:
-      candidatos ← clusters ordenados por Haversine(c, centroide)
-      atribui ao primeiro que tenha total + c.medidores ≤ teto
-      se nenhum couber, atribui ao mais próximo (tolerância será relaxada)
-    recalcula centroides ponderados
-  inércia ← Σ medidores_c · Haversine(c, centroide_do_cluster)²
+- Migração: nova tabela `gti_leituras_mensais` com GRANTs, RLS, trigger `update_updated_at_column`.
+- `src/pages/MedicaoTerceirizada/Leituras.tsx` — adicionar aba "GTI".
+- `src/components/medicao-terceirizada/gti/GtiTab.tsx` — tabela + filtros + ações.
+- `src/components/medicao-terceirizada/gti/ImportarGtiDialog.tsx` — parser xlsx/csv (usa `xlsx` já no projeto) + upsert.
+- `src/hooks/useGtiLeituras.ts` — query/mutations (React Query).
 
-Escolhe a inicialização com menor inércia.
-```
+## Fora do escopo
 
-Teto = `mediaMedidores × (1 + tolerancia)` com `tolerancia ∈ {0.10, 0.20, 0.30}`. Se depois de N iterações algum cluster estourar (todos os condos "não coubem"), o teto é multiplicado por 1.1 e refaz — garante convergência mesmo com condos gigantes.
+- Não altera coletor nem tela de leituras existente.
+- Não cria relacionamento automático com `clientes`/`empreendimentos` (só texto do condomínio + UF); podemos evoluir depois se quiser vincular.

@@ -267,6 +267,51 @@ export type Database = {
         }
         Relationships: []
       }
+      gti_leituras_mensais: {
+        Row: {
+          ano_referencia: number
+          condominio: string
+          created_at: string
+          id: string
+          importado_em: string
+          importado_por: string | null
+          leitura_anterior: string | null
+          mes_referencia: number
+          prazo_final: string | null
+          prazo_inicial: string | null
+          uf: string
+          updated_at: string
+        }
+        Insert: {
+          ano_referencia: number
+          condominio: string
+          created_at?: string
+          id?: string
+          importado_em?: string
+          importado_por?: string | null
+          leitura_anterior?: string | null
+          mes_referencia: number
+          prazo_final?: string | null
+          prazo_inicial?: string | null
+          uf: string
+          updated_at?: string
+        }
+        Update: {
+          ano_referencia?: number
+          condominio?: string
+          created_at?: string
+          id?: string
+          importado_em?: string
+          importado_por?: string | null
+          leitura_anterior?: string | null
+          mes_referencia?: number
+          prazo_final?: string | null
+          prazo_inicial?: string | null
+          uf?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leituras: {
         Row: {
           cliente_id: string
