@@ -347,7 +347,7 @@ export default function GtiTab() {
         )}
 
         {usandoCompatibilidade && !loadError && (
-          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-muted-foreground">
+          <div className="mb-3 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
             Usando armazenamento compatível para a planilha GTI enquanto a tabela dedicada não está disponível neste backend.
           </div>
         )}
