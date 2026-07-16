@@ -156,7 +156,6 @@ export default function ServicosNacionalGas() {
     sorted.sort((a, b) => {
       let valA = '', valB = ''
       switch (sortColumn) {
-        case 'protocolo': valA = a.numero_protocolo || ''; valB = b.numero_protocolo || ''; break
         case 'solicitacao': valA = a.data_solicitacao || ''; valB = b.data_solicitacao || ''; break
         case 'condominio': valA = a.condominio_nome_original; valB = b.condominio_nome_original; break
         case 'morador': valA = a.morador_nome || ''; valB = b.morador_nome || ''; break
