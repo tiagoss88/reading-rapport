@@ -69,7 +69,7 @@ const statusLabels: Record<string, string> = {
   cancelado: 'Cancelado'
 }
 
-type SortColumn = 'protocolo' | 'solicitacao' | 'condominio' | 'morador' | 'status' | null
+type SortColumn = 'solicitacao' | 'condominio' | 'morador' | 'status' | null
 type SortDirection = 'asc' | 'desc'
 
 export default function ServicosNacionalGas() {
@@ -156,7 +156,6 @@ export default function ServicosNacionalGas() {
     sorted.sort((a, b) => {
       let valA = '', valB = ''
       switch (sortColumn) {
-        case 'protocolo': valA = a.numero_protocolo || ''; valB = b.numero_protocolo || ''; break
         case 'solicitacao': valA = a.data_solicitacao || ''; valB = b.data_solicitacao || ''; break
         case 'condominio': valA = a.condominio_nome_original; valB = b.condominio_nome_original; break
         case 'morador': valA = a.morador_nome || ''; valB = b.morador_nome || ''; break
@@ -352,9 +351,7 @@ export default function ServicosNacionalGas() {
                               onCheckedChange={(checked) => toggleSelectAll(!!checked)}
                             />
                           </TableHead>
-                          <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('protocolo')}>
-                            <span className="flex items-center whitespace-nowrap">Protocolo <SortIcon col="protocolo" /></span>
-                          </TableHead>
+                          <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">UF</TableHead>
                           <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Origem</TableHead>
                           <TableHead className="hidden xl:table-cell h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('solicitacao')}>
                             <span className="flex items-center whitespace-nowrap">Solicitação <SortIcon col="solicitacao" /></span>
@@ -367,7 +364,6 @@ export default function ServicosNacionalGas() {
                             <span className="flex items-center whitespace-nowrap">Morador <SortIcon col="morador" /></span>
                           </TableHead>
                           <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Tipo</TableHead>
-                          <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">UF</TableHead>
                           <TableHead className="hidden lg:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Agendamento</TableHead>
                           <TableHead className="hidden xl:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Técnico</TableHead>
                           <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('status')}>
@@ -380,7 +376,7 @@ export default function ServicosNacionalGas() {
                       <TableBody>
                         {paginatedServicos?.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
                               Nenhum serviço encontrado
                             </TableCell>
                           </TableRow>
@@ -396,9 +392,7 @@ export default function ServicosNacionalGas() {
                                   onCheckedChange={(checked) => toggleSelectOne(servico.id, !!checked)}
                                 />
                               </TableCell>
-                              <TableCell className="py-1.5 px-2">
-                                <span className="font-mono font-semibold text-gray-900 whitespace-nowrap">{servico.numero_protocolo || '-'}</span>
-                              </TableCell>
+                              <TableCell className="hidden md:table-cell py-1.5 px-2">{servico.uf}</TableCell>
                               <TableCell className="hidden md:table-cell py-1.5 px-2">
                                 {(() => {
                                   const f = servico.fonte?.toLowerCase()
@@ -432,7 +426,6 @@ export default function ServicosNacionalGas() {
                               </TableCell>
                               <TableCell className="py-1.5 px-2 max-w-[120px] truncate">{servico.morador_nome || '-'}</TableCell>
                               <TableCell className="hidden md:table-cell py-1.5 px-2 whitespace-nowrap">{servico.tipo_servico?.toUpperCase()}</TableCell>
-                              <TableCell className="hidden md:table-cell py-1.5 px-2">{servico.uf}</TableCell>
                               <TableCell className="hidden lg:table-cell py-1.5 px-2 whitespace-nowrap">
                                 {(() => {
                                   if (!servico.data_agendamento) return '-';
