@@ -31,6 +31,9 @@ interface ServicoTerceirizado {
     nome: string
     endereco: string
   } | null
+  tecnico?: {
+    nome: string
+  } | null
 }
 
 export default function ColetorServicosTerceirizados() {
