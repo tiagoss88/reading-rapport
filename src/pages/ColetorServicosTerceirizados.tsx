@@ -443,6 +443,12 @@ export default function ColetorServicosTerceirizados() {
                 })()}
                 {servico.turno && ` · ${getTurnoLabel(servico.turno)}`}
               </span>
+              {servico.tecnico?.nome && (
+                <span className="flex items-center gap-1 pl-1.5 ml-1.5 border-l">
+                  <User className="w-3.5 h-3.5" />
+                  {servico.tecnico.nome}
+                </span>
+              )}
             </div>
             <Button
               variant="outline"
