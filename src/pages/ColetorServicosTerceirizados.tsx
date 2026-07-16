@@ -97,7 +97,8 @@ export default function ColetorServicosTerceirizados() {
           turno,
           status_atendimento,
           observacao,
-          empreendimento:empreendimentos_terceirizados(nome, endereco)
+          empreendimento:empreendimentos_terceirizados(nome, endereco),
+          tecnico:operadores!servicos_nacional_gas_tecnico_id_fkey(nome)
         `)
         .in('status_atendimento', ['pendente', 'agendado'])
         .order('data_agendamento', { ascending: true, nullsFirst: false })
