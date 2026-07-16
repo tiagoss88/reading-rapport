@@ -364,8 +364,6 @@ export default function ServicosNacionalGas() {
                             <span className="flex items-center whitespace-nowrap">Morador <SortIcon col="morador" /></span>
                           </TableHead>
                           <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Tipo</TableHead>
-                          <TableHead className="hidden lg:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Agendamento</TableHead>
-                          <TableHead className="hidden xl:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Técnico</TableHead>
                           <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('status')}>
                             <span className="flex items-center whitespace-nowrap">Status <SortIcon col="status" /></span>
                           </TableHead>
