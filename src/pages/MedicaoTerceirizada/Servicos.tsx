@@ -69,7 +69,7 @@ const statusLabels: Record<string, string> = {
   cancelado: 'Cancelado'
 }
 
-type SortColumn = 'protocolo' | 'solicitacao' | 'condominio' | 'morador' | 'status' | null
+type SortColumn = 'solicitacao' | 'condominio' | 'morador' | 'status' | null
 type SortDirection = 'asc' | 'desc'
 
 export default function ServicosNacionalGas() {
