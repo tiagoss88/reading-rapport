@@ -391,6 +391,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
               </div>
             </form>
           </Form>
+          </div>
         </ScrollArea>
       </DialogContent>
     </Dialog>
