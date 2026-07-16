@@ -254,44 +254,44 @@ export default function ServicosNacionalGas() {
 
           <TabsContent value="servicos">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
                   Serviços
                 </CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   {selectedIds.size > 0 && (
-                    <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                    <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} className="flex-1 sm:flex-none">
                       <Trash2 className="mr-2 h-4 w-4" />
                       Excluir ({selectedIds.size})
                     </Button>
                   )}
-                  <Button variant="outline" onClick={() => setNovoDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Novo Serviço
+                  <Button variant="outline" onClick={() => setNovoDialogOpen(true)} className="flex-1 sm:flex-none">
+                    <Plus className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Novo Serviço</span>
+                    <span className="sm:hidden ml-2">Novo</span>
                   </Button>
-                  <Button onClick={() => setImportDialogOpen(true)}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Importar Planilha
+                  <Button onClick={() => setImportDialogOpen(true)} className="flex-1 sm:flex-none">
+                    <Upload className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Importar Planilha</span>
+                    <span className="sm:hidden ml-2">Importar</span>
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {/* Filtros */}
-                <div className="flex flex-wrap gap-4 mb-6">
-                  <div className="flex-1 min-w-[200px]">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Buscar por condomínio, morador, apartamento ou protocolo..."
-                        value={searchTerm}
-                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
-                        className="pl-10"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(200px,1fr)_auto_auto_auto_auto] gap-3 mb-6">
+                  <div className="relative sm:col-span-2 lg:col-span-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por condomínio, morador, apartamento ou protocolo..."
+                      value={searchTerm}
+                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
+                      className="pl-10 w-full"
+                    />
                   </div>
                   <Select value={ufFilter} onValueChange={(v) => { setUfFilter(v); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full lg:w-[120px]">
                       <SelectValue placeholder="UF" />
                     </SelectTrigger>
                     <SelectContent>
@@ -301,7 +301,7 @@ export default function ServicosNacionalGas() {
                     </SelectContent>
                   </Select>
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-full lg:w-[150px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -313,7 +313,7 @@ export default function ServicosNacionalGas() {
                     </SelectContent>
                   </Select>
                   <Select value={tipoFilter} onValueChange={(v) => { setTipoFilter(v); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full lg:w-[180px]">
                       <SelectValue placeholder="Tipo de Serviço" />
                     </SelectTrigger>
                     <SelectContent>
@@ -324,7 +324,7 @@ export default function ServicosNacionalGas() {
                     </SelectContent>
                   </Select>
                   <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[130px]">
+                    <SelectTrigger className="w-full lg:w-[130px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -336,12 +336,13 @@ export default function ServicosNacionalGas() {
                   </Select>
                 </div>
 
+
                 {/* Tabela */}
                 {isLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Carregando...</div>
                 ) : (
                   <>
-                  <div className="rounded-md border overflow-hidden">
+                  <div className="rounded-md border overflow-x-auto">
                     <Table className="text-xs">
                       <TableHeader>
                         <TableRow className="bg-gray-50/80 border-b-2 border-gray-200">
@@ -354,25 +355,26 @@ export default function ServicosNacionalGas() {
                           <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('protocolo')}>
                             <span className="flex items-center whitespace-nowrap">Protocolo <SortIcon col="protocolo" /></span>
                           </TableHead>
-                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Origem</TableHead>
-                          <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('solicitacao')}>
+                          <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Origem</TableHead>
+                          <TableHead className="hidden xl:table-cell h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('solicitacao')}>
                             <span className="flex items-center whitespace-nowrap">Solicitação <SortIcon col="solicitacao" /></span>
                           </TableHead>
                           <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('condominio')}>
                             <span className="flex items-center whitespace-nowrap">Condomínio <SortIcon col="condominio" /></span>
                           </TableHead>
-                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Bloco/Apto</TableHead>
+                          <TableHead className="hidden lg:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Bloco/Apto</TableHead>
                           <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('morador')}>
                             <span className="flex items-center whitespace-nowrap">Morador <SortIcon col="morador" /></span>
                           </TableHead>
-                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Tipo</TableHead>
-                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">UF</TableHead>
-                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Agendamento</TableHead>
-                          <TableHead className="h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Técnico</TableHead>
+                          <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Tipo</TableHead>
+                          <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">UF</TableHead>
+                          <TableHead className="hidden lg:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Agendamento</TableHead>
+                          <TableHead className="hidden xl:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Técnico</TableHead>
                           <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('status')}>
                             <span className="flex items-center whitespace-nowrap">Status <SortIcon col="status" /></span>
                           </TableHead>
                           <TableHead className="w-[80px] h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Ações</TableHead>
+
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -397,7 +399,7 @@ export default function ServicosNacionalGas() {
                               <TableCell className="py-1.5 px-2">
                                 <span className="font-mono font-semibold text-gray-900 whitespace-nowrap">{servico.numero_protocolo || '-'}</span>
                               </TableCell>
-                              <TableCell className="py-1.5 px-2">
+                              <TableCell className="hidden md:table-cell py-1.5 px-2">
                                 {(() => {
                                   const f = servico.fonte?.toLowerCase()
                                   if (f === 'particular') return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">Particular</Badge>
@@ -406,7 +408,7 @@ export default function ServicosNacionalGas() {
                                   return <span className="text-muted-foreground">—</span>
                                 })()}
                               </TableCell>
-                              <TableCell className="py-1.5 px-2 whitespace-nowrap">
+                              <TableCell className="hidden xl:table-cell py-1.5 px-2 whitespace-nowrap">
                                 {(() => {
                                   if (!servico.data_solicitacao) return '-';
                                   const d = new Date(servico.data_solicitacao + 'T00:00:00');
@@ -423,15 +425,15 @@ export default function ServicosNacionalGas() {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="py-1.5 px-2 whitespace-nowrap">
+                              <TableCell className="hidden lg:table-cell py-1.5 px-2 whitespace-nowrap">
                                 {servico.bloco && <span>Bl {servico.bloco}</span>}
                                 {servico.bloco && servico.apartamento && '-'}
                                 {servico.apartamento && <span>Ap {servico.apartamento}</span>}
                               </TableCell>
                               <TableCell className="py-1.5 px-2 max-w-[120px] truncate">{servico.morador_nome || '-'}</TableCell>
-                              <TableCell className="py-1.5 px-2 whitespace-nowrap">{servico.tipo_servico?.toUpperCase()}</TableCell>
-                              <TableCell className="py-1.5 px-2">{servico.uf}</TableCell>
-                              <TableCell className="py-1.5 px-2 whitespace-nowrap">
+                              <TableCell className="hidden md:table-cell py-1.5 px-2 whitespace-nowrap">{servico.tipo_servico?.toUpperCase()}</TableCell>
+                              <TableCell className="hidden md:table-cell py-1.5 px-2">{servico.uf}</TableCell>
+                              <TableCell className="hidden lg:table-cell py-1.5 px-2 whitespace-nowrap">
                                 {(() => {
                                   if (!servico.data_agendamento) return '-';
                                   const d = new Date(servico.data_agendamento + 'T00:00:00');
@@ -443,7 +445,8 @@ export default function ServicosNacionalGas() {
                                   </span>
                                 )}
                               </TableCell>
-                              <TableCell className="py-1.5 px-2 max-w-[100px] truncate">{servico.tecnico?.nome || '-'}</TableCell>
+                              <TableCell className="hidden xl:table-cell py-1.5 px-2 max-w-[100px] truncate">{servico.tecnico?.nome || '-'}</TableCell>
+
                               <TableCell className="py-1.5 px-2">
                                 <Badge className={`${statusColors[servico.status_atendimento]} px-2 py-0.5 text-[10px] font-semibold rounded`}>
                                   {statusLabels[servico.status_atendimento]}
@@ -489,8 +492,8 @@ export default function ServicosNacionalGas() {
                     </Table>
                   </div>
                   {/* Pagination controls */}
-                  <div className="flex items-center justify-between mt-4 px-1">
-                    <span className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4 px-1">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       Mostrando {totalFiltered === 0 ? 0 : startIndex + 1}{' - '}{Math.min(startIndex + pageSize, totalFiltered)} de {totalFiltered} serviços
                     </span>
                     <div className="flex items-center gap-2">
@@ -500,11 +503,11 @@ export default function ServicosNacionalGas() {
                         disabled={safePage <= 1}
                         onClick={() => setCurrentPage(safePage - 1)}
                       >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Anterior
+                        <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Anterior</span>
                       </Button>
-                      <span className="text-sm text-muted-foreground">
-                        Página {safePage} de {totalPages}
+                      <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                        {safePage} / {totalPages}
                       </span>
                       <Button
                         variant="outline"
@@ -512,11 +515,12 @@ export default function ServicosNacionalGas() {
                         disabled={safePage >= totalPages}
                         onClick={() => setCurrentPage(safePage + 1)}
                       >
-                        Próximo
-                        <ChevronRight className="h-4 w-4 ml-1" />
+                        <span className="hidden sm:inline">Próximo</span>
+                        <ChevronRight className="h-4 w-4 sm:ml-1" />
                       </Button>
                     </div>
                   </div>
+
                   </>
                 )}
               </CardContent>

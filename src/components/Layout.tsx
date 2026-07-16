@@ -332,27 +332,28 @@ export default function Layout({ children, title }: LayoutProps) {
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col lg:pl-0">
-        <header className="bg-card border-b h-16 flex items-center justify-between px-6">
-          <div className="flex items-center">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-0">
+        <header className="bg-card border-b h-16 flex items-center justify-between px-3 sm:px-4 lg:px-6 gap-3">
+          <div className="flex items-center min-w-0 flex-1">
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden mr-3"
+              className="lg:hidden mr-2 flex-shrink-0"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h2 className="text-xl font-semibold">{title}</h2>
+            <h2 className="text-base sm:text-lg lg:text-xl font-semibold truncate">{title}</h2>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center flex-shrink-0">
             <ProfileDialog />
           </div>
         </header>
         
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 min-w-0 overflow-x-hidden">
           {children}
         </main>
+
       </div>
     </div>
   )
