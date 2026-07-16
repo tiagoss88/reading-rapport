@@ -1,20 +1,18 @@
-Ajustar a tabela da aba **Serviços** (Medição Terceirizada › Serviços) conforme solicitado.
+Ajustar a tabela da aba **Serviços** (Medição Terceirizada › Serviços) ocultando mais duas colunas conforme solicitado.
 
 ### Alterações
-1. **Remover a coluna Protocolo** do cabeçalho e das linhas da tabela de serviços.
-2. **Reposicionar a coluna UF** para imediatamente antes da coluna Origem.
-3. **Atualizar o `colSpan`** da linha vazia ("Nenhum serviço encontrado") de 13 para 12, refletindo a nova quantidade de colunas.
-4. **Remover o ordenador (sort) da coluna Protocolo** do cabeçalho, já que a coluna não será mais exibida.
+1. **Remover a coluna Agendamento** do cabeçalho e das linhas da tabela de serviços.
+2. **Remover a coluna Técnico** do cabeçalho e das linhas da tabela de serviços.
+3. **Atualizar o `colSpan`** da linha vazia ("Nenhum serviço encontrado") de 12 para 10, refletindo a nova quantidade de colunas.
 
 ### Ordem das colunas após a mudança
-Checkbox | UF | Origem | Solicitação | Condomínio | Bloco/Apto | Morador | Tipo | Agendamento | Técnico | Status | Ações
+Checkbox | UF | Origem | Solicitação | Condomínio | Bloco/Apto | Morador | Tipo | Status | Ações
 
 ### Escopo
 - Apenas a visualização da tabela na aba **Serviços** (`src/pages/MedicaoTerceirizada/Servicos.tsx`).
 - Nenhuma alteração de backend, banco de dados, filtros de busca, outros diálogos ou abas (Agenda/Urgências).
-- A busca por protocolo continua funcionando no campo de pesquisa, mesmo sem a coluna visível.
+- As informações de agendamento e técnico continuam disponíveis ao abrir o histórico/detalhes do serviço.
 
 ### Validação
-- Verificar no preview que a coluna Protocolo não aparece.
-- Verificar que UF fica antes de Origem.
-- Confirmar que a tabela continua responsiva e sem quebras de layout na resolução atual (1070px).
+- Verificar no preview que as colunas Agendamento e Técnico não aparecem.
+- Confirmar que a tabela continua sem quebras de layout.

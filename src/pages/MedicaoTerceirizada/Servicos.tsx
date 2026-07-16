@@ -364,8 +364,6 @@ export default function ServicosNacionalGas() {
                             <span className="flex items-center whitespace-nowrap">Morador <SortIcon col="morador" /></span>
                           </TableHead>
                           <TableHead className="hidden md:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Tipo</TableHead>
-                          <TableHead className="hidden lg:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500 whitespace-nowrap">Agendamento</TableHead>
-                          <TableHead className="hidden xl:table-cell h-9 px-2 text-[10px] uppercase tracking-wider font-semibold text-gray-500">Técnico</TableHead>
                           <TableHead className="h-9 px-2 cursor-pointer select-none text-[10px] uppercase tracking-wider font-semibold text-gray-500 hover:text-gray-700" onClick={() => handleSort('status')}>
                             <span className="flex items-center whitespace-nowrap">Status <SortIcon col="status" /></span>
                           </TableHead>
@@ -376,7 +374,7 @@ export default function ServicosNacionalGas() {
                       <TableBody>
                         {paginatedServicos?.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                               Nenhum serviço encontrado
                             </TableCell>
                           </TableRow>
@@ -426,19 +424,6 @@ export default function ServicosNacionalGas() {
                               </TableCell>
                               <TableCell className="py-1.5 px-2 max-w-[120px] truncate">{servico.morador_nome || '-'}</TableCell>
                               <TableCell className="hidden md:table-cell py-1.5 px-2 whitespace-nowrap">{servico.tipo_servico?.toUpperCase()}</TableCell>
-                              <TableCell className="hidden lg:table-cell py-1.5 px-2 whitespace-nowrap">
-                                {(() => {
-                                  if (!servico.data_agendamento) return '-';
-                                  const d = new Date(servico.data_agendamento + 'T00:00:00');
-                                  return isNaN(d.getTime()) ? '-' : format(d, 'dd/MM/yyyy');
-                                })()}
-                                {servico.turno && (
-                                  <span className="text-[10px] text-muted-foreground ml-0.5">
-                                    ({servico.turno === 'manha' ? 'M' : 'T'})
-                                  </span>
-                                )}
-                              </TableCell>
-                              <TableCell className="hidden xl:table-cell py-1.5 px-2 max-w-[100px] truncate">{servico.tecnico?.nome || '-'}</TableCell>
 
                               <TableCell className="py-1.5 px-2">
                                 <Badge className={`${statusColors[servico.status_atendimento]} px-2 py-0.5 text-[10px] font-semibold rounded`}>
