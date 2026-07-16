@@ -254,44 +254,44 @@ export default function ServicosNacionalGas() {
 
           <TabsContent value="servicos">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
                   Serviços
                 </CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                   {selectedIds.size > 0 && (
-                    <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+                    <Button variant="destructive" onClick={() => setDeleteDialogOpen(true)} className="flex-1 sm:flex-none">
                       <Trash2 className="mr-2 h-4 w-4" />
                       Excluir ({selectedIds.size})
                     </Button>
                   )}
-                  <Button variant="outline" onClick={() => setNovoDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Novo Serviço
+                  <Button variant="outline" onClick={() => setNovoDialogOpen(true)} className="flex-1 sm:flex-none">
+                    <Plus className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Novo Serviço</span>
+                    <span className="sm:hidden ml-2">Novo</span>
                   </Button>
-                  <Button onClick={() => setImportDialogOpen(true)}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Importar Planilha
+                  <Button onClick={() => setImportDialogOpen(true)} className="flex-1 sm:flex-none">
+                    <Upload className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Importar Planilha</span>
+                    <span className="sm:hidden ml-2">Importar</span>
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
                 {/* Filtros */}
-                <div className="flex flex-wrap gap-4 mb-6">
-                  <div className="flex-1 min-w-[200px]">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Buscar por condomínio, morador, apartamento ou protocolo..."
-                        value={searchTerm}
-                        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
-                        className="pl-10"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(200px,1fr)_auto_auto_auto_auto] gap-3 mb-6">
+                  <div className="relative sm:col-span-2 lg:col-span-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por condomínio, morador, apartamento ou protocolo..."
+                      value={searchTerm}
+                      onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1) }}
+                      className="pl-10 w-full"
+                    />
                   </div>
                   <Select value={ufFilter} onValueChange={(v) => { setUfFilter(v); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full lg:w-[120px]">
                       <SelectValue placeholder="UF" />
                     </SelectTrigger>
                     <SelectContent>
@@ -301,7 +301,7 @@ export default function ServicosNacionalGas() {
                     </SelectContent>
                   </Select>
                   <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[150px]">
+                    <SelectTrigger className="w-full lg:w-[150px]">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -313,7 +313,7 @@ export default function ServicosNacionalGas() {
                     </SelectContent>
                   </Select>
                   <Select value={tipoFilter} onValueChange={(v) => { setTipoFilter(v); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full lg:w-[180px]">
                       <SelectValue placeholder="Tipo de Serviço" />
                     </SelectTrigger>
                     <SelectContent>
@@ -324,7 +324,7 @@ export default function ServicosNacionalGas() {
                     </SelectContent>
                   </Select>
                   <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setCurrentPage(1) }}>
-                    <SelectTrigger className="w-[130px]">
+                    <SelectTrigger className="w-full lg:w-[130px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -335,6 +335,7 @@ export default function ServicosNacionalGas() {
                     </SelectContent>
                   </Select>
                 </div>
+
 
                 {/* Tabela */}
                 {isLoading ? (
