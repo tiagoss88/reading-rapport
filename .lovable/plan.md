@@ -1,18 +1,13 @@
-Ajustar a tabela da aba **Serviços** (Medição Terceirizada › Serviços) ocultando mais duas colunas conforme solicitado.
+## Problema
+No diálogo "Editar Serviço" (`src/components/medicao-terceirizada/ServicoNacionalGasDialog.tsx`), a borda/anel de foco dos campos (ex.: Morador) fica cortada pela lateral do `ScrollArea`, pois o padding horizontal está aplicado no viewport do scroll e o `focus-visible:ring` (2px + offset) extrapola a área visível.
 
-### Alterações
-1. **Remover a coluna Agendamento** do cabeçalho e das linhas da tabela de serviços.
-2. **Remover a coluna Técnico** do cabeçalho e das linhas da tabela de serviços.
-3. **Atualizar o `colSpan`** da linha vazia ("Nenhum serviço encontrado") de 12 para 10, refletindo a nova quantidade de colunas.
+## Correção
+Ajustar apenas o layout do dialog para dar espaço horizontal aos anéis de foco, sem alterar lógica:
 
-### Ordem das colunas após a mudança
-Checkbox | UF | Origem | Solicitação | Condomínio | Bloco/Apto | Morador | Tipo | Status | Ações
+1. Mover o padding horizontal do `ScrollArea` para um wrapper interno, ou trocar `px-6` por `px-1` no ScrollArea e envolver o conteúdo com `px-6`, garantindo que o ring dos inputs não seja cortado pela barra de rolagem.
+2. Adicionar `pr-4` (ou similar) para reservar espaço da scrollbar e evitar sobreposição em resoluções menores.
+3. Verificar visualmente em 1070px de largura (viewport atual) que nenhum campo aparece com borda cortada.
 
-### Escopo
-- Apenas a visualização da tabela na aba **Serviços** (`src/pages/MedicaoTerceirizada/Servicos.tsx`).
-- Nenhuma alteração de backend, banco de dados, filtros de busca, outros diálogos ou abas (Agenda/Urgências).
-- As informações de agendamento e técnico continuam disponíveis ao abrir o histórico/detalhes do serviço.
-
-### Validação
-- Verificar no preview que as colunas Agendamento e Técnico não aparecem.
-- Confirmar que a tabela continua sem quebras de layout.
+## Escopo
+- Apenas `src/components/medicao-terceirizada/ServicoNacionalGasDialog.tsx`.
+- Sem mudanças em validação, mutations ou schema.

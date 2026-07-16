@@ -152,7 +152,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
           <DialogTitle>Editar Serviço</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[78vh] px-6">
+        <ScrollArea className="max-h-[78vh]">
+          <div className="px-6 pr-8">
           <div className="mb-4 p-3 bg-muted rounded-md text-sm">
             <p><strong>Condomínio:</strong> {servico.condominio_nome_original}</p>
           </div>
