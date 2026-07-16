@@ -31,6 +31,9 @@ interface ServicoTerceirizado {
     nome: string
     endereco: string
   } | null
+  tecnico?: {
+    nome: string
+  } | null
 }
 
 export default function ColetorServicosTerceirizados() {
@@ -94,7 +97,8 @@ export default function ColetorServicosTerceirizados() {
           turno,
           status_atendimento,
           observacao,
-          empreendimento:empreendimentos_terceirizados(nome, endereco)
+          empreendimento:empreendimentos_terceirizados(nome, endereco),
+          tecnico:operadores!servicos_nacional_gas_tecnico_id_fkey(nome)
         `)
         .in('status_atendimento', ['pendente', 'agendado'])
         .order('data_agendamento', { ascending: true, nullsFirst: false })
@@ -439,6 +443,12 @@ export default function ColetorServicosTerceirizados() {
                 })()}
                 {servico.turno && ` · ${getTurnoLabel(servico.turno)}`}
               </span>
+              {servico.tecnico?.nome && (
+                <span className="flex items-center gap-1 pl-1.5 ml-1.5 border-l">
+                  <User className="w-3.5 h-3.5" />
+                  {servico.tecnico.nome}
+                </span>
+              )}
             </div>
             <Button
               variant="outline"

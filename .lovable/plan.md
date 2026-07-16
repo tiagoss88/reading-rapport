@@ -1,23 +1,16 @@
-Vou corrigir o erro na origem: a importação está falhando antes de processar a planilha porque a API do banco que o app está usando não encontra a tabela `gti_leituras_mensais` no cache de schema.
+## Objetivo
+Mostrar o nome do técnico alocado ao lado do horário/turno no card de serviço da tela do coletor (`/coletor/servicos-terceirizados`).
 
-Plano:
+## Alterações
 
-1. **Confirmar o alvo correto do banco**
-   - Verificar se a tabela existe e está acessível exatamente no mesmo backend que o app em produção/preview está chamando.
-   - Separar dois cenários: tabela realmente ausente nesse backend, ou tabela existente mas ainda invisível para a API por cache/permissões.
+**`src/pages/ColetorServicosTerceirizados.tsx`**
 
-2. **Aplicar correção idempotente no banco correto**
-   - Garantir `CREATE TABLE IF NOT EXISTS public.gti_leituras_mensais` com as colunas usadas pela tela GTI.
-   - Garantir a constraint de upsert: `(uf, condominio, ano_referencia, mes_referencia)`.
-   - Garantir permissões explícitas para usuários autenticados e serviço interno.
-   - Garantir RLS/policies para leitura, importação, edição e exclusão conforme o perfil atual.
-   - Forçar recarregamento do schema da API após a migração.
+1. Incluir o técnico no `select` da consulta em `servicos_nacional_gas`:
+   - Adicionar `tecnico:operadores!servicos_nacional_gas_tecnico_id_fkey(nome)` ao select (mesmo padrão já usado em `useRelatorioColetasSemPendencia` e `DetalhesExecucaoDialog`).
+2. Estender a interface local de serviço com `tecnico?: { nome: string } | null`.
+3. No card (linha ~440, onde é renderizado `data_agendamento · turno`), acrescentar após o turno um separador `·` seguido de um ícone `User` (lucide) + nome do técnico, quando existir.
+   - Exemplo visual: `16/07 · Tarde · 👤 Mateus`
+   - Se não houver técnico atribuído, não renderiza nada extra (mantém layout atual).
+4. Manter as mesmas classes tipográficas/tamanho já usados na linha do horário para preservar a estética compacta.
 
-3. **Ajustar a tela para tratar esse erro melhor**
-   - Se a API ainda retornar `PGRST205`, exibir uma mensagem mais clara informando que a tabela GTI não está disponível no backend, em vez de apenas mostrar o erro cru.
-   - Invalidar/refazer a consulta da aba GTI após importação, sem depender de cache antigo.
-
-4. **Validar a correção**
-   - Testar uma consulta de leitura em `gti_leituras_mensais`.
-   - Testar o upsert usado pela importação com uma linha segura de validação ou via fluxo real da tela.
-   - Confirmar que a aba GTI não retorna mais `Could not find the table`.
+Sem alterações de dados, RLS ou lógica de negócio — apenas leitura adicional e ajuste visual do card.
