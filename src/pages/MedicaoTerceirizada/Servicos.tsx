@@ -392,9 +392,7 @@ export default function ServicosNacionalGas() {
                                   onCheckedChange={(checked) => toggleSelectOne(servico.id, !!checked)}
                                 />
                               </TableCell>
-                              <TableCell className="py-1.5 px-2">
-                                <span className="font-mono font-semibold text-gray-900 whitespace-nowrap">{servico.numero_protocolo || '-'}</span>
-                              </TableCell>
+                              <TableCell className="hidden md:table-cell py-1.5 px-2">{servico.uf}</TableCell>
                               <TableCell className="hidden md:table-cell py-1.5 px-2">
                                 {(() => {
                                   const f = servico.fonte?.toLowerCase()
@@ -428,7 +426,6 @@ export default function ServicosNacionalGas() {
                               </TableCell>
                               <TableCell className="py-1.5 px-2 max-w-[120px] truncate">{servico.morador_nome || '-'}</TableCell>
                               <TableCell className="hidden md:table-cell py-1.5 px-2 whitespace-nowrap">{servico.tipo_servico?.toUpperCase()}</TableCell>
-                              <TableCell className="hidden md:table-cell py-1.5 px-2">{servico.uf}</TableCell>
                               <TableCell className="hidden lg:table-cell py-1.5 px-2 whitespace-nowrap">
                                 {(() => {
                                   if (!servico.data_agendamento) return '-';
