@@ -376,7 +376,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     reader.readAsBinaryString(file)
   }
 
-  const newRows = parsedData.filter(r => !r.isDuplicate)
+  const newRows = importarDuplicados ? parsedData : parsedData.filter(r => !r.isDuplicate)
 
   const importMutation = useMutation({
     mutationFn: async () => {
