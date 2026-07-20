@@ -124,6 +124,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [pastedText, setPastedText] = useState('')
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file')
   const [origemSelecionada, setOrigemSelecionada] = useState<string>('NGD')
+  const [importarDuplicados, setImportarDuplicados] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
