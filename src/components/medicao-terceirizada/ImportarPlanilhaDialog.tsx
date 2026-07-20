@@ -84,9 +84,10 @@ const makeUnitKey = (row: {
   ].join('|')
 }
 
-// Chave completa: unidade + tipo de serviço + morador.
-// Duplicado = mesma unidade + mesmo tipo de serviço + mesmo morador.
-// Se morador estiver vazio em ambos os lados, ainda casa (não há como distinguir).
+// Chave completa: unidade + tipo de serviço + morador + data de agendamento.
+// Regra: mesma unidade + mesmo tipo + mesmo morador (ou ambos vazios) + mesma data.
+// Se a data estiver ausente nos dois lados e o morador também, NÃO é duplicado
+// (não há evidência suficiente — provavelmente é uma nova solicitação).
 const makeDuplicateKey = (row: {
   uf?: string
   condominio_nome_original?: string
@@ -94,8 +95,26 @@ const makeDuplicateKey = (row: {
   apartamento?: string | null
   morador_nome?: string | null
   tipo_servico?: string | null
+  data_agendamento?: string | null
 }): string => {
-  return makeUnitKey(row) + '|' + normText(row.tipo_servico) + '|' + normText(row.morador_nome)
+  return (
+    makeUnitKey(row) +
+    '|' +
+    normText(row.tipo_servico) +
+    '|' +
+    normText(row.morador_nome) +
+    '|' +
+    normText(row.data_agendamento)
+  )
+}
+
+// Retorna true se a linha tem sinal suficiente para ser marcada como duplicada
+// (evita colapsar tudo que tenha morador vazio e sem data).
+const hasDuplicateSignal = (row: {
+  morador_nome?: string | null
+  data_agendamento?: string | null
+}): boolean => {
+  return !!normText(row.morador_nome) || !!normText(row.data_agendamento)
 }
 
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
