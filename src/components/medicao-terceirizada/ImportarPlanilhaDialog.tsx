@@ -717,20 +717,33 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
               </table>
             </ScrollArea>
 
-            <div className="flex justify-end gap-2 shrink-0 pt-2 border-t">
-              <Button variant="outline" onClick={handleClose}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => importMutation.mutate()}
-                disabled={importMutation.isPending || newRows.length === 0}
-              >
-                {importMutation.isPending
-                  ? 'Importando...'
-                  : newRows.length === 0
-                  ? 'Todos duplicados'
-                  : `Importar ${newRows.length} serviço(s)`}
-              </Button>
+            <div className="flex justify-between items-center gap-2 shrink-0 pt-2 border-t">
+              {duplicateCount > 0 ? (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={importarDuplicados}
+                    onChange={(e) => setImportarDuplicados(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  Importar mesmo os {duplicateCount} marcados como duplicados
+                </label>
+              ) : <span />}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleClose}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => importMutation.mutate()}
+                  disabled={importMutation.isPending || newRows.length === 0}
+                >
+                  {importMutation.isPending
+                    ? 'Importando...'
+                    : newRows.length === 0
+                    ? 'Todos duplicados'
+                    : `Importar ${newRows.length} serviço(s)`}
+                </Button>
+              </div>
             </div>
           </div>
         )}
