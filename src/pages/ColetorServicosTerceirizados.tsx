@@ -366,7 +366,8 @@ export default function ColetorServicosTerceirizados() {
       s.condominio_nome_original.toLowerCase().includes(term) ||
       (s.morador_nome && s.morador_nome.toLowerCase().includes(term)) ||
       (s.empreendimento?.endereco && s.empreendimento.endereco.toLowerCase().includes(term)) ||
-      (s.tipo_servico && s.tipo_servico.toLowerCase().includes(term))
+      (s.tipo_servico && s.tipo_servico.toLowerCase().includes(term)) ||
+      (s.numero_protocolo && s.numero_protocolo.toLowerCase().includes(term))
     )
   })
 
