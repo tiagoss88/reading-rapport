@@ -427,6 +427,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     setPastedText('')
     setImportMethod('file')
     setOrigemSelecionada('NGD')
+    setImportarDuplicados(false)
     onOpenChange(false)
   }
 
