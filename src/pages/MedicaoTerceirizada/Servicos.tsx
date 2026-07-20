@@ -115,17 +115,27 @@ export default function ServicosNacionalGas() {
   const { data: servicos, isLoading } = useQuery({
     queryKey: ['servicos-nacional-gas'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('servicos_nacional_gas')
-        .select(`
-          *,
-          empreendimento:empreendimentos_terceirizados(nome, endereco, rota),
-          tecnico:operadores(nome)
-        `)
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
-      return data as ServicoNacionalGas[]
+      const pageSize = 1000
+      let from = 0
+      const all: ServicoNacionalGas[] = []
+      while (true) {
+        const { data, error } = await supabase
+          .from('servicos_nacional_gas')
+          .select(`
+            *,
+            empreendimento:empreendimentos_terceirizados(nome, endereco, rota),
+            tecnico:operadores(nome)
+          `)
+          .order('created_at', { ascending: false })
+          .range(from, from + pageSize - 1)
+
+        if (error) throw error
+        const batch = (data ?? []) as ServicoNacionalGas[]
+        all.push(...batch)
+        if (batch.length < pageSize) break
+        from += pageSize
+      }
+      return all
     }
   })
 
