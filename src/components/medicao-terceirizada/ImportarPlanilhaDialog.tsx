@@ -685,7 +685,10 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                     >
                       <td className="p-2">
                         {row.isDuplicate ? (
-                          <span className="flex items-center gap-1 text-destructive text-xs font-medium">
+                          <span
+                            className="flex items-center gap-1 text-destructive text-xs font-medium"
+                            title={row.duplicateReason || 'Duplicado'}
+                          >
                             <Ban className="h-4 w-4" />
                             Duplicado
                           </span>
@@ -693,6 +696,11 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         ) : (
                           <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                        )}
+                        {row.isDuplicate && row.duplicateReason && (
+                          <div className="text-[10px] text-muted-foreground mt-1 max-w-[220px]">
+                            {row.duplicateReason}
+                          </div>
                         )}
                       </td>
                       <td className="p-2">{row.condominio_nome_original}</td>
