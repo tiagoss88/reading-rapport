@@ -156,12 +156,12 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null }> = []
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; data_agendamento: string | null; numero_protocolo: string | null }> = []
       const PAGE = 1000
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from('servicos_nacional_gas')
-          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico')
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, data_agendamento, numero_protocolo')
           .range(from, from + PAGE - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -174,23 +174,52 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     staleTime: 0,
   })
 
-  const existingFullKeys = (() => {
-    const full = new Set<string>()
+  const existingKeyToProtocol = (() => {
+    const map = new Map<string, string>()
     ;(existingServices || []).forEach(s => {
-      full.add(makeDuplicateKey(s))
+      if (!hasDuplicateSignal(s)) return
+      const k = makeDuplicateKey(s)
+      if (!map.has(k)) map.set(k, s.numero_protocolo || 'já cadastrado')
     })
-    return full
+    return map
   })()
 
   const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
-    const seenFull = new Set<string>()
-    return rows.map(row => {
+    const seenIndexByKey = new Map<string, number>()
+    return rows.map((row, idx) => {
+      if (!hasDuplicateSignal(row)) {
+        return { ...row, isDuplicate: false, duplicateReason: undefined }
+      }
       const fullKey = makeDuplicateKey(row)
-      const isDuplicate = existingFullKeys.has(fullKey) || seenFull.has(fullKey)
-      seenFull.add(fullKey)
-      return { ...row, isDuplicate }
+      const existingProtocol = existingKeyToProtocol.get(fullKey)
+      const seenIdx = seenIndexByKey.get(fullKey)
+      let isDuplicate = false
+      let duplicateReason: string | undefined
+      if (existingProtocol) {
+        isDuplicate = true
+        duplicateReason = `Já existe no sistema (protocolo ${existingProtocol})`
+      } else if (seenIdx !== undefined) {
+        isDuplicate = true
+        duplicateReason = `Repetido na planilha (linha ${seenIdx + 2})`
+      }
+      if (seenIdx === undefined) seenIndexByKey.set(fullKey, idx)
+      if (isDuplicate) {
+        console.warn('[ImportarPlanilha] Duplicado detectado:', {
+          linha: idx + 2,
+          condominio: row.condominio_nome_original,
+          bloco: row.bloco,
+          apartamento: row.apartamento,
+          tipo_servico: row.tipo_servico,
+          morador: row.morador_nome,
+          data_agendamento: row.data_agendamento,
+          chave: fullKey,
+          motivo: duplicateReason,
+        })
+      }
+      return { ...row, isDuplicate, duplicateReason }
     })
   }
+
 
   const parseExcelDate = (value: any): string | null => {
     if (!value) return null
