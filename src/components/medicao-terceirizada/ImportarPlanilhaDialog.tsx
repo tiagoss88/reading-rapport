@@ -33,6 +33,7 @@ interface ImportedRow {
   empreendimento_id?: string | null
   matched?: boolean
   isDuplicate?: boolean
+  duplicateReason?: string
 }
 
 interface Props {
