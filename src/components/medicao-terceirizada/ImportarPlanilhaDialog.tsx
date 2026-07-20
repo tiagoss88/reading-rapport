@@ -33,6 +33,7 @@ interface ImportedRow {
   empreendimento_id?: string | null
   matched?: boolean
   isDuplicate?: boolean
+  duplicateReason?: string
 }
 
 interface Props {
@@ -83,9 +84,10 @@ const makeUnitKey = (row: {
   ].join('|')
 }
 
-// Chave completa: unidade + tipo de serviço + morador.
-// Duplicado = mesma unidade + mesmo tipo de serviço + mesmo morador.
-// Se morador estiver vazio em ambos os lados, ainda casa (não há como distinguir).
+// Chave completa: unidade + tipo de serviço + morador + data de agendamento.
+// Regra: mesma unidade + mesmo tipo + mesmo morador (ou ambos vazios) + mesma data.
+// Se a data estiver ausente nos dois lados e o morador também, NÃO é duplicado
+// (não há evidência suficiente — provavelmente é uma nova solicitação).
 const makeDuplicateKey = (row: {
   uf?: string
   condominio_nome_original?: string
@@ -93,8 +95,26 @@ const makeDuplicateKey = (row: {
   apartamento?: string | null
   morador_nome?: string | null
   tipo_servico?: string | null
+  data_agendamento?: string | null
 }): string => {
-  return makeUnitKey(row) + '|' + normText(row.tipo_servico) + '|' + normText(row.morador_nome)
+  return (
+    makeUnitKey(row) +
+    '|' +
+    normText(row.tipo_servico) +
+    '|' +
+    normText(row.morador_nome) +
+    '|' +
+    normText(row.data_agendamento)
+  )
+}
+
+// Retorna true se a linha tem sinal suficiente para ser marcada como duplicada
+// (evita colapsar tudo que tenha morador vazio e sem data).
+const hasDuplicateSignal = (row: {
+  morador_nome?: string | null
+  data_agendamento?: string | null
+}): boolean => {
+  return !!normText(row.morador_nome) || !!normText(row.data_agendamento)
 }
 
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
@@ -104,6 +124,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [pastedText, setPastedText] = useState('')
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file')
   const [origemSelecionada, setOrigemSelecionada] = useState<string>('NGD')
+  const [importarDuplicados, setImportarDuplicados] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -136,12 +157,12 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null }> = []
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; data_agendamento: string | null; numero_protocolo: string | null }> = []
       const PAGE = 1000
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from('servicos_nacional_gas')
-          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico')
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, data_agendamento, numero_protocolo')
           .range(from, from + PAGE - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -154,23 +175,52 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     staleTime: 0,
   })
 
-  const existingFullKeys = (() => {
-    const full = new Set<string>()
+  const existingKeyToProtocol = (() => {
+    const map = new Map<string, string>()
     ;(existingServices || []).forEach(s => {
-      full.add(makeDuplicateKey(s))
+      if (!hasDuplicateSignal(s)) return
+      const k = makeDuplicateKey(s)
+      if (!map.has(k)) map.set(k, s.numero_protocolo || 'já cadastrado')
     })
-    return full
+    return map
   })()
 
   const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
-    const seenFull = new Set<string>()
-    return rows.map(row => {
+    const seenIndexByKey = new Map<string, number>()
+    return rows.map((row, idx) => {
+      if (!hasDuplicateSignal(row)) {
+        return { ...row, isDuplicate: false, duplicateReason: undefined }
+      }
       const fullKey = makeDuplicateKey(row)
-      const isDuplicate = existingFullKeys.has(fullKey) || seenFull.has(fullKey)
-      seenFull.add(fullKey)
-      return { ...row, isDuplicate }
+      const existingProtocol = existingKeyToProtocol.get(fullKey)
+      const seenIdx = seenIndexByKey.get(fullKey)
+      let isDuplicate = false
+      let duplicateReason: string | undefined
+      if (existingProtocol) {
+        isDuplicate = true
+        duplicateReason = `Já existe no sistema (protocolo ${existingProtocol})`
+      } else if (seenIdx !== undefined) {
+        isDuplicate = true
+        duplicateReason = `Repetido na planilha (linha ${seenIdx + 2})`
+      }
+      if (seenIdx === undefined) seenIndexByKey.set(fullKey, idx)
+      if (isDuplicate) {
+        console.warn('[ImportarPlanilha] Duplicado detectado:', {
+          linha: idx + 2,
+          condominio: row.condominio_nome_original,
+          bloco: row.bloco,
+          apartamento: row.apartamento,
+          tipo_servico: row.tipo_servico,
+          morador: row.morador_nome,
+          data_agendamento: row.data_agendamento,
+          chave: fullKey,
+          motivo: duplicateReason,
+        })
+      }
+      return { ...row, isDuplicate, duplicateReason }
     })
   }
+
 
   const parseExcelDate = (value: any): string | null => {
     if (!value) return null
@@ -326,7 +376,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     reader.readAsBinaryString(file)
   }
 
-  const newRows = parsedData.filter(r => !r.isDuplicate)
+  const newRows = importarDuplicados ? parsedData : parsedData.filter(r => !r.isDuplicate)
 
   const importMutation = useMutation({
     mutationFn: async () => {
@@ -377,6 +427,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     setPastedText('')
     setImportMethod('file')
     setOrigemSelecionada('NGD')
+    setImportarDuplicados(false)
     onOpenChange(false)
   }
 
@@ -634,7 +685,10 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                     >
                       <td className="p-2">
                         {row.isDuplicate ? (
-                          <span className="flex items-center gap-1 text-destructive text-xs font-medium">
+                          <span
+                            className="flex items-center gap-1 text-destructive text-xs font-medium"
+                            title={row.duplicateReason || 'Duplicado'}
+                          >
                             <Ban className="h-4 w-4" />
                             Duplicado
                           </span>
@@ -642,6 +696,11 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                           <CheckCircle className="h-4 w-4 text-green-600" />
                         ) : (
                           <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                        )}
+                        {row.isDuplicate && row.duplicateReason && (
+                          <div className="text-[10px] text-muted-foreground mt-1 max-w-[220px]">
+                            {row.duplicateReason}
+                          </div>
                         )}
                       </td>
                       <td className="p-2">{row.condominio_nome_original}</td>
@@ -658,20 +717,33 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
               </table>
             </ScrollArea>
 
-            <div className="flex justify-end gap-2 shrink-0 pt-2 border-t">
-              <Button variant="outline" onClick={handleClose}>
-                Cancelar
-              </Button>
-              <Button
-                onClick={() => importMutation.mutate()}
-                disabled={importMutation.isPending || newRows.length === 0}
-              >
-                {importMutation.isPending
-                  ? 'Importando...'
-                  : newRows.length === 0
-                  ? 'Todos duplicados'
-                  : `Importar ${newRows.length} serviço(s)`}
-              </Button>
+            <div className="flex justify-between items-center gap-2 shrink-0 pt-2 border-t">
+              {duplicateCount > 0 ? (
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={importarDuplicados}
+                    onChange={(e) => setImportarDuplicados(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  Importar mesmo os {duplicateCount} marcados como duplicados
+                </label>
+              ) : <span />}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleClose}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => importMutation.mutate()}
+                  disabled={importMutation.isPending || newRows.length === 0}
+                >
+                  {importMutation.isPending
+                    ? 'Importando...'
+                    : newRows.length === 0
+                    ? 'Todos duplicados'
+                    : `Importar ${newRows.length} serviço(s)`}
+                </Button>
+              </div>
             </div>
           </div>
         )}
