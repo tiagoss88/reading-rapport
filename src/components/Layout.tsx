@@ -21,7 +21,8 @@ import {
   Bell,
   PanelLeftClose,
   PanelLeftOpen,
-  BookOpen
+  BookOpen,
+  HardHat
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
