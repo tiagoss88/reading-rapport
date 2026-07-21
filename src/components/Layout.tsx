@@ -208,6 +208,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
             {/* Operação Dropdown */}
             <ProtectedComponent roles={["admin", "gestor_empreendimento"]}
+            >
               <div className="space-y-1">
                 {isCompact ? (
                   <NavLink
