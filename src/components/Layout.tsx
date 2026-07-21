@@ -205,6 +205,52 @@ export default function Layout({ children, title }: LayoutProps) {
                 )}
               </div>
             </ProtectedComponent>
+
+            {/* Operação Dropdown */}
+            <ProtectedComponent roles={["admin", "gestor_empreendimento"]}
+              <div className="space-y-1">
+                {isCompact ? (
+                  <NavLink
+                    to="/medicao-terceirizada/servicos"
+                    title="Operação"
+                    className={({ isActive }) => navLinkClass(isActive || isOperacaoPath)}
+                    onClick={handleNavClick}
+                  >
+                    <HardHat className="h-5 w-5 flex-shrink-0" />
+                  </NavLink>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setOperacaoOpen(!operacaoOpen)}
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <div className="flex items-center">
+                        <HardHat className="mr-3 h-5 w-5 flex-shrink-0" />
+                        Operação
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${operacaoOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {operacaoOpen && (
+                      <div className="ml-8 space-y-1">
+                        {operacaoItems.map((item) => (
+                          <NavLink
+                            key={item.name}
+                            to={item.href}
+                            title={item.name}
+                            className={({ isActive }) => subNavLinkClass(isActive)}
+                            onClick={handleNavClick}
+                          >
+                            <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                            {item.name}
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </ProtectedComponent>
             
             {/* Relatórios Dropdown */}
             <ProtectedComponent permission="view_relatorios">
