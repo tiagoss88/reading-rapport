@@ -1,21 +1,27 @@
-## Plano
+## Diagnóstico confirmado
 
-1. **Aplicar correção de permissões no backend**
-   - A tabela `materiais` existe no banco, mas as permissões de acesso pela aplicação não aparecem concedidas para os perfis usados pelo app.
-   - Vou aplicar os acessos necessários para `materiais`, `estoque_movimentacoes` e `tipo_servico_materiais`, mantendo as regras atuais: somente usuários admin conseguem gerenciar o estoque.
+A tela de Estoque está tentando gravar em um backend diferente daquele onde as tabelas de estoque existem.
 
-2. **Validar as regras de segurança**
-   - Confirmar que as políticas continuam restringindo o módulo Estoque a admin.
-   - Rodar a checagem de segurança do backend após a correção.
+- A requisição real da tela vai para o backend antigo `mxoflgl...` e recebe: `Could not find the table 'public.materiais' in the schema cache`.
+- As tabelas `materiais`, `estoque_movimentacoes`, `tipo_servico_materiais` e a view `v_estoque_saldo` existem e têm permissões no backend atual do Lovable Cloud.
+- Portanto, o problema não é mais permissão/RLS: é a configuração do cliente do app apontando para o backend errado no ambiente da prévia/publicação.
 
-3. **Verificar o cadastro de material**
-   - Repetir a inserção de um material de teste pelo mesmo caminho usado pela tela.
-   - Confirmar separadamente:
-     - tabela existe;
-     - permissões foram concedidas;
-     - material pode ser inserido por admin;
-     - usuário não admin continua bloqueado pelas regras.
+## Plano de correção
 
-## Detalhe técnico
+1. **Atualizar a configuração do app para usar o backend correto**
+   - Verificar os arquivos de ambiente/configuração gerenciados pelo projeto.
+   - Corrigir a URL/chave pública usada pelo frontend, sem expor segredos e sem mexer em chave privada.
 
-O erro exibido (`Could not find the table 'public.materiais' in the schema cache`) acontece quando a API da aplicação não consegue enxergar a tabela, mesmo ela existindo no banco. Pelo que verifiquei, as tabelas do Estoque existem, mas não há privilégios de Data API registrados para elas; por isso a correção deve ser no backend, não na tela.
+2. **Manter as tabelas de Estoque como estão**
+   - Não recriar tabelas.
+   - Não adicionar políticas permissivas.
+   - Não criar RPC ou atalhos inseguros.
+
+3. **Validar a tela novamente**
+   - Recarregar a prévia.
+   - Testar o caminho real de “Novo material”.
+   - Confirmar que a requisição passa a ir para o backend correto e não retorna mais erro de schema cache.
+
+## Resultado esperado
+
+Ao clicar em **Operação → Estoque → Novo material → Salvar**, o material será cadastrado normalmente e a lista de materiais/saldo será atualizada.
