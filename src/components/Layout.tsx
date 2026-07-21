@@ -21,7 +21,8 @@ import {
   Bell,
   PanelLeftClose,
   PanelLeftOpen,
-  BookOpen
+  BookOpen,
+  HardHat
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -43,15 +44,21 @@ export default function Layout({ children, title }: LayoutProps) {
 
 
   
-  const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
+  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento']
+  const isOperacaoPath = operacaoPaths.some(p => pathname.startsWith(p))
+  const isMedicaoPath = pathname.startsWith('/medicao-terceirizada') && !isOperacaoPath
+
+  const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => isMedicaoPath)
+  const [operacaoOpen, setOperacaoOpen] = useState(() => isOperacaoPath)
   const [relatoriosOpen, setRelatoriosOpen] = useState(() => pathname.startsWith('/relatorios'))
   const [configuracoesOpen, setConfiguracoesOpen] = useState(() => ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))
 
   useEffect(() => {
-    if (pathname.startsWith('/medicao-terceirizada')) setMedicaoTerceirizadaOpen(true)
+    if (isMedicaoPath) setMedicaoTerceirizadaOpen(true)
+    if (isOperacaoPath) setOperacaoOpen(true)
     if (pathname.startsWith('/relatorios')) setRelatoriosOpen(true)
     if (['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p))) setConfiguracoesOpen(true)
-  }, [pathname])
+  }, [pathname, isMedicaoPath, isOperacaoPath])
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home, permission: 'view_dashboard' },
@@ -65,11 +72,14 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const medicaoTerceirizadaItems = [
     { name: 'Leituras', href: '/medicao-terceirizada/leituras', icon: BookOpen },
-    { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
     { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
     { name: 'Planejamento', href: '/medicao-terceirizada/rotas', icon: MapPin },
-    { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
     { name: 'Notificações', href: '/medicao-terceirizada/notificacoes', icon: Bell },
+  ]
+
+  const operacaoItems = [
+    { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
+    { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
   ]
 
   const configuracoesItems = [
@@ -155,9 +165,9 @@ export default function Layout({ children, title }: LayoutProps) {
               <div className="space-y-1">
                 {isCompact ? (
                   <NavLink
-                    to="/medicao-terceirizada/empreendimentos"
+                    to="/medicao-terceirizada/leituras"
                     title="Medição"
-                    className={({ isActive }) => navLinkClass(isActive || pathname.startsWith('/medicao-terceirizada'))}
+                    className={({ isActive }) => navLinkClass(isActive || isMedicaoPath)}
                     onClick={handleNavClick}
                   >
                     <Handshake className="h-5 w-5 flex-shrink-0" />
@@ -178,6 +188,53 @@ export default function Layout({ children, title }: LayoutProps) {
                     {medicaoTerceirizadaOpen && (
                       <div className="ml-8 space-y-1">
                         {medicaoTerceirizadaItems.map((item) => (
+                          <NavLink
+                            key={item.name}
+                            to={item.href}
+                            title={item.name}
+                            className={({ isActive }) => subNavLinkClass(isActive)}
+                            onClick={handleNavClick}
+                          >
+                            <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                            {item.name}
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </ProtectedComponent>
+
+            {/* Operação Dropdown */}
+            <ProtectedComponent roles={["admin", "gestor_empreendimento"]}
+            >
+              <div className="space-y-1">
+                {isCompact ? (
+                  <NavLink
+                    to="/medicao-terceirizada/servicos"
+                    title="Operação"
+                    className={({ isActive }) => navLinkClass(isActive || isOperacaoPath)}
+                    onClick={handleNavClick}
+                  >
+                    <HardHat className="h-5 w-5 flex-shrink-0" />
+                  </NavLink>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setOperacaoOpen(!operacaoOpen)}
+                      className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-md transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                      <div className="flex items-center">
+                        <HardHat className="mr-3 h-5 w-5 flex-shrink-0" />
+                        Operação
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${operacaoOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {operacaoOpen && (
+                      <div className="ml-8 space-y-1">
+                        {operacaoItems.map((item) => (
                           <NavLink
                             key={item.name}
                             to={item.href}
