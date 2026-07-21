@@ -44,15 +44,21 @@ export default function Layout({ children, title }: LayoutProps) {
 
 
   
-  const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => pathname.startsWith('/medicao-terceirizada'))
+  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento']
+  const isOperacaoPath = operacaoPaths.some(p => pathname.startsWith(p))
+  const isMedicaoPath = pathname.startsWith('/medicao-terceirizada') && !isOperacaoPath
+
+  const [medicaoTerceirizadaOpen, setMedicaoTerceirizadaOpen] = useState(() => isMedicaoPath)
+  const [operacaoOpen, setOperacaoOpen] = useState(() => isOperacaoPath)
   const [relatoriosOpen, setRelatoriosOpen] = useState(() => pathname.startsWith('/relatorios'))
   const [configuracoesOpen, setConfiguracoesOpen] = useState(() => ['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p)))
 
   useEffect(() => {
-    if (pathname.startsWith('/medicao-terceirizada')) setMedicaoTerceirizadaOpen(true)
+    if (isMedicaoPath) setMedicaoTerceirizadaOpen(true)
+    if (isOperacaoPath) setOperacaoOpen(true)
     if (pathname.startsWith('/relatorios')) setRelatoriosOpen(true)
     if (['/configuracoes', '/operadores', '/permissions'].some(p => pathname.startsWith(p))) setConfiguracoesOpen(true)
-  }, [pathname])
+  }, [pathname, isMedicaoPath, isOperacaoPath])
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home, permission: 'view_dashboard' },
@@ -66,11 +72,14 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const medicaoTerceirizadaItems = [
     { name: 'Leituras', href: '/medicao-terceirizada/leituras', icon: BookOpen },
-    { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
     { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
     { name: 'Planejamento', href: '/medicao-terceirizada/rotas', icon: MapPin },
-    { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
     { name: 'Notificações', href: '/medicao-terceirizada/notificacoes', icon: Bell },
+  ]
+
+  const operacaoItems = [
+    { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
+    { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
   ]
 
   const configuracoesItems = [
