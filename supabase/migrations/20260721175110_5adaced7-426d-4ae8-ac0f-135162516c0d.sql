@@ -1,1 +1,0 @@
-ALTER VIEW public.v_estoque_saldo SET (security_invoker = true);

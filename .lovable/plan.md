@@ -1,27 +1,22 @@
-## Diagnóstico confirmado
+text
+## Objetivo
+Reorganizar o menu lateral para separar a navegação de medição da navegação de operação de campo.
 
-A tela de Estoque está tentando gravar em um backend diferente daquele onde as tabelas de estoque existem.
+## Alterações previstas
 
-- A requisição real da tela vai para o backend antigo `mxoflgl...` e recebe: `Could not find the table 'public.materiais' in the schema cache`.
-- As tabelas `materiais`, `estoque_movimentacoes`, `tipo_servico_materiais` e a view `v_estoque_saldo` existem e têm permissões no backend atual do Lovable Cloud.
-- Portanto, o problema não é mais permissão/RLS: é a configuração do cliente do app apontando para o backend errado no ambiente da prévia/publicação.
+### 1. `src/components/Layout.tsx`
+- Dividir o array `medicaoTerceirizadaItems` em dois:
+  - `medicaoTerceirizadaItems`: Leituras, Empreendimentos, Planejamento, Notificações.
+  - `operacaoItems`: Serviços, Georreferenciamento.
+- Adicionar estado `operacaoOpen` controlado, inicializado como `true` quando a rota começar com `/medicao-terceirizada` e o item ativo for Serviços ou Georreferenciamento.
+- Atualizar o `useEffect` de expansão automática para abrir o grupo correto conforme a rota atual.
+- Inserir um novo dropdown "Operação" no menu, abaixo do dropdown "Medição", com o mesmo padrão visual e comportamento de colapso (incluindo modo compacto para a barra reduzida).
+- Manter a permissão de visualização do grupo `Operação` igual à de `Medição` (perfis admin e gestor_empreendimento).
+- Ajustar ícones para os grupos: `Handshake` para Medição; ícone de ferramentas/campo (ex: `Wrench` ou `Navigation2`) para Operação.
 
-## Plano de correção
-
-1. **Atualizar a configuração do app para usar o backend correto**
-   - Verificar os arquivos de ambiente/configuração gerenciados pelo projeto.
-   - Corrigir a URL/chave pública usada pelo frontend, sem expor segredos e sem mexer em chave privada.
-
-2. **Manter as tabelas de Estoque como estão**
-   - Não recriar tabelas.
-   - Não adicionar políticas permissivas.
-   - Não criar RPC ou atalhos inseguros.
-
-3. **Validar a tela novamente**
-   - Recarregar a prévia.
-   - Testar o caminho real de “Novo material”.
-   - Confirmar que a requisição passa a ir para o backend correto e não retorna mais erro de schema cache.
-
-## Resultado esperado
-
-Ao clicar em **Operação → Estoque → Novo material → Salvar**, o material será cadastrado normalmente e a lista de materiais/saldo será atualizada.
+## Critérios de aceitação
+- Menu lateral mostra Medição e Operação como grupos separados.
+- Itens corretos aparecem dentro de cada grupo.
+- Grupo ativo expande automaticamente ao acessar Serviços ou Georreferenciamento.
+- Layout continua colapsável e responsivo.
+- Nenhuma alteração de backend ou banco de dados.
