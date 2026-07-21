@@ -44,6 +44,7 @@ import NotAuthorized from '@/pages/NotAuthorized'
 import AdminAtualizarRotasCE from '@/pages/AdminAtualizarRotasCE'
 import AdminGerarSQLRotas from '@/pages/AdminGerarSQLRotas'
 import LimparCache from '@/pages/LimparCache'
+import Estoque from '@/pages/Operacao/Estoque'
 
 const queryClient = new QueryClient();
 
