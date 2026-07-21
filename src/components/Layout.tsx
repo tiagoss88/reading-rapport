@@ -22,7 +22,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   BookOpen,
-  HardHat
+  HardHat,
+  Package
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -44,7 +45,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
 
   
-  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento']
+  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento', '/operacao/estoque']
   const isOperacaoPath = operacaoPaths.some(p => pathname.startsWith(p))
   const isMedicaoPath = pathname.startsWith('/medicao-terceirizada') && !isOperacaoPath
 
@@ -80,6 +81,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const operacaoItems = [
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
     { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
+    { name: 'Estoque', href: '/operacao/estoque', icon: Package, role: 'admin' as const },
   ]
 
   const configuracoesItems = [
@@ -235,16 +237,17 @@ export default function Layout({ children, title }: LayoutProps) {
                     {operacaoOpen && (
                       <div className="ml-8 space-y-1">
                         {operacaoItems.map((item) => (
-                          <NavLink
-                            key={item.name}
-                            to={item.href}
-                            title={item.name}
-                            className={({ isActive }) => subNavLinkClass(isActive)}
-                            onClick={handleNavClick}
-                          >
-                            <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
-                            {item.name}
-                          </NavLink>
+                          <ProtectedComponent key={item.name} role={(item as any).role}>
+                            <NavLink
+                              to={item.href}
+                              title={item.name}
+                              className={({ isActive }) => subNavLinkClass(isActive)}
+                              onClick={handleNavClick}
+                            >
+                              <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                              {item.name}
+                            </NavLink>
+                          </ProtectedComponent>
                         ))}
                       </div>
                     )}
