@@ -165,9 +165,9 @@ export default function Layout({ children, title }: LayoutProps) {
               <div className="space-y-1">
                 {isCompact ? (
                   <NavLink
-                    to="/medicao-terceirizada/empreendimentos"
+                    to="/medicao-terceirizada/leituras"
                     title="Medição"
-                    className={({ isActive }) => navLinkClass(isActive || pathname.startsWith('/medicao-terceirizada'))}
+                    className={({ isActive }) => navLinkClass(isActive || isMedicaoPath)}
                     onClick={handleNavClick}
                   >
                     <Handshake className="h-5 w-5 flex-shrink-0" />
