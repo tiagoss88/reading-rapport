@@ -1,40 +1,41 @@
-## Problema encontrado
+## Problema
 
-O sistema hoje tem **dois backends configurados ao mesmo tempo** e é isso que causa comportamento inconsistente a cada atualização:
+Mesmo com o kill-switch já implementado em `src/pwa/registerSW.ts`, ao abrir o projeto no editor/preview do Lovable a versão antiga continua sendo exibida na primeira carga. Isso acontece porque:
 
-- **Backend NOVO (Lovable Cloud atual):** `cfyhskxjvvqpnnzsebud`
-  - Usado por: `.env`, `supabase/config.toml`, migrações, edge functions, tipos gerados.
-- **Backend ANTIGO:** `mxoflglqsxupkzrbodkm`
-  - Ainda referenciado em: `vite.config.ts` (hard‑coded via `define`) e `VPS_REQUIREMENTS.md`.
+1. Um Service Worker antigo (`/sw.js`) registrado numa sessão anterior **ainda controla a página** quando ela abre — ele serve o HTML/JS do precache antes de o `cleanupAppSW()` rodar.
+2. `cleanupAppSW()` só desregistra o SW e limpa alguns caches, mas **não recarrega a aba**, então o usuário continua vendo o build antigo servido pelo SW até fechar/reabrir.
+3. O filtro de caches (`/workbox|precache|runtime|html-navigations/i`) pode deixar buckets antigos com nomes diferentes.
+4. O SW de push (`/sw-push.js`) é inofensivo (sem `fetch` handler) e deve ser preservado — não mexer nele.
 
-O `vite.config.ts` está sobrescrevendo as variáveis do `.env` na hora do build:
+## O que fazer
 
-```ts
-define: {
-  'import.meta.env.VITE_SUPABASE_URL': JSON.stringify('https://mxoflglqsxupkzrbodkm...'),
-  'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify('...'),
-  'import.meta.env.VITE_SUPABASE_PROJECT_ID': JSON.stringify('mxoflglqsxupkzrbodkm'),
-}
+Editar apenas `src/pwa/registerSW.ts`:
+
+- Em contexto recusado (preview/editor/dev), detectar se existe registro de `/sw.js` **ou** se `navigator.serviceWorker.controller` está servindo `/sw.js`.
+- Desregistrar todos os registros cujo scriptURL termine em `/sw.js`.
+- Apagar **todos** os caches do `Cache Storage` da origem, exceto os usados pelo `/sw-push.js` (nenhum hoje, mas manter guard por nome caso passe a existir).
+- Se havia SW da app controlando ou registro removido, chamar `window.location.reload()` uma única vez, usando um `sessionStorage` flag (`__lov_sw_reloaded`) para evitar loop.
+- Não tocar em `/sw-push.js`, nem em `main.tsx`, `vite.config.ts`, `index.html`.
+
+## Detalhes técnicos
+
+```text
+registerAppSW()
+ ├─ isRefusedContext() ? 
+ │    ├─ hadAppSW = detectAppSW()   // registros + controller
+ │    ├─ await unregisterAppSW()
+ │    ├─ await clearAllCachesExceptPush()
+ │    └─ if (hadAppSW && !sessionStorage['__lov_sw_reloaded']) {
+ │          sessionStorage['__lov_sw_reloaded'] = '1'
+ │          location.reload()
+ │       }
+ └─ else register('/sw.js')
 ```
 
-Resultado prático: o app publicado abre conectado ao backend antigo, enquanto tudo que é feito aqui (migrações, funções, tabelas novas como `gti_leituras_mensais`, `servicos_nacional_gas`, permissões, etc.) vai para o backend novo. Isso explica “sumiço” de dados, dados que aparecem em um lugar e não em outro, e comportamento diferente entre preview e produção.
-
-## O que a plano vai ajustar
-
-1. **`vite.config.ts`** — remover completamente o bloco `define` que fixa URL/keys do backend antigo. O client já lê `import.meta.env.VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` do `.env`, que apontam para o backend correto (`cfyhskxjvvqpnnzsebud`). Nenhum outro campo do arquivo muda (PWA, plugins, alias permanecem).
-
-2. **`VPS_REQUIREMENTS.md`** — substituir o exemplo de `.env.production` para referenciar o backend atual do Lovable Cloud, evitando que um deploy em VPS futuro reintroduza o backend antigo.
-
-3. **Verificação pós‑mudança**
-   - Confirmar via build que `VITE_SUPABASE_URL` resolvida é `https://cfyhskxjvvqpnnzsebud.supabase.co`.
-   - Confirmar no preview (após flush do HMR) que login, listagem de serviços e leituras continuam funcionando — todos passando a bater no backend novo, como já é o caso das migrações.
-
-## O que NÃO será alterado
-
-- Nenhuma tabela, policy, edge function ou secret.
-- Nenhum código de negócio (Roteirizador, Serviços, GTI, PWA, etc.).
-- `supabase/config.toml` já está correto.
+- `detectAppSW`: retorna true se algum `registration.active/waiting/installing.scriptURL` termina em `/sw.js` **ou** `navigator.serviceWorker.controller?.scriptURL` termina em `/sw.js`.
+- `clearAllCachesExceptPush`: `caches.keys()` e deleta tudo (não há cache nomeado pelo `sw-push.js`, então é seguro).
+- Flag em `sessionStorage` garante um único reload por aba.
 
 ## Efeito esperado
 
-A partir da próxima publicação o app inteiro (preview e produção) passa a usar um único backend — o mesmo onde as migrações e funções vivem — eliminando a divergência que aparece a cada atualização.
+Ao abrir o preview do Lovable: se ainda houver SW antigo controlando a aba, ele é desregistrado, os caches são zerados e a página recarrega uma vez, passando a servir o build atual direto da rede. Em builds futuros, como o preview nunca mais registra SW, o problema não volta a acontecer.

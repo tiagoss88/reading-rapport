@@ -1,9 +1,10 @@
 // Guarded Service Worker registration for the app shell.
 // Registers /sw.js ONLY in production and outside Lovable preview/editor contexts.
-// In refused contexts, unregisters any existing /sw.js registration and clears
-// its Workbox caches so returning visitors always see the latest build.
+// In refused contexts, unregisters any existing /sw.js registration, clears its
+// caches and forces a one-time reload so the tab stops being served by the old SW.
 
 const APP_SW_URL = '/sw.js';
+const RELOAD_FLAG = '__lov_sw_reloaded';
 
 function isRefusedContext(): boolean {
   if (!import.meta.env.PROD) return true;
@@ -28,15 +29,37 @@ function isRefusedContext(): boolean {
   return false;
 }
 
-async function cleanupAppSW(): Promise<void> {
-  if (!('serviceWorker' in navigator)) return;
+function scriptURLOf(reg: ServiceWorkerRegistration): string {
+  return (
+    reg.active?.scriptURL ||
+    reg.waiting?.scriptURL ||
+    reg.installing?.scriptURL ||
+    ''
+  );
+}
+
+function isAppSWUrl(scriptURL: string): boolean {
+  try {
+    return new URL(scriptURL, window.location.origin).pathname === APP_SW_URL;
+  } catch {
+    return scriptURL.endsWith(APP_SW_URL);
+  }
+}
+
+async function detectAndUnregisterAppSW(): Promise<boolean> {
+  if (!('serviceWorker' in navigator)) return false;
+  let hadAppSW = false;
+
+  const controllerURL = navigator.serviceWorker.controller?.scriptURL || '';
+  if (controllerURL && isAppSWUrl(controllerURL)) hadAppSW = true;
+
   try {
     const regs = await navigator.serviceWorker.getRegistrations();
     await Promise.all(
       regs.map(async (reg) => {
-        const scriptURL =
-          reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL || '';
-        if (scriptURL.endsWith(APP_SW_URL)) {
+        const url = scriptURLOf(reg);
+        if (url && isAppSWUrl(url)) {
+          hadAppSW = true;
           try {
             await reg.unregister();
           } catch {
@@ -48,24 +71,33 @@ async function cleanupAppSW(): Promise<void> {
   } catch {
     /* noop */
   }
+  return hadAppSW;
+}
 
-  if ('caches' in window) {
-    try {
-      const names = await caches.keys();
-      await Promise.all(
-        names
-          .filter((n) => /workbox|precache|runtime|html-navigations/i.test(n))
-          .map((n) => caches.delete(n).catch(() => false)),
-      );
-    } catch {
-      /* noop */
-    }
+async function clearAllCaches(): Promise<void> {
+  if (!('caches' in window)) return;
+  try {
+    const names = await caches.keys();
+    await Promise.all(names.map((n) => caches.delete(n).catch(() => false)));
+  } catch {
+    /* noop */
   }
 }
 
 export async function registerAppSW(): Promise<void> {
   if (isRefusedContext()) {
-    await cleanupAppSW();
+    const hadAppSW = await detectAndUnregisterAppSW();
+    await clearAllCaches();
+    if (hadAppSW) {
+      try {
+        if (sessionStorage.getItem(RELOAD_FLAG) !== '1') {
+          sessionStorage.setItem(RELOAD_FLAG, '1');
+          window.location.reload();
+        }
+      } catch {
+        /* noop */
+      }
+    }
     return;
   }
   if (!('serviceWorker' in navigator)) return;
