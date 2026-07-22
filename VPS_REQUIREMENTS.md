@@ -250,8 +250,9 @@ server {
 ### 11. Variáveis de Ambiente
 ```bash
 # .env.production
-VITE_SUPABASE_URL=https://mxoflglqsxupkzrbodkm.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14b2ZsZ2xxc3h1cGt6cmJvZGttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5NjM1MzgsImV4cCI6MjA3MDUzOTUzOH0.zToDlCEsT7TCAnQslnFVRRiygRveOCXf33TAuG_tdF8
+VITE_SUPABASE_URL=https://cfyhskxjvvqpnnzsebud.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNmeWhza3hqdnZxcG5uenNlYnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2MjU4MzAsImV4cCI6MjA4ODIwMTgzMH0.wKsMCD6ERmueGJwgVlaY5vEhEaWCSgU-wGIO7BEllL4
+VITE_SUPABASE_PROJECT_ID=cfyhskxjvvqpnnzsebud
 ```
 
 ## Processo de Deploy
