@@ -267,6 +267,67 @@ export type Database = {
         }
         Relationships: []
       }
+      estoque_movimentacoes: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          material_id: string
+          motivo: string | null
+          observacao: string | null
+          operador_id: string | null
+          quantidade: number
+          servico_id: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          material_id: string
+          motivo?: string | null
+          observacao?: string | null
+          operador_id?: string | null
+          quantidade: number
+          servico_id?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          material_id?: string
+          motivo?: string | null
+          observacao?: string | null
+          operador_id?: string | null
+          quantidade?: number
+          servico_id?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentacoes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentacoes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_estoque_saldo"
+            referencedColumns: ["material_id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentacoes_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_nacional_gas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gti_leituras_mensais: {
         Row: {
           ano_referencia: number
@@ -374,6 +435,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      materiais: {
+        Row: {
+          ativo: boolean
+          categoria: string | null
+          created_at: string
+          descricao: string | null
+          estoque_minimo: number
+          id: string
+          nome: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          estoque_minimo?: number
+          id?: string
+          nome: string
+          unidade?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string | null
+          created_at?: string
+          descricao?: string | null
+          estoque_minimo?: number
+          id?: string
+          nome?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       notificacoes_medidores: {
         Row: {
@@ -874,6 +971,48 @@ export type Database = {
           },
         ]
       }
+      tipo_servico_materiais: {
+        Row: {
+          created_at: string
+          id: string
+          material_id: string
+          quantidade: number
+          tipo_servico: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          material_id: string
+          quantidade?: number
+          tipo_servico: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          material_id?: string
+          quantidade?: number
+          tipo_servico?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tipo_servico_materiais_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "materiais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_servico_materiais_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "v_estoque_saldo"
+            referencedColumns: ["material_id"]
+          },
+        ]
+      }
       tipos_servico: {
         Row: {
           created_at: string
@@ -979,6 +1118,18 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_estoque_saldo: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          estoque_minimo: number | null
+          material_id: string | null
+          nome: string | null
+          saldo: number | null
+          unidade: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
