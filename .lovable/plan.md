@@ -1,22 +1,40 @@
-text
-## Objetivo
-Reorganizar o menu lateral para separar a navegação de medição da navegação de operação de campo.
+## Problema encontrado
 
-## Alterações previstas
+O sistema hoje tem **dois backends configurados ao mesmo tempo** e é isso que causa comportamento inconsistente a cada atualização:
 
-### 1. `src/components/Layout.tsx`
-- Dividir o array `medicaoTerceirizadaItems` em dois:
-  - `medicaoTerceirizadaItems`: Leituras, Empreendimentos, Planejamento, Notificações.
-  - `operacaoItems`: Serviços, Georreferenciamento.
-- Adicionar estado `operacaoOpen` controlado, inicializado como `true` quando a rota começar com `/medicao-terceirizada` e o item ativo for Serviços ou Georreferenciamento.
-- Atualizar o `useEffect` de expansão automática para abrir o grupo correto conforme a rota atual.
-- Inserir um novo dropdown "Operação" no menu, abaixo do dropdown "Medição", com o mesmo padrão visual e comportamento de colapso (incluindo modo compacto para a barra reduzida).
-- Manter a permissão de visualização do grupo `Operação` igual à de `Medição` (perfis admin e gestor_empreendimento).
-- Ajustar ícones para os grupos: `Handshake` para Medição; ícone de ferramentas/campo (ex: `Wrench` ou `Navigation2`) para Operação.
+- **Backend NOVO (Lovable Cloud atual):** `cfyhskxjvvqpnnzsebud`
+  - Usado por: `.env`, `supabase/config.toml`, migrações, edge functions, tipos gerados.
+- **Backend ANTIGO:** `mxoflglqsxupkzrbodkm`
+  - Ainda referenciado em: `vite.config.ts` (hard‑coded via `define`) e `VPS_REQUIREMENTS.md`.
 
-## Critérios de aceitação
-- Menu lateral mostra Medição e Operação como grupos separados.
-- Itens corretos aparecem dentro de cada grupo.
-- Grupo ativo expande automaticamente ao acessar Serviços ou Georreferenciamento.
-- Layout continua colapsável e responsivo.
-- Nenhuma alteração de backend ou banco de dados.
+O `vite.config.ts` está sobrescrevendo as variáveis do `.env` na hora do build:
+
+```ts
+define: {
+  'import.meta.env.VITE_SUPABASE_URL': JSON.stringify('https://mxoflglqsxupkzrbodkm...'),
+  'import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY': JSON.stringify('...'),
+  'import.meta.env.VITE_SUPABASE_PROJECT_ID': JSON.stringify('mxoflglqsxupkzrbodkm'),
+}
+```
+
+Resultado prático: o app publicado abre conectado ao backend antigo, enquanto tudo que é feito aqui (migrações, funções, tabelas novas como `gti_leituras_mensais`, `servicos_nacional_gas`, permissões, etc.) vai para o backend novo. Isso explica “sumiço” de dados, dados que aparecem em um lugar e não em outro, e comportamento diferente entre preview e produção.
+
+## O que a plano vai ajustar
+
+1. **`vite.config.ts`** — remover completamente o bloco `define` que fixa URL/keys do backend antigo. O client já lê `import.meta.env.VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` do `.env`, que apontam para o backend correto (`cfyhskxjvvqpnnzsebud`). Nenhum outro campo do arquivo muda (PWA, plugins, alias permanecem).
+
+2. **`VPS_REQUIREMENTS.md`** — substituir o exemplo de `.env.production` para referenciar o backend atual do Lovable Cloud, evitando que um deploy em VPS futuro reintroduza o backend antigo.
+
+3. **Verificação pós‑mudança**
+   - Confirmar via build que `VITE_SUPABASE_URL` resolvida é `https://cfyhskxjvvqpnnzsebud.supabase.co`.
+   - Confirmar no preview (após flush do HMR) que login, listagem de serviços e leituras continuam funcionando — todos passando a bater no backend novo, como já é o caso das migrações.
+
+## O que NÃO será alterado
+
+- Nenhuma tabela, policy, edge function ou secret.
+- Nenhum código de negócio (Roteirizador, Serviços, GTI, PWA, etc.).
+- `supabase/config.toml` já está correto.
+
+## Efeito esperado
+
+A partir da próxima publicação o app inteiro (preview e produção) passa a usar um único backend — o mesmo onde as migrações e funções vivem — eliminando a divergência que aparece a cada atualização.
