@@ -361,18 +361,94 @@ export default function ColetorServicosTerceirizados() {
     const matchUF = selectedUF === 'todos' || s.uf === selectedUF
     if (!matchUF) return false
     if (!searchTerm.trim()) return true
-    const term = searchTerm.toLowerCase()
+    const term = searchTerm.toLowerCase().trim()
     return (
       s.condominio_nome_original.toLowerCase().includes(term) ||
       (s.morador_nome && s.morador_nome.toLowerCase().includes(term)) ||
       (s.empreendimento?.endereco && s.empreendimento.endereco.toLowerCase().includes(term)) ||
       (s.tipo_servico && s.tipo_servico.toLowerCase().includes(term)) ||
-      (s.numero_protocolo && s.numero_protocolo.toLowerCase().includes(term))
+      (s.numero_protocolo && s.numero_protocolo.toLowerCase().includes(term)) ||
+      (s.apartamento && s.apartamento.toLowerCase().includes(term)) ||
+      (s.bloco && s.bloco.toLowerCase().includes(term)) ||
+      (s.bloco && s.apartamento && `bl ${s.bloco} ap ${s.apartamento}`.toLowerCase().includes(term)) ||
+      (s.bloco && s.apartamento && `bloco ${s.bloco} apto ${s.apartamento}`.toLowerCase().includes(term))
     )
   })
 
   const essenciais = filteredServicos.filter(s => isEssencial(s.tipo_servico))
   const programados = filteredServicos.filter(s => !isEssencial(s.tipo_servico))
+
+  // Agrupamento: Data -> Turno -> Condomínio
+  const turnoOrder = (t: string | null) => {
+    const v = (t || '').toLowerCase()
+    if (v === 'manha' || v === 'manhã') return 0
+    if (v === 'tarde') return 1
+    if (v === 'noite') return 2
+    return 3
+  }
+
+  const formatDataLabel = (iso: string | null) => {
+    if (!iso) return 'Sem data agendada'
+    const d = new Date(String(iso).slice(0, 10) + 'T00:00:00')
+    if (isNaN(d.getTime())) return 'Sem data agendada'
+    const label = format(d, "EEEE, dd/MM/yyyy", { locale: ptBR })
+    return label.charAt(0).toUpperCase() + label.slice(1)
+  }
+
+  const programadosAgrupados = (() => {
+    const byData = new Map<string, ServicoTerceirizado[]>()
+    programados.forEach(s => {
+      const iso = s.data_agendamento ? String(s.data_agendamento).slice(0, 10) : ''
+      const key = isNaN(new Date(iso + 'T00:00:00').getTime()) ? '' : iso
+      if (!byData.has(key)) byData.set(key, [])
+      byData.get(key)!.push(s)
+    })
+
+    return Array.from(byData.entries())
+      .sort(([a], [b]) => {
+        if (!a) return 1
+        if (!b) return -1
+        return a.localeCompare(b)
+      })
+      .map(([dataKey, itensData]) => {
+        const byTurno = new Map<string, ServicoTerceirizado[]>()
+        itensData.forEach(s => {
+          const key = s.turno || ''
+          if (!byTurno.has(key)) byTurno.set(key, [])
+          byTurno.get(key)!.push(s)
+        })
+
+        const turnos = Array.from(byTurno.entries())
+          .sort(([a], [b]) => turnoOrder(a) - turnoOrder(b))
+          .map(([turnoKey, itensTurno]) => {
+            const byCondominio = new Map<string, ServicoTerceirizado[]>()
+            itensTurno.forEach(s => {
+              const key = s.condominio_nome_original || 'Sem condomínio'
+              if (!byCondominio.has(key)) byCondominio.set(key, [])
+              byCondominio.get(key)!.push(s)
+            })
+
+            const condominios = Array.from(byCondominio.entries())
+              .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+              .map(([nome, itens]) => ({ nome, itens }))
+
+            return {
+              turnoKey,
+              turnoLabel: turnoKey ? getTurnoLabel(turnoKey) : 'Sem turno',
+              total: itensTurno.length,
+              condominios,
+            }
+          })
+
+        return {
+          dataKey,
+          dataLabel: formatDataLabel(dataKey || null),
+          total: itensData.length,
+          turnos,
+        }
+      })
+  })()
+
 
   // Renderizador de card reutilizável (variante essencial ou programado)
   const renderCard = (servico: ServicoTerceirizado, variant: 'essencial' | 'programado', index: number) => {
