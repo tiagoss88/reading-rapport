@@ -361,18 +361,94 @@ export default function ColetorServicosTerceirizados() {
     const matchUF = selectedUF === 'todos' || s.uf === selectedUF
     if (!matchUF) return false
     if (!searchTerm.trim()) return true
-    const term = searchTerm.toLowerCase()
+    const term = searchTerm.toLowerCase().trim()
     return (
       s.condominio_nome_original.toLowerCase().includes(term) ||
       (s.morador_nome && s.morador_nome.toLowerCase().includes(term)) ||
       (s.empreendimento?.endereco && s.empreendimento.endereco.toLowerCase().includes(term)) ||
       (s.tipo_servico && s.tipo_servico.toLowerCase().includes(term)) ||
-      (s.numero_protocolo && s.numero_protocolo.toLowerCase().includes(term))
+      (s.numero_protocolo && s.numero_protocolo.toLowerCase().includes(term)) ||
+      (s.apartamento && s.apartamento.toLowerCase().includes(term)) ||
+      (s.bloco && s.bloco.toLowerCase().includes(term)) ||
+      (s.bloco && s.apartamento && `bl ${s.bloco} ap ${s.apartamento}`.toLowerCase().includes(term)) ||
+      (s.bloco && s.apartamento && `bloco ${s.bloco} apto ${s.apartamento}`.toLowerCase().includes(term))
     )
   })
 
   const essenciais = filteredServicos.filter(s => isEssencial(s.tipo_servico))
   const programados = filteredServicos.filter(s => !isEssencial(s.tipo_servico))
+
+  // Agrupamento: Data -> Turno -> Condomínio
+  const turnoOrder = (t: string | null) => {
+    const v = (t || '').toLowerCase()
+    if (v === 'manha' || v === 'manhã') return 0
+    if (v === 'tarde') return 1
+    if (v === 'noite') return 2
+    return 3
+  }
+
+  const formatDataLabel = (iso: string | null) => {
+    if (!iso) return 'Sem data agendada'
+    const d = new Date(String(iso).slice(0, 10) + 'T00:00:00')
+    if (isNaN(d.getTime())) return 'Sem data agendada'
+    const label = format(d, "EEEE, dd/MM/yyyy", { locale: ptBR })
+    return label.charAt(0).toUpperCase() + label.slice(1)
+  }
+
+  const programadosAgrupados = (() => {
+    const byData = new Map<string, ServicoTerceirizado[]>()
+    programados.forEach(s => {
+      const iso = s.data_agendamento ? String(s.data_agendamento).slice(0, 10) : ''
+      const key = isNaN(new Date(iso + 'T00:00:00').getTime()) ? '' : iso
+      if (!byData.has(key)) byData.set(key, [])
+      byData.get(key)!.push(s)
+    })
+
+    return Array.from(byData.entries())
+      .sort(([a], [b]) => {
+        if (!a) return 1
+        if (!b) return -1
+        return a.localeCompare(b)
+      })
+      .map(([dataKey, itensData]) => {
+        const byTurno = new Map<string, ServicoTerceirizado[]>()
+        itensData.forEach(s => {
+          const key = s.turno || ''
+          if (!byTurno.has(key)) byTurno.set(key, [])
+          byTurno.get(key)!.push(s)
+        })
+
+        const turnos = Array.from(byTurno.entries())
+          .sort(([a], [b]) => turnoOrder(a) - turnoOrder(b))
+          .map(([turnoKey, itensTurno]) => {
+            const byCondominio = new Map<string, ServicoTerceirizado[]>()
+            itensTurno.forEach(s => {
+              const key = s.condominio_nome_original || 'Sem condomínio'
+              if (!byCondominio.has(key)) byCondominio.set(key, [])
+              byCondominio.get(key)!.push(s)
+            })
+
+            const condominios = Array.from(byCondominio.entries())
+              .sort(([a], [b]) => a.localeCompare(b, 'pt-BR'))
+              .map(([nome, itens]) => ({ nome, itens }))
+
+            return {
+              turnoKey,
+              turnoLabel: turnoKey ? getTurnoLabel(turnoKey) : 'Sem turno',
+              total: itensTurno.length,
+              condominios,
+            }
+          })
+
+        return {
+          dataKey,
+          dataLabel: formatDataLabel(dataKey || null),
+          total: itensData.length,
+          turnos,
+        }
+      })
+  })()
+
 
   // Renderizador de card reutilizável (variante essencial ou programado)
   const renderCard = (servico: ServicoTerceirizado, variant: 'essencial' | 'programado', index: number) => {
@@ -494,7 +570,7 @@ export default function ColetorServicosTerceirizados() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por condomínio, morador, endereço, tipo ou protocolo..."
+            placeholder="Buscar por condomínio, apto, bloco, morador, endereço, tipo ou protocolo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -582,8 +658,50 @@ export default function ColetorServicosTerceirizados() {
                 Demais serviços agendados para execução
               </p>
             </div>
-            <div className="space-y-3">
-              {programados.map((s, i) => renderCard(s, 'programado', i))}
+            <div className="space-y-5">
+              {programadosAgrupados.map((grupoData) => (
+                <div key={grupoData.dataKey || 'sem-data'} className="space-y-3">
+                  {/* Cabeçalho de data */}
+                  <div className="flex items-center gap-2 pb-1.5 border-b-2 border-[#6c5ce7]/20">
+                    <Calendar className="w-4 h-4 text-[#6c5ce7]" />
+                    <span className="text-sm font-bold text-foreground">{grupoData.dataLabel}</span>
+                    <span className="ml-auto text-[11px] font-semibold text-muted-foreground">
+                      {grupoData.total} {grupoData.total === 1 ? 'serviço' : 'serviços'}
+                    </span>
+                  </div>
+
+                  {grupoData.turnos.map((grupoTurno) => (
+                    <div key={grupoTurno.turnoKey || 'sem-turno'} className="space-y-2.5 pl-1">
+                      {/* Turno */}
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-wide text-white bg-gradient-to-br from-[#4ecdc4] to-[#6c5ce7] px-2.5 py-0.5 rounded-full">
+                          <Clock className="w-3 h-3" />
+                          {grupoTurno.turnoLabel.toUpperCase()}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">{grupoTurno.total}</span>
+                      </div>
+
+                      {grupoTurno.condominios.map((grupoCond) => (
+                        <div key={grupoCond.nome} className="space-y-2">
+                          {/* Condomínio */}
+                          <div className="flex items-center gap-1.5 pl-0.5">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide truncate">
+                              {grupoCond.nome}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground/70">
+                              ({grupoCond.itens.length})
+                            </span>
+                          </div>
+                          <div className="space-y-3">
+                            {grupoCond.itens.map((s, i) => renderCard(s, 'programado', i))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
             </div>
           </section>
         )}
