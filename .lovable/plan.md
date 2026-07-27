@@ -1,22 +1,41 @@
-text
 ## Objetivo
-Reorganizar o menu lateral para separar a navegação de medição da navegação de operação de campo.
+Melhorar a tela do coletor em `/coletor/servicos-terceirizados`: busca por número do apartamento e apresentação agrupada dos Serviços Programados.
 
-## Alterações previstas
+## 1. Busca por apartamento
+No filtro de busca, além de condomínio, morador, endereço, tipo e protocolo, passar a considerar:
+- `apartamento` (ex.: digitar "303" encontra o Apto 303)
+- `bloco` (ex.: "A" ou "BL A")
 
-### 1. `src/components/Layout.tsx`
-- Dividir o array `medicaoTerceirizadaItems` em dois:
-  - `medicaoTerceirizadaItems`: Leituras, Empreendimentos, Planejamento, Notificações.
-  - `operacaoItems`: Serviços, Georreferenciamento.
-- Adicionar estado `operacaoOpen` controlado, inicializado como `true` quando a rota começar com `/medicao-terceirizada` e o item ativo for Serviços ou Georreferenciamento.
-- Atualizar o `useEffect` de expansão automática para abrir o grupo correto conforme a rota atual.
-- Inserir um novo dropdown "Operação" no menu, abaixo do dropdown "Medição", com o mesmo padrão visual e comportamento de colapso (incluindo modo compacto para a barra reduzida).
-- Manter a permissão de visualização do grupo `Operação` igual à de `Medição` (perfis admin e gestor_empreendimento).
-- Ajustar ícones para os grupos: `Handshake` para Medição; ícone de ferramentas/campo (ex: `Wrench` ou `Navigation2`) para Operação.
+Atualizar o placeholder para: "Buscar por condomínio, apto, bloco, morador, endereço, tipo ou protocolo...".
 
-## Critérios de aceitação
-- Menu lateral mostra Medição e Operação como grupos separados.
-- Itens corretos aparecem dentro de cada grupo.
-- Grupo ativo expande automaticamente ao acessar Serviços ou Georreferenciamento.
-- Layout continua colapsável e responsivo.
-- Nenhuma alteração de backend ou banco de dados.
+## 2. Agrupamento em "Serviços Programados"
+Substituir a lista plana por uma hierarquia visual (sempre expandida, sem recolher):
+
+```text
+📅 Segunda, 28/07/2026                (12 serviços)
+   ☀️ Manhã                           (7)
+      ▸ ANHEMBI                        (3)
+          [card] [card] [card]
+      ▸ RESIDENCIAL PARQUE             (4)
+          [card] ...
+   🌙 Tarde                           (5)
+      ...
+📅 Sem data agendada
+   ...
+```
+
+Regras:
+- Ordenação: datas em ordem crescente; "Sem data" por último. Turnos na ordem Manhã → Tarde → Noite → Sem turno. Condomínios em ordem alfabética.
+- Cada cabeçalho mostra a contagem de serviços do grupo.
+- Estilo alinhado ao existente: cabeçalho de data em destaque (linha divisória + tipografia forte), turno como badge com o gradiente teal/roxo da seção, condomínio como subtítulo discreto com contador.
+- Os cards permanecem exatamente como estão hoje (mesmo layout, badges, rodapé, ação "Ver Endereço").
+- Quando a busca reduz o resultado, apenas os grupos com itens aparecem.
+
+A seção "Serviços Essenciais" continua como lista plana (prioridade imediata).
+
+## Detalhes técnicos
+- Arquivo único: `src/pages/ColetorServicosTerceirizados.tsx`.
+- Ampliar o predicado de `filteredServicos` com `apartamento`/`bloco` (comparação lowercase, tolerante a espaços).
+- Criar um `useMemo` que transforma `programados` em uma estrutura `Data → Turno → Condomínio` e renderizar com `renderCard` reaproveitado.
+- Datas formatadas com `date-fns` + `ptBR`, usando o padrão do projeto `new Date(iso + 'T00:00:00')` para evitar deslocamento de fuso.
+- Sem alterações no backend.
