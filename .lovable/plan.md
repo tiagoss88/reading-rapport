@@ -1,41 +1,32 @@
 ## Objetivo
-Melhorar a tela do coletor em `/coletor/servicos-terceirizados`: busca por número do apartamento e apresentação agrupada dos Serviços Programados.
 
-## 1. Busca por apartamento
-No filtro de busca, além de condomínio, morador, endereço, tipo e protocolo, passar a considerar:
-- `apartamento` (ex.: digitar "303" encontra o Apto 303)
-- `bloco` (ex.: "A" ou "BL A")
+Hoje as fotos do atendimento são guardadas dentro do texto da observação (`Fotos comprovante: url1, url2 | Obs: ...`). Isso faz os links aparecerem no campo de observação e torna a leitura das imagens frágil — se a observação for editada na tela administrativa, os links são perdidos, e o relatório pode não recuperar todas as fotos.
 
-Atualizar o placeholder para: "Buscar por condomínio, apto, bloco, morador, endereço, tipo ou protocolo...".
+A solução é dar às fotos um campo próprio no banco, separado da observação.
 
-## 2. Agrupamento em "Serviços Programados"
-Substituir a lista plana por uma hierarquia visual (sempre expandida, sem recolher):
+## O que será feito
 
-```text
-📅 Segunda, 28/07/2026                (12 serviços)
-   ☀️ Manhã                           (7)
-      ▸ ANHEMBI                        (3)
-          [card] [card] [card]
-      ▸ RESIDENCIAL PARQUE             (4)
-          [card] ...
-   🌙 Tarde                           (5)
-      ...
-📅 Sem data agendada
-   ...
-```
+**1. Banco de dados**
+- Criar a coluna `fotos_urls` (lista de imagens) na tabela de serviços da Nacional Gás.
+- Migrar os registros existentes: extrair as URLs que hoje estão dentro da observação para a nova coluna e deixar na observação apenas o texto escrito pelo técnico.
+- A extração cobre todos os formatos usados historicamente: URLs separadas por vírgula, por barra vertical, ou entre colchetes.
 
-Regras:
-- Ordenação: datas em ordem crescente; "Sem data" por último. Turnos na ordem Manhã → Tarde → Noite → Sem turno. Condomínios em ordem alfabética.
-- Cada cabeçalho mostra a contagem de serviços do grupo.
-- Estilo alinhado ao existente: cabeçalho de data em destaque (linha divisória + tipografia forte), turno como badge com o gradiente teal/roxo da seção, condomínio como subtítulo discreto com contador.
-- Os cards permanecem exatamente como estão hoje (mesmo layout, badges, rodapé, ação "Ver Endereço").
-- Quando a busca reduz o resultado, apenas os grupos com itens aparecem.
+**2. Coleta (app do operador)**
+- Ao finalizar a atividade, as fotos passam a ser salvas na coluna `fotos_urls`, e a observação recebe somente o texto digitado — sem links.
 
-A seção "Serviços Essenciais" continua como lista plana (prioridade imediata).
+**3. Tela de detalhes do atendimento**
+- A observação exibe apenas o texto.
+- A seção "Registro Fotográfico" passa a ler a nova coluna, com fallback para o formato antigo caso algum registro não tenha sido migrado.
+- Nova possibilidade de adicionar/remover fotos direto na tela de detalhes (mesmo padrão já usado no diálogo de edição de coleta).
+
+**4. Edição administrativa do serviço**
+- O campo de observação passa a editar somente o texto, sem risco de apagar as fotos.
+
+**5. Relatório PDF de atendimento**
+- Passa a receber a lista completa de fotos vinda da nova coluna, garantindo que todas as imagens apareçam no anexo fotográfico (2 por linha, com quebra de página automática — já suportado).
 
 ## Detalhes técnicos
-- Arquivo único: `src/pages/ColetorServicosTerceirizados.tsx`.
-- Ampliar o predicado de `filteredServicos` com `apartamento`/`bloco` (comparação lowercase, tolerante a espaços).
-- Criar um `useMemo` que transforma `programados` em uma estrutura `Data → Turno → Condomínio` e renderizar com `renderCard` reaproveitado.
-- Datas formatadas com `date-fns` + `ptBR`, usando o padrão do projeto `new Date(iso + 'T00:00:00')` para evitar deslocamento de fuso.
-- Sem alterações no backend.
+
+- Migração: `ALTER TABLE public.servicos_nacional_gas ADD COLUMN fotos_urls text[] NOT NULL DEFAULT '{}'` + `UPDATE` com regexp para popular a coluna e limpar a observação. Sem novas políticas necessárias (a tabela já tem RLS e grants).
+- Arquivos afetados: `ExecucaoServicoTerceirizado.tsx` (gravação), `DetalhesExecucaoDialog.tsx` (exibição + PDF), `ServicoNacionalGasDialog.tsx` (edição), `MedicaoTerceirizada/Servicos.tsx` (tipo/seleção), utilitário compartilhado de parse legado em `src/lib/`.
+- Observação: a causa exata de "só uma foto no PDF" não pôde ser confirmada por consulta (o registro do MATER DOMINI 901 não retorna no ambiente consultado); o desenho acima elimina as causas prováveis (parse do texto e sobrescrita da observação) e mantém fallback para registros antigos.

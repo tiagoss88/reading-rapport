@@ -1,13 +1,15 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
-import { Loader2, Download, Receipt } from 'lucide-react'
+import { Loader2, Download, Receipt, Upload, X } from 'lucide-react'
 import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
 import { exportarComprovantePagamento } from '@/lib/exportComprovantePagamento'
+import { resolverFotos, extrairTextoObservacao } from '@/lib/fotosServico'
+import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
 
 interface DetalhesExecucaoDialogProps {
@@ -22,25 +24,6 @@ const turnoLabels: Record<string, string> = {
   integral: 'Integral',
 }
 
-function parseObservacao(obs: string | null): { fotos: string[]; texto: string } {
-  if (!obs) return { fotos: [], texto: '' }
-  
-  const fotosMatch = obs.match(/Fotos comprovante:\s*(https?:\/\/[^\s|]+(?:\s*,\s*https?:\/\/[^\s|]+)*)/i)
-  const fotos: string[] = []
-  
-  if (fotosMatch) {
-    fotosMatch[1].split(',').forEach(url => {
-      const trimmed = url.trim()
-      if (trimmed) fotos.push(trimmed)
-    })
-  }
-
-  const obsMatch = obs.match(/\|\s*Obs:\s*(.*)/i)
-  const texto = obsMatch ? obsMatch[1].trim() : (!fotosMatch ? obs.trim() : '')
-
-  return { fotos, texto }
-}
-
 function formatDate(date: string | null): string {
   if (!date) return '—'
   try {
@@ -52,8 +35,11 @@ function formatDate(date: string | null): string {
 
 export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }: DetalhesExecucaoDialogProps) {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [gerando, setGerando] = useState(false)
   const [gerandoComprovante, setGerandoComprovante] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: servico, isLoading } = useQuery({
     queryKey: ['detalhes-execucao', servicoId],
@@ -72,7 +58,60 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
 
   if (!servicoId) return null
 
-  const { fotos, texto } = parseObservacao(servico?.observacao ?? null)
+  const fotos = resolverFotos(servico?.fotos_urls, servico?.observacao)
+  const texto = extrairTextoObservacao(servico?.observacao)
+
+  const salvarFotos = async (novasFotos: string[]) => {
+    if (!servicoId) return
+    const { error } = await supabase
+      .from('servicos_nacional_gas')
+      .update({ fotos_urls: novasFotos, observacao: texto || null })
+      .eq('id', servicoId)
+    if (error) throw error
+    await queryClient.invalidateQueries({ queryKey: ['detalhes-execucao', servicoId] })
+    await queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
+  }
+
+  const handleUploadFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+    setUploading(true)
+    try {
+      const novas: string[] = []
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue
+        let arquivo: File | Blob = file
+        try {
+          arquivo = await smartCompress(file)
+        } catch {
+          /* usa original */
+        }
+        const path = `servicos/${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`
+        const { error } = await supabase.storage.from('medidor-fotos').upload(path, arquivo)
+        if (error) throw error
+        const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(path)
+        novas.push(data.publicUrl)
+      }
+      if (novas.length) {
+        await salvarFotos([...fotos, ...novas])
+        toast({ title: 'Fotos adicionadas' })
+      }
+    } catch {
+      toast({ title: 'Erro ao enviar fotos', variant: 'destructive' })
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const handleRemoverFoto = async (index: number) => {
+    try {
+      await salvarFotos(fotos.filter((_, i) => i !== index))
+      toast({ title: 'Foto removida' })
+    } catch {
+      toast({ title: 'Erro ao remover foto', variant: 'destructive' })
+    }
+  }
 
   const handleGerarPDF = async () => {
     if (!servico) return
@@ -270,23 +309,58 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
               </div>
 
               {/* === REGISTRO FOTOGRÁFICO === */}
-              {fotos.length > 0 && (
-                <div>
-                  <SectionTitle>Registro Fotográfico</SectionTitle>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+              <div>
+                <div className="flex items-center justify-between gap-2 border-b border-gray-200 pb-1">
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                    Registro Fotográfico {fotos.length > 0 && `(${fotos.length})`}
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={uploading}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                    Adicionar fotos
+                  </Button>
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleUploadFotos}
+                />
+                {fotos.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-4 mt-3">
                     {fotos.map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                          <img src={url} alt={`Registro ${String(i + 1).padStart(2, '0')}`} className="w-full aspect-[4/3] object-cover" />
-                          <p className="text-center text-[10px] text-gray-500 py-1.5 font-medium">
-                            Registro {String(i + 1).padStart(2, '0')}
-                          </p>
-                        </div>
-                      </a>
+                      <div key={url + i} className="relative">
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                          <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                            <img src={url} alt={`Registro ${String(i + 1).padStart(2, '0')}`} className="w-full aspect-[4/3] object-cover" />
+                            <p className="text-center text-[10px] text-gray-500 py-1.5 font-medium">
+                              Registro {String(i + 1).padStart(2, '0')}
+                            </p>
+                          </div>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoverFoto(i)}
+                          className="absolute top-1.5 right-1.5 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                          aria-label={`Remover registro ${i + 1}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-400 mt-3">Nenhuma foto registrada neste atendimento.</p>
+                )}
+              </div>
+
 
               {/* === FOOTER === */}
               <div className="text-center pt-4 border-t border-gray-200">
