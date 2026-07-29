@@ -309,23 +309,58 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
               </div>
 
               {/* === REGISTRO FOTOGRÁFICO === */}
-              {fotos.length > 0 && (
-                <div>
-                  <SectionTitle>Registro Fotográfico</SectionTitle>
-                  <div className="grid grid-cols-2 gap-4 mt-2">
+              <div>
+                <div className="flex items-center justify-between gap-2 border-b border-gray-200 pb-1">
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                    Registro Fotográfico {fotos.length > 0 && `(${fotos.length})`}
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={uploading}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    {uploading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                    Adicionar fotos
+                  </Button>
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleUploadFotos}
+                />
+                {fotos.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-4 mt-3">
                     {fotos.map((url, i) => (
-                      <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                        <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                          <img src={url} alt={`Registro ${String(i + 1).padStart(2, '0')}`} className="w-full aspect-[4/3] object-cover" />
-                          <p className="text-center text-[10px] text-gray-500 py-1.5 font-medium">
-                            Registro {String(i + 1).padStart(2, '0')}
-                          </p>
-                        </div>
-                      </a>
+                      <div key={url + i} className="relative">
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                          <div className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50">
+                            <img src={url} alt={`Registro ${String(i + 1).padStart(2, '0')}`} className="w-full aspect-[4/3] object-cover" />
+                            <p className="text-center text-[10px] text-gray-500 py-1.5 font-medium">
+                              Registro {String(i + 1).padStart(2, '0')}
+                            </p>
+                          </div>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoverFoto(i)}
+                          className="absolute top-1.5 right-1.5 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                          aria-label={`Remover registro ${i + 1}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-400 mt-3">Nenhuma foto registrada neste atendimento.</p>
+                )}
+              </div>
+
 
               {/* === FOOTER === */}
               <div className="text-center pt-4 border-t border-gray-200">
