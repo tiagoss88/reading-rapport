@@ -1,28 +1,42 @@
-## Objetivo
+## Causa confirmada
 
-Na janela **Editar Serviço** (Serviços → ícone de editar), as fotos ainda aparecem misturadas dentro do campo Observação. Vamos criar uma seção própria de fotos, deixando a observação apenas com o texto.
+A requisição de salvamento (PATCH em `servicos_nacional_gas`) voltou com erro **400**:
 
-## O que muda
+```text
+PGRST204 — Could not find the 'fotos_urls' column of 'servicos_nacional_gas' in the schema cache
+```
 
-**1. Nova seção "Fotos do Serviço" no formulário de edição**
-- Miniaturas em grade das fotos já anexadas ao atendimento.
-- Botão **Adicionar fotos** (várias de uma vez, com compressão automática antes do envio).
-- Botão de remover (X) em cada miniatura.
-- Clique na miniatura abre a imagem em tamanho real em nova aba.
-- Quando não houver fotos: mensagem "Nenhuma foto anexada".
+Ou seja: o banco que o app usa em produção (`mxoflglq...`) **não tem a coluna `fotos_urls`**. A migração de fotos foi aplicada apenas no banco gerenciado do Lovable; a produção exige SQL manual (conforme já registrado no projeto). Por isso a janela "Editar Serviço" mostra as fotos (lidas do formato legado dentro da observação), mas falha ao salvar.
 
-**2. Campo Observação passa a conter só texto**
-- Ao abrir a edição, se o registro for antigo (links colados dentro da observação), o sistema separa automaticamente: os links viram miniaturas na nova seção e a observação exibe apenas o texto do técnico.
-- Ao salvar, as fotos são gravadas no campo dedicado e a observação fica limpa — a correção do registro antigo é permanente.
+## O que fazer
 
-**3. Consistência com o restante do sistema**
-- Mesmo comportamento já usado na tela de Detalhes da Execução e no PDF de Relatório de Atendimento, que continuam mostrando todas as fotos.
+**1. Criar a coluna no banco de produção (SQL manual, executado por você no SQL Editor)**
+
+```sql
+ALTER TABLE public.servicos_nacional_gas
+  ADD COLUMN IF NOT EXISTS fotos_urls text[] NOT NULL DEFAULT '{}';
+
+-- migra os links que hoje estão dentro da observação
+UPDATE public.servicos_nacional_gas
+SET fotos_urls = ARRAY(
+      SELECT (regexp_matches(observacao, '(https?://[^\s,|\])]+)', 'g'))[1]
+    ),
+    observacao = NULLIF(TRIM(COALESCE(
+      (regexp_match(observacao, '\|\s*Obs:\s*([\s\S]*)$'))[1], ''
+    )), '')
+WHERE observacao ~* 'fotos?\s+comprovante';
+
+NOTIFY pgrst, 'reload schema';
+```
+
+**2. Tornar o app resistente a essa situação (código)**
+
+- Em `ServicoNacionalGasDialog.tsx`: se o update falhar com `PGRST204`/coluna inexistente, refazer o salvamento **sem** `fotos_urls`, gravando as fotos no formato legado dentro de `observacao` (`Fotos comprovante: url1, url2 | Obs: texto`). Assim nada se perde antes da migração.
+- Exibir no toast a mensagem real do erro (hoje mostra só "Erro ao atualizar serviço"), facilitando diagnóstico futuro.
+- Aplicar o mesmo fallback em `DetalhesExecucaoDialog.tsx` e `ExecucaoServicoTerceirizado.tsx`, que gravam `fotos_urls` pelos mesmos caminhos.
 
 ## Detalhes técnicos
 
-- Arquivo principal: `src/components/medicao-terceirizada/ServicoNacionalGasDialog.tsx`.
-- Reaproveitar `src/lib/fotosServico.ts` (`resolverFotos`, `extrairTextoObservacao`) para ler o formato novo (`fotos_urls`) com fallback ao legado.
-- Upload via bucket `medidor-fotos` usando `smartCompress` de `src/lib/imageCompression.ts` (mesmo padrão de `DetalhesExecucaoDialog`).
-- Estado local `fotos: string[]` no diálogo; a mutação de salvar passa a enviar também `fotos_urls` junto com `observacao` (texto puro).
-- Passar `fotos_urls` e `observacao` no objeto `servico` vindo de `src/pages/MedicaoTerceirizada/Servicos.tsx` (ajustar a interface `Props` do diálogo).
-- Invalidar `servicos-nacional-gas` e `detalhes-execucao` após salvar.
+- Centralizar o fallback em `src/lib/fotosServico.ts` com um helper `montarObservacaoLegado(fotos, texto)` e um `updateServicoComFotos(id, payload, fotos)` que tenta a coluna nova e cai para o legado ao detectar `PGRST204`.
+- Nenhuma mudança de layout: a seção "Fotos do Serviço" continua igual.
+- Depois que o SQL do passo 1 rodar em produção, o fallback deixa de ser acionado automaticamente — não precisa remover nada.
