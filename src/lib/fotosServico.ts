@@ -32,3 +32,52 @@ export function resolverFotos(
   if (fotosUrls && fotosUrls.length > 0) return fotosUrls
   return extrairFotosLegado(observacao)
 }
+
+/**
+ * Monta a observação no formato legado, usada quando a coluna
+ * `fotos_urls` ainda não existe no banco.
+ */
+export function montarObservacaoLegado(
+  fotos: string[],
+  texto: string | null | undefined
+): string | null {
+  const t = (texto || '').trim()
+  if (!fotos.length) return t || null
+  const base = `Fotos comprovante: ${fotos.join(', ')}`
+  return t ? `${base} | Obs: ${t}` : base
+}
+
+function colunaFotosInexistente(error: any): boolean {
+  const msg = `${error?.message || ''} ${error?.details || ''}`.toLowerCase()
+  return error?.code === 'PGRST204' || msg.includes('fotos_urls')
+}
+
+/**
+ * Atualiza um serviço gravando as fotos na coluna dedicada; se o banco
+ * ainda não tiver `fotos_urls`, refaz o update no formato legado.
+ */
+export async function updateServicoComFotos(
+  supabase: any,
+  id: string,
+  payload: Record<string, any>,
+  fotos: string[]
+): Promise<void> {
+  const { error } = await supabase
+    .from('servicos_nacional_gas')
+    .update({ ...payload, fotos_urls: fotos })
+    .eq('id', id)
+
+  if (!error) return
+  if (!colunaFotosInexistente(error)) throw error
+
+  const { error: legacyError } = await supabase
+    .from('servicos_nacional_gas')
+    .update({
+      ...payload,
+      observacao: montarObservacaoLegado(fotos, payload.observacao)
+    })
+    .eq('id', id)
+
+  if (legacyError) throw legacyError
+}
+
