@@ -172,19 +172,14 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         }
       }
 
-      // Build observacao with photos
-      let obsText = observacao
-      if (fotoUrls.length > 0) {
-        obsText = `Fotos comprovante: ${fotoUrls.join(', ')}${obsText ? ` | Obs: ${obsText}` : ''}`
-      }
-
       const turnoAtual = new Date().getHours() < 12 ? 'manha' : 'tarde'
 
       const updateData = {
         status_atendimento: 'executado',
         tecnico_id: operadorId,
         turno: turnoAtual,
-        observacao: obsText || null,
+        observacao: observacao?.trim() || null,
+        fotos_urls: fotoUrls,
         forma_pagamento: formaPagamento || null,
         valor_servico: valorServico ? parseFloat(valorServico.replace(',', '.')) : null,
         cpf_cnpj: cpfCnpj || null,
