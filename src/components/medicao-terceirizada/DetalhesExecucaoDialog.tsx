@@ -63,11 +63,7 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
 
   const salvarFotos = async (novasFotos: string[]) => {
     if (!servicoId) return
-    const { error } = await supabase
-      .from('servicos_nacional_gas')
-      .update({ fotos_urls: novasFotos, observacao: texto || null })
-      .eq('id', servicoId)
-    if (error) throw error
+    await updateServicoComFotos(supabase, servicoId, { observacao: texto || null }, novasFotos)
     await queryClient.invalidateQueries({ queryKey: ['detalhes-execucao', servicoId] })
     await queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
   }
