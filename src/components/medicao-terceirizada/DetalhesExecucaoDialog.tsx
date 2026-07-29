@@ -1,13 +1,15 @@
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { format } from 'date-fns'
-import { Loader2, Download, Receipt } from 'lucide-react'
+import { Loader2, Download, Receipt, Upload, X } from 'lucide-react'
 import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
 import { exportarComprovantePagamento } from '@/lib/exportComprovantePagamento'
+import { resolverFotos, extrairTextoObservacao } from '@/lib/fotosServico'
+import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
 
 interface DetalhesExecucaoDialogProps {
@@ -20,25 +22,6 @@ const turnoLabels: Record<string, string> = {
   manha: 'Manhã',
   tarde: 'Tarde',
   integral: 'Integral',
-}
-
-function parseObservacao(obs: string | null): { fotos: string[]; texto: string } {
-  if (!obs) return { fotos: [], texto: '' }
-  
-  const fotosMatch = obs.match(/Fotos comprovante:\s*(https?:\/\/[^\s|]+(?:\s*,\s*https?:\/\/[^\s|]+)*)/i)
-  const fotos: string[] = []
-  
-  if (fotosMatch) {
-    fotosMatch[1].split(',').forEach(url => {
-      const trimmed = url.trim()
-      if (trimmed) fotos.push(trimmed)
-    })
-  }
-
-  const obsMatch = obs.match(/\|\s*Obs:\s*(.*)/i)
-  const texto = obsMatch ? obsMatch[1].trim() : (!fotosMatch ? obs.trim() : '')
-
-  return { fotos, texto }
 }
 
 function formatDate(date: string | null): string {
