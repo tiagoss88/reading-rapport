@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 import { Loader2, Download, Receipt, Upload, X } from 'lucide-react'
 import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
 import { exportarComprovantePagamento } from '@/lib/exportComprovantePagamento'
-import { resolverFotos, extrairTextoObservacao } from '@/lib/fotosServico'
+import { resolverFotos, extrairTextoObservacao, updateServicoComFotos } from '@/lib/fotosServico'
 import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
 
@@ -63,11 +63,7 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
 
   const salvarFotos = async (novasFotos: string[]) => {
     if (!servicoId) return
-    const { error } = await supabase
-      .from('servicos_nacional_gas')
-      .update({ fotos_urls: novasFotos, observacao: texto || null })
-      .eq('id', servicoId)
-    if (error) throw error
+    await updateServicoComFotos(supabase, servicoId, { observacao: texto || null }, novasFotos)
     await queryClient.invalidateQueries({ queryKey: ['detalhes-execucao', servicoId] })
     await queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
   }

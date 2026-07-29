@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Label } from '@/components/ui/label'
 import { Loader2, Upload, X } from 'lucide-react'
-import { resolverFotos, extrairTextoObservacao } from '@/lib/fotosServico'
+import { resolverFotos, extrairTextoObservacao, updateServicoComFotos } from '@/lib/fotosServico'
 import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
 
@@ -153,9 +153,10 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const { error } = await supabase
-        .from('servicos_nacional_gas')
-        .update({
+      await updateServicoComFotos(
+        supabase,
+        servico.id,
+        {
           morador_nome: data.morador_nome?.trim() || null,
           telefone: data.telefone?.trim() || null,
           email: data.email?.trim() || null,
@@ -167,12 +168,10 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
           status_atendimento: data.status_atendimento,
           turno: data.turno || null,
           tecnico_id: data.tecnico_id || null,
-          observacao: data.observacao?.trim() || null,
-          fotos_urls: fotos
-        })
-        .eq('id', servico.id)
-
-      if (error) throw error
+          observacao: data.observacao?.trim() || null
+        },
+        fotos
+      )
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
@@ -180,10 +179,15 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
       toast({ title: 'Serviço atualizado com sucesso' })
       onOpenChange(false)
     },
-    onError: () => {
-      toast({ title: 'Erro ao atualizar serviço', variant: 'destructive' })
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao atualizar serviço',
+        description: error?.message || error?.details || 'Erro desconhecido',
+        variant: 'destructive'
+      })
     }
   })
+
 
 
   const onSubmit = (data: FormData) => {

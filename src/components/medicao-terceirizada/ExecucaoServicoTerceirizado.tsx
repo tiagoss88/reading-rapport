@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { smartCompress } from '@/lib/imageCompression'
+import { updateServicoComFotos } from '@/lib/fotosServico'
 
 interface ServicoData {
   id: string
@@ -179,19 +180,14 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         tecnico_id: operadorId,
         turno: turnoAtual,
         observacao: observacao?.trim() || null,
-        fotos_urls: fotoUrls,
         forma_pagamento: formaPagamento || null,
         valor_servico: valorServico ? parseFloat(valorServico.replace(',', '.')) : null,
         cpf_cnpj: cpfCnpj || null,
         assinatura_url: assinaturaUrl,
       }
 
-      const { error } = await supabase
-        .from('servicos_nacional_gas')
-        .update(updateData)
-        .eq('id', servico.id)
+      await updateServicoComFotos(supabase, servico.id, updateData, fotoUrls)
 
-      if (error) throw error
 
       toast({ title: 'Serviço concluído', description: 'Registro salvo com sucesso.' })
       onSuccess()
