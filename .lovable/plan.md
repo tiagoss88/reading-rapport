@@ -1,32 +1,28 @@
 ## Objetivo
 
-Hoje as fotos do atendimento são guardadas dentro do texto da observação (`Fotos comprovante: url1, url2 | Obs: ...`). Isso faz os links aparecerem no campo de observação e torna a leitura das imagens frágil — se a observação for editada na tela administrativa, os links são perdidos, e o relatório pode não recuperar todas as fotos.
+Na janela **Editar Serviço** (Serviços → ícone de editar), as fotos ainda aparecem misturadas dentro do campo Observação. Vamos criar uma seção própria de fotos, deixando a observação apenas com o texto.
 
-A solução é dar às fotos um campo próprio no banco, separado da observação.
+## O que muda
 
-## O que será feito
+**1. Nova seção "Fotos do Serviço" no formulário de edição**
+- Miniaturas em grade das fotos já anexadas ao atendimento.
+- Botão **Adicionar fotos** (várias de uma vez, com compressão automática antes do envio).
+- Botão de remover (X) em cada miniatura.
+- Clique na miniatura abre a imagem em tamanho real em nova aba.
+- Quando não houver fotos: mensagem "Nenhuma foto anexada".
 
-**1. Banco de dados**
-- Criar a coluna `fotos_urls` (lista de imagens) na tabela de serviços da Nacional Gás.
-- Migrar os registros existentes: extrair as URLs que hoje estão dentro da observação para a nova coluna e deixar na observação apenas o texto escrito pelo técnico.
-- A extração cobre todos os formatos usados historicamente: URLs separadas por vírgula, por barra vertical, ou entre colchetes.
+**2. Campo Observação passa a conter só texto**
+- Ao abrir a edição, se o registro for antigo (links colados dentro da observação), o sistema separa automaticamente: os links viram miniaturas na nova seção e a observação exibe apenas o texto do técnico.
+- Ao salvar, as fotos são gravadas no campo dedicado e a observação fica limpa — a correção do registro antigo é permanente.
 
-**2. Coleta (app do operador)**
-- Ao finalizar a atividade, as fotos passam a ser salvas na coluna `fotos_urls`, e a observação recebe somente o texto digitado — sem links.
-
-**3. Tela de detalhes do atendimento**
-- A observação exibe apenas o texto.
-- A seção "Registro Fotográfico" passa a ler a nova coluna, com fallback para o formato antigo caso algum registro não tenha sido migrado.
-- Nova possibilidade de adicionar/remover fotos direto na tela de detalhes (mesmo padrão já usado no diálogo de edição de coleta).
-
-**4. Edição administrativa do serviço**
-- O campo de observação passa a editar somente o texto, sem risco de apagar as fotos.
-
-**5. Relatório PDF de atendimento**
-- Passa a receber a lista completa de fotos vinda da nova coluna, garantindo que todas as imagens apareçam no anexo fotográfico (2 por linha, com quebra de página automática — já suportado).
+**3. Consistência com o restante do sistema**
+- Mesmo comportamento já usado na tela de Detalhes da Execução e no PDF de Relatório de Atendimento, que continuam mostrando todas as fotos.
 
 ## Detalhes técnicos
 
-- Migração: `ALTER TABLE public.servicos_nacional_gas ADD COLUMN fotos_urls text[] NOT NULL DEFAULT '{}'` + `UPDATE` com regexp para popular a coluna e limpar a observação. Sem novas políticas necessárias (a tabela já tem RLS e grants).
-- Arquivos afetados: `ExecucaoServicoTerceirizado.tsx` (gravação), `DetalhesExecucaoDialog.tsx` (exibição + PDF), `ServicoNacionalGasDialog.tsx` (edição), `MedicaoTerceirizada/Servicos.tsx` (tipo/seleção), utilitário compartilhado de parse legado em `src/lib/`.
-- Observação: a causa exata de "só uma foto no PDF" não pôde ser confirmada por consulta (o registro do MATER DOMINI 901 não retorna no ambiente consultado); o desenho acima elimina as causas prováveis (parse do texto e sobrescrita da observação) e mantém fallback para registros antigos.
+- Arquivo principal: `src/components/medicao-terceirizada/ServicoNacionalGasDialog.tsx`.
+- Reaproveitar `src/lib/fotosServico.ts` (`resolverFotos`, `extrairTextoObservacao`) para ler o formato novo (`fotos_urls`) com fallback ao legado.
+- Upload via bucket `medidor-fotos` usando `smartCompress` de `src/lib/imageCompression.ts` (mesmo padrão de `DetalhesExecucaoDialog`).
+- Estado local `fotos: string[]` no diálogo; a mutação de salvar passa a enviar também `fotos_urls` junto com `observacao` (texto puro).
+- Passar `fotos_urls` e `observacao` no objeto `servico` vindo de `src/pages/MedicaoTerceirizada/Servicos.tsx` (ajustar a interface `Props` do diálogo).
+- Invalidar `servicos-nacional-gas` e `detalhes-execucao` após salvar.
