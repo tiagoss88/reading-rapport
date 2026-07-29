@@ -100,6 +100,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
 
   useEffect(() => {
     if (servico) {
+      setFotos(resolverFotos(servico.fotos_urls, servico.observacao))
       form.reset({
         morador_nome: servico.morador_nome || '',
         telefone: servico.telefone || '',
@@ -112,10 +113,43 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
         status_atendimento: servico.status_atendimento as any,
         turno: (servico.turno as any) || undefined,
         tecnico_id: servico.tecnico_id || '',
-        observacao: servico.observacao || ''
+        observacao: extrairTextoObservacao(servico.observacao)
       })
     }
   }, [servico, form])
+
+  const handleUploadFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+    setUploading(true)
+    try {
+      const novas: string[] = []
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue
+        let arquivo: File | Blob = file
+        try {
+          arquivo = await smartCompress(file)
+        } catch {
+          /* usa o original */
+        }
+        const path = `servicos/${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`
+        const { error } = await supabase.storage.from('medidor-fotos').upload(path, arquivo)
+        if (error) throw error
+        const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(path)
+        novas.push(data.publicUrl)
+      }
+      if (novas.length) setFotos(prev => [...prev, ...novas])
+    } catch {
+      toast({ title: 'Erro ao enviar fotos', variant: 'destructive' })
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const removerFoto = (index: number) => {
+    setFotos(prev => prev.filter((_, i) => i !== index))
+  }
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -133,7 +167,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
           status_atendimento: data.status_atendimento,
           turno: data.turno || null,
           tecnico_id: data.tecnico_id || null,
-          observacao: data.observacao || null
+          observacao: data.observacao?.trim() || null,
+          fotos_urls: fotos
         })
         .eq('id', servico.id)
 
@@ -141,6 +176,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
+      queryClient.invalidateQueries({ queryKey: ['detalhes-execucao', servico.id] })
       toast({ title: 'Serviço atualizado com sucesso' })
       onOpenChange(false)
     },
@@ -148,6 +184,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
       toast({ title: 'Erro ao atualizar serviço', variant: 'destructive' })
     }
   })
+
 
   const onSubmit = (data: FormData) => {
     mutation.mutate(data)
