@@ -55,6 +55,7 @@ interface Props {
     turno?: string | null
     tecnico_id?: string | null
     observacao?: string | null
+    fotos_urls?: string[] | null
   }
 }
 
