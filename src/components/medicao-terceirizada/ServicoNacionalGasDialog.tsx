@@ -424,7 +424,59 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Fotos do Serviço {fotos.length > 0 && `(${fotos.length})`}</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={uploading}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                      Adicionar fotos
+                    </Button>
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleUploadFotos}
+                  />
+                  {fotos.length > 0 ? (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {fotos.map((url, i) => (
+                        <div key={url + i} className="relative group">
+                          <a href={url} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={url}
+                              alt={`Foto ${i + 1} do serviço`}
+                              loading="lazy"
+                              className="w-full aspect-square object-cover rounded-md border border-border"
+                            />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => removerFoto(i)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                            aria-label={`Remover foto ${i + 1}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Nenhuma foto anexada.</p>
+                  )}
+                </div>
               </div>
+
 
               <div className="flex justify-end gap-2 pt-2 pb-4 border-t mt-4">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
