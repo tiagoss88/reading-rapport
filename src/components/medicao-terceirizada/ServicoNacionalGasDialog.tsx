@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,6 +11,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Label } from '@/components/ui/label'
+import { Loader2, Upload, X } from 'lucide-react'
+import { resolverFotos, extrairTextoObservacao } from '@/lib/fotosServico'
+import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
 
 const formSchema = z.object({
@@ -51,12 +55,16 @@ interface Props {
     turno?: string | null
     tecnico_id?: string | null
     observacao?: string | null
+    fotos_urls?: string[] | null
   }
 }
 
 export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }: Props) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const [fotos, setFotos] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: operadores } = useQuery({
     queryKey: ['operadores-ativos'],
@@ -92,6 +100,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
 
   useEffect(() => {
     if (servico) {
+      setFotos(resolverFotos(servico.fotos_urls, servico.observacao))
       form.reset({
         morador_nome: servico.morador_nome || '',
         telefone: servico.telefone || '',
@@ -104,10 +113,43 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
         status_atendimento: servico.status_atendimento as any,
         turno: (servico.turno as any) || undefined,
         tecnico_id: servico.tecnico_id || '',
-        observacao: servico.observacao || ''
+        observacao: extrairTextoObservacao(servico.observacao)
       })
     }
   }, [servico, form])
+
+  const handleUploadFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+    setUploading(true)
+    try {
+      const novas: string[] = []
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue
+        let arquivo: File | Blob = file
+        try {
+          arquivo = await smartCompress(file)
+        } catch {
+          /* usa o original */
+        }
+        const path = `servicos/${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`
+        const { error } = await supabase.storage.from('medidor-fotos').upload(path, arquivo)
+        if (error) throw error
+        const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(path)
+        novas.push(data.publicUrl)
+      }
+      if (novas.length) setFotos(prev => [...prev, ...novas])
+    } catch {
+      toast({ title: 'Erro ao enviar fotos', variant: 'destructive' })
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const removerFoto = (index: number) => {
+    setFotos(prev => prev.filter((_, i) => i !== index))
+  }
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -125,7 +167,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
           status_atendimento: data.status_atendimento,
           turno: data.turno || null,
           tecnico_id: data.tecnico_id || null,
-          observacao: data.observacao || null
+          observacao: data.observacao?.trim() || null,
+          fotos_urls: fotos
         })
         .eq('id', servico.id)
 
@@ -133,6 +176,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
+      queryClient.invalidateQueries({ queryKey: ['detalhes-execucao', servico.id] })
       toast({ title: 'Serviço atualizado com sucesso' })
       onOpenChange(false)
     },
@@ -140,6 +184,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
       toast({ title: 'Erro ao atualizar serviço', variant: 'destructive' })
     }
   })
+
 
   const onSubmit = (data: FormData) => {
     mutation.mutate(data)
@@ -379,7 +424,59 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label>Fotos do Serviço {fotos.length > 0 && `(${fotos.length})`}</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs"
+                      disabled={uploading}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {uploading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Upload className="h-3 w-3 mr-1" />}
+                      Adicionar fotos
+                    </Button>
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleUploadFotos}
+                  />
+                  {fotos.length > 0 ? (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {fotos.map((url, i) => (
+                        <div key={url + i} className="relative group">
+                          <a href={url} target="_blank" rel="noopener noreferrer">
+                            <img
+                              src={url}
+                              alt={`Foto ${i + 1} do serviço`}
+                              loading="lazy"
+                              className="w-full aspect-square object-cover rounded-md border border-border"
+                            />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => removerFoto(i)}
+                            className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 shadow"
+                            aria-label={`Remover foto ${i + 1}`}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Nenhuma foto anexada.</p>
+                  )}
+                </div>
               </div>
+
 
               <div className="flex justify-end gap-2 pt-2 pb-4 border-t mt-4">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
