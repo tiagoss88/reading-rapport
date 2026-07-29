@@ -62,6 +62,9 @@ interface Props {
 export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }: Props) {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const [fotos, setFotos] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: operadores } = useQuery({
     queryKey: ['operadores-ativos'],
