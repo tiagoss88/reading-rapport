@@ -851,6 +851,7 @@ export type Database = {
           empreendimento_id: string | null
           fonte: string | null
           forma_pagamento: string | null
+          fotos_urls: string[]
           id: string
           morador_nome: string | null
           numero_protocolo: string | null
@@ -877,6 +878,7 @@ export type Database = {
           empreendimento_id?: string | null
           fonte?: string | null
           forma_pagamento?: string | null
+          fotos_urls?: string[]
           id?: string
           morador_nome?: string | null
           numero_protocolo?: string | null
@@ -903,6 +905,7 @@ export type Database = {
           empreendimento_id?: string | null
           fonte?: string | null
           forma_pagamento?: string | null
+          fotos_urls?: string[]
           id?: string
           morador_nome?: string | null
           numero_protocolo?: string | null
