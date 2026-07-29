@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import QRCode from 'qrcode';
 import logoUrl from '@/assets/agasen-logo.png';
+import { formatCpfCnpj, formatFormaPagamento } from '@/lib/formatters';
 
 export interface ComprovantePagamentoData {
   numero_protocolo?: string | null;
@@ -78,11 +79,11 @@ function buildHTML(d: ComprovantePagamentoData, qrDataUrl: string) {
         ${row('Protocolo', dash(d.numero_protocolo))}
         ${row('Data / Hora', dash(d.data_hora))}
         ${row('Cliente', dash(d.cliente).toUpperCase())}
-        ${row('CPF / CNPJ', dash(d.cpf_cnpj))}
+        ${row('CPF / CNPJ', dash(formatCpfCnpj(d.cpf_cnpj)))}
         ${row('Condomínio', dash(d.condominio).toUpperCase())}
         ${row('Unidade', unidade.toUpperCase())}
         ${row('Serviço', dash(d.tipo_servico).toUpperCase())}
-        ${row('Pagamento', dash(d.forma_pagamento).toUpperCase())}
+        ${row('Pagamento', dash(formatFormaPagamento(d.forma_pagamento)).toUpperCase())}
       </div>
 
       <div style="background:#e9f6f7;border:1px solid #26a9b5;padding:15px;display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-radius:4px;">

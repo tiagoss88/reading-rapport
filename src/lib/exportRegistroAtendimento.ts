@@ -202,7 +202,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   drawLabelValue(doc, 'Estado', data.uf || '—', col1X, cy, colW);
   drawLabelValue(doc, 'Cliente', data.morador_nome || '—', col2X, cy, colW);
   cy += ROW_H;
-  drawLabelValue(doc, 'Telefone', data.telefone || '—', col1X, cy, colW);
+  drawLabelValue(doc, 'Telefone', formatTelefone(data.telefone) || '—', col1X, cy, colW);
   drawLabelValue(doc, 'E-mail', data.email || '—', col2X, cy, colW);
   cy += ROW_H;
   drawLabelValue(doc, 'Data Agendamento', dataAg, col1X, cy, colW);
@@ -244,12 +244,12 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     const valorStr = data.valor_servico != null
       ? `R$ ${Number(data.valor_servico).toFixed(2).replace('.', ',')}`
       : '—';
-    drawLabelValue(doc, 'Forma de Pagamento', data.forma_pagamento || '—', col1X, py, colW);
+    drawLabelValue(doc, 'Forma de Pagamento', formatFormaPagamento(data.forma_pagamento) || '—', col1X, py, colW);
     drawLabelValue(doc, 'Valor do Serviço', valorStr, col2X, py, colW);
 
     if (hasCpf) {
       py += ROW_H;
-      drawLabelValue(doc, 'CPF / CNPJ', data.cpf_cnpj!, col1X, py, colW);
+      drawLabelValue(doc, 'CPF / CNPJ', formatCpfCnpj(data.cpf_cnpj), col1X, py, colW);
     }
 
     y = payBoxY + payBoxH + SECTION_GAP;
