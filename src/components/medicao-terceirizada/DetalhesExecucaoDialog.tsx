@@ -35,8 +35,11 @@ function formatDate(date: string | null): string {
 
 export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }: DetalhesExecucaoDialogProps) {
   const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [gerando, setGerando] = useState(false)
   const [gerandoComprovante, setGerandoComprovante] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const { data: servico, isLoading } = useQuery({
     queryKey: ['detalhes-execucao', servicoId],
@@ -55,7 +58,60 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
 
   if (!servicoId) return null
 
-  const { fotos, texto } = parseObservacao(servico?.observacao ?? null)
+  const fotos = resolverFotos(servico?.fotos_urls, servico?.observacao)
+  const texto = extrairTextoObservacao(servico?.observacao)
+
+  const salvarFotos = async (novasFotos: string[]) => {
+    if (!servicoId) return
+    const { error } = await supabase
+      .from('servicos_nacional_gas')
+      .update({ fotos_urls: novasFotos, observacao: texto || null })
+      .eq('id', servicoId)
+    if (error) throw error
+    await queryClient.invalidateQueries({ queryKey: ['detalhes-execucao', servicoId] })
+    await queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
+  }
+
+  const handleUploadFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+    setUploading(true)
+    try {
+      const novas: string[] = []
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith('image/')) continue
+        let arquivo: File | Blob = file
+        try {
+          arquivo = await smartCompress(file)
+        } catch {
+          /* usa original */
+        }
+        const path = `servicos/${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`
+        const { error } = await supabase.storage.from('medidor-fotos').upload(path, arquivo)
+        if (error) throw error
+        const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(path)
+        novas.push(data.publicUrl)
+      }
+      if (novas.length) {
+        await salvarFotos([...fotos, ...novas])
+        toast({ title: 'Fotos adicionadas' })
+      }
+    } catch {
+      toast({ title: 'Erro ao enviar fotos', variant: 'destructive' })
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const handleRemoverFoto = async (index: number) => {
+    try {
+      await salvarFotos(fotos.filter((_, i) => i !== index))
+      toast({ title: 'Foto removida' })
+    } catch {
+      toast({ title: 'Erro ao remover foto', variant: 'destructive' })
+    }
+  }
 
   const handleGerarPDF = async () => {
     if (!servico) return
