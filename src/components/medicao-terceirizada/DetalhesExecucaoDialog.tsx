@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 import { Loader2, Download, Receipt, Upload, X } from 'lucide-react'
 import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
 import { exportarComprovantePagamento } from '@/lib/exportComprovantePagamento'
-import { resolverFotos, extrairTextoObservacao } from '@/lib/fotosServico'
+import { resolverFotos, extrairTextoObservacao, updateServicoComFotos } from '@/lib/fotosServico'
 import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
 
