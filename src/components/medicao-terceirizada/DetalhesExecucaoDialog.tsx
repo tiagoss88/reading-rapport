@@ -10,6 +10,7 @@ import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
 import { exportarComprovantePagamento } from '@/lib/exportComprovantePagamento'
 import { resolverFotos, extrairTextoObservacao, updateServicoComFotos } from '@/lib/fotosServico'
 import { smartCompress } from '@/lib/imageCompression'
+import { formatCpfCnpj, formatFormaPagamento, formatTelefone } from '@/lib/formatters'
 import { useToast } from '@/hooks/use-toast'
 
 interface DetalhesExecucaoDialogProps {
@@ -236,7 +237,7 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                   <InfoItem label="Unidade" value={[servico.bloco && `Bloco ${servico.bloco}`, servico.apartamento && `Apto ${servico.apartamento}`].filter(Boolean).join(' - ') || '—'} />
                   <InfoItem label="Estado" value={servico.uf} />
                   <InfoItem label="Cliente" value={servico.morador_nome} />
-                  <InfoItem label="Telefone" value={servico.telefone} />
+                  <InfoItem label="Telefone" value={formatTelefone(servico.telefone)} />
                   <InfoItem label="E-mail" value={servico.email} />
                   {servico.data_agendamento && (
                     <InfoItem label="Agendamento" value={formatDate(servico.data_agendamento)} />
@@ -266,13 +267,13 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                   <SectionTitle>Informações de Pagamento e Cadastro</SectionTitle>
                   <div className="grid grid-cols-2 gap-x-8 gap-y-3 bg-gray-50 rounded-md p-4 mt-2">
                     {servico.forma_pagamento && (
-                      <InfoItem label="Forma de Pagamento" value={servico.forma_pagamento} />
+                      <InfoItem label="Forma de Pagamento" value={formatFormaPagamento(servico.forma_pagamento)} />
                     )}
                     {servico.valor_servico != null && (
                       <InfoItem label="Valor do Serviço" value={`R$ ${Number(servico.valor_servico).toFixed(2).replace('.', ',')}`} />
                     )}
                     {servico.cpf_cnpj && (
-                      <InfoItem label="CPF / CNPJ" value={servico.cpf_cnpj} />
+                      <InfoItem label="CPF / CNPJ" value={formatCpfCnpj(servico.cpf_cnpj)} />
                     )}
                   </div>
                 </div>
