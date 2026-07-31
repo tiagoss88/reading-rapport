@@ -30,10 +30,12 @@ export function exportarCSV(tipoRelatorio: TipoRelatorio, dados: any[]) {
       break;
 
     case 'rdo_servicos':
-      colunas = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
+      colunas = ['Data', 'Condomínio', 'Bloco', 'Apartamento', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
       linhas = dados.map((item) => [
         item.data ? format(new Date(item.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '',
         item.condominio || '',
+        item.bloco || '',
+        item.apartamento || '',
         item.tipo_servico?.toUpperCase(),
         item.tecnico || '',
         item.status,

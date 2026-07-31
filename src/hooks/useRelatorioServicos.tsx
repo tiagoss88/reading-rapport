@@ -18,6 +18,8 @@ export function useRelatorioServicos() {
         status_atendimento,
         observacao,
         condominio_nome_original,
+        bloco,
+        apartamento,
         uf,
         tecnico_id,
         valor_servico,
@@ -57,6 +59,8 @@ export function useRelatorioServicos() {
       return {
         data: dataEfetiva,
         condominio: s.condominio_nome_original || '-',
+        bloco: s.bloco || '',
+        apartamento: s.apartamento || '',
         tipo_servico: s.tipo_servico,
         tecnico: s.operadores?.nome || 'Não atribuído',
         status: s.status_atendimento,
