@@ -45,7 +45,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
 
   
-  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento']
+  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento', '/estoque']
   const isOperacaoPath = operacaoPaths.some(p => pathname.startsWith(p))
   const isMedicaoPath = pathname.startsWith('/medicao-terceirizada') && !isOperacaoPath
 
