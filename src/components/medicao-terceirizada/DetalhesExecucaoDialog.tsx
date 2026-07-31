@@ -57,6 +57,21 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
     enabled: open && !!servicoId,
   })
 
+  const { data: materiaisConsumidos = [] } = useQuery({
+    queryKey: ['materiais-consumidos', servicoId],
+    queryFn: async () => {
+      if (!servicoId) return []
+      const { data, error } = await supabase
+        .from('estoque_movimentacoes')
+        .select('id, quantidade, materiais(nome, unidade)')
+        .eq('servico_id', servicoId)
+        .eq('tipo', 'saida')
+      if (error) return []
+      return data || []
+    },
+    enabled: open && !!servicoId,
+  })
+
   if (!servicoId) return null
 
   const fotos = resolverFotos(servico?.fotos_urls, servico?.observacao)
