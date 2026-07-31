@@ -42,13 +42,14 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
       break;
 
     case 'rdo_servicos':
-      headers = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status'];
+      headers = ['Data', 'Condomínio', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
       rows = dados.map((item) => [
         item.data ? format(new Date(item.data + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '',
         item.condominio || '',
         item.tipo_servico?.toUpperCase(),
         item.tecnico || '',
         item.status,
+        item.valor_servico != null ? Number(item.valor_servico) : null,
       ]);
       break;
 
@@ -66,6 +67,21 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
 
   const wsData = [headers, ...rows];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  if (tipoRelatorio === 'rdo_servicos') {
+    const valorCol = headers.length - 1;
+    for (let i = 0; i < rows.length; i++) {
+      const ref = XLSX.utils.encode_cell({ r: i + 1, c: valorCol });
+      const cell = ws[ref];
+      if (cell && typeof cell.v === 'number') {
+        cell.t = 'n';
+        cell.z = 'R$ #,##0.00';
+      }
+    }
+  }
+
+  ws['!cols'] = headers.map((h) => ({ wch: Math.max(12, h.length + 4) }));
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
   XLSX.writeFile(wb, `relatorio_${tipoRelatorio}_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
