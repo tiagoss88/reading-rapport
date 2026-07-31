@@ -239,6 +239,13 @@ const App = () => (
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
+                <Route path="/estoque" element={
+                  <ProtectedRoute>
+                    <PermissionRoute roles={["admin", "gestor_empreendimento"]}>
+                      <Estoque />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
                 <Route path="/admin/atualizar-rotas-ce" element={
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
