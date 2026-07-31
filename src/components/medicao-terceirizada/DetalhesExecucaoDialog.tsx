@@ -305,6 +305,25 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                 </div>
               </div>
 
+              {/* === MATERIAIS CONSUMIDOS === */}
+              {materiaisConsumidos.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider border-b border-gray-200 pb-1">
+                    Materiais Consumidos
+                  </h3>
+                  <div className="mt-2 space-y-1">
+                    {materiaisConsumidos.map((m: any) => (
+                      <div key={m.id} className="flex items-center justify-between text-xs border-b border-gray-100 py-1">
+                        <span className="text-gray-700">{m.materiais?.nome || '—'}</span>
+                        <span className="font-semibold text-gray-900">
+                          {Number(m.quantidade)} {m.materiais?.unidade || ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* === REGISTRO FOTOGRÁFICO === */}
               <div>
                 <div className="flex items-center justify-between gap-2 border-b border-gray-200 pb-1">
