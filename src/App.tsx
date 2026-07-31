@@ -35,7 +35,6 @@ import ColetorLeitura from '@/pages/ColetorLeitura'
 import ColetorServicosTerceirizados from '@/pages/ColetorServicosTerceirizados'
 import ColetorNotificacoes from '@/pages/ColetorNotificacoes'
 import NotificacoesMedidores from '@/pages/MedicaoTerceirizada/Notificacoes'
-import Estoque from '@/pages/Estoque'
 import EmpreendimentoLogin from '@/pages/EmpreendimentoLogin'
 import AreaCliente from '@/pages/AreaCliente'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -236,13 +235,6 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
                       <NotificacoesMedidores />
-                    </PermissionRoute>
-                  </ProtectedRoute>
-                } />
-                <Route path="/estoque" element={
-                  <ProtectedRoute>
-                    <PermissionRoute roles={["admin", "gestor_empreendimento"]}>
-                      <Estoque />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
