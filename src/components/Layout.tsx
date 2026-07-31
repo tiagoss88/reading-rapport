@@ -80,6 +80,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const operacaoItems = [
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
     { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
+    { name: 'Estoque', href: '/estoque', icon: Boxes },
   ]
 
   const configuracoesItems = [
