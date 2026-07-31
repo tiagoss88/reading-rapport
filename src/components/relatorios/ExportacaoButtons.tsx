@@ -67,6 +67,21 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
 
   const wsData = [headers, ...rows];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  if (tipoRelatorio === 'rdo_servicos') {
+    const valorCol = headers.length - 1;
+    for (let i = 0; i < rows.length; i++) {
+      const ref = XLSX.utils.encode_cell({ r: i + 1, c: valorCol });
+      const cell = ws[ref];
+      if (cell && typeof cell.v === 'number') {
+        cell.t = 'n';
+        cell.z = 'R$ #,##0.00';
+      }
+    }
+  }
+
+  ws['!cols'] = headers.map((h) => ({ wch: Math.max(12, h.length + 4) }));
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Relatório');
   XLSX.writeFile(wb, `relatorio_${tipoRelatorio}_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`);
