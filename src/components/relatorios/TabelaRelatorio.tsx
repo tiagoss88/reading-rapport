@@ -35,6 +35,8 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
           <>
             <TableHead>Data</TableHead>
             <TableHead>Condomínio</TableHead>
+            <TableHead>Bloco</TableHead>
+            <TableHead>Apartamento</TableHead>
             <TableHead>Tipo Serviço</TableHead>
             <TableHead>Técnico</TableHead>
             <TableHead>Status</TableHead>
@@ -95,6 +97,8 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                   : '-'}
               </TableCell>
               <TableCell>{item.condominio || '-'}</TableCell>
+              <TableCell>{item.bloco || '-'}</TableCell>
+              <TableCell>{item.apartamento || '-'}</TableCell>
               <TableCell>{item.tipo_servico?.toUpperCase()}</TableCell>
               <TableCell>{item.tecnico || '-'}</TableCell>
               <TableCell>
