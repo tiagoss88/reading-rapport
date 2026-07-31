@@ -1,22 +1,15 @@
-## Objetivo
+# Incluir a coluna de valores no Excel do RDO
 
-Padronizar a exibição de forma de pagamento, CPF/CNPJ e telefone nos detalhes da execução e nos PDFs (Relatório de Atendimento e Comprovante de Pagamento). Hoje aparecem crus: `cartao_credito` e `12136689568`.
+## Problema
+No relatório "RDO - Serviços", a tela, o PDF e o CSV já mostram a coluna "Valor (R$)", mas a exportação para Excel gera apenas Data, Condomínio, Tipo Serviço, Técnico e Status — o valor fica de fora.
 
-## O que muda
+## O que será feito
+Adicionar a coluna "Valor (R$)" na exportação Excel do RDO, como último campo, na mesma ordem das outras exportações.
 
-**1. Novos formatadores em `src/lib/formatters.ts`**
-- `formatCpfCnpj(valor)`: aplica automaticamente a máscara certa — 11 dígitos → `121.366.895-68`; 14 dígitos → `44.620.393/0001-01`; qualquer outro tamanho é devolvido como está (sem inventar formato).
-- `formatFormaPagamento(valor)`: converte o código para rótulo legível — `fatura` → Fatura, `pix` → PIX, `cartao_credito` → Cartão de Crédito, `cartao_debito` → Cartão de Débito, `boleto` → Boleto, `dinheiro` → Dinheiro, `outro` → Outro. Valor desconhecido vira texto capitalizado com underscores trocados por espaço.
-- `formatTelefone(valor)`: `(85) 99973-6220` para 11 dígitos e `(85) 3333-4444` para 10; demais tamanhos ficam inalterados.
-
-**2. Onde aplicar**
-- `DetalhesExecucaoDialog.tsx` — cartões "Forma de Pagamento", "CPF / CNPJ" e "Telefone".
-- `exportRegistroAtendimento.ts` (PDF do relatório de atendimento) — mesmos três campos.
-- `exportComprovantePagamento.ts` (comprovante) — CPF/CNPJ e pagamento (hoje só um `.toUpperCase()`).
-
-Apenas formatação de exibição: nada muda no banco, os valores continuam salvos como estão.
+O valor será gravado como número real (não texto), com formato de moeda brasileira aplicado na célula, para permitir somas e filtros direto no Excel. Serviços sem valor ficam com célula vazia.
 
 ## Detalhes técnicos
-
-- Os helpers atuais `formatCPF`/`formatCNPJ` continuam existindo (usados em campos de digitação progressiva); `formatCpfCnpj` é para exibição de valor final.
-- Todos os helpers tratam `null`/`undefined` retornando `''`, mantendo os fallbacks `—` já usados nos PDFs.
+- Arquivo: `src/components/relatorios/ExportacaoButtons.tsx`, função `exportarExcel`, caso `rdo_servicos`.
+- Header: acrescentar `'Valor (R$)'`; linha: `item.valor_servico != null ? Number(item.valor_servico) : null`.
+- Aplicar `z = 'R$ #,##0.00'` nas células da coluna de valor via `XLSX.utils` após montar a planilha, e definir larguras de coluna (`!cols`) para leitura.
+- Nenhuma mudança em consulta de dados, PDF ou CSV.
