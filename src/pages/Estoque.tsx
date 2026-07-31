@@ -12,7 +12,7 @@ export default function Estoque() {
   const bump = () => setRefreshKey(k => k + 1)
 
   return (
-    <Layout>
+    <Layout title="Estoque">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <Boxes className="h-6 w-6 text-primary" />
