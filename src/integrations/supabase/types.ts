@@ -316,6 +316,13 @@ export type Database = {
             foreignKeyName: "estoque_movimentacoes_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "materiais_saldo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estoque_movimentacoes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "v_estoque_saldo"
             referencedColumns: ["material_id"]
           },
@@ -1011,6 +1018,13 @@ export type Database = {
             foreignKeyName: "tipo_servico_materiais_material_id_fkey"
             columns: ["material_id"]
             isOneToOne: false
+            referencedRelation: "materiais_saldo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tipo_servico_materiais_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
             referencedRelation: "v_estoque_saldo"
             referencedColumns: ["material_id"]
           },
@@ -1096,6 +1110,21 @@ export type Database = {
       }
     }
     Views: {
+      materiais_saldo: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          created_at: string | null
+          descricao: string | null
+          estoque_minimo: number | null
+          id: string | null
+          nome: string | null
+          saldo: number | null
+          unidade: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       operadores_ultima_localizacao: {
         Row: {
           bateria_nivel: number | null

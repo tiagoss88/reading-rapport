@@ -22,7 +22,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   BookOpen,
-  HardHat
+  HardHat,
+  Boxes
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -44,7 +45,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
 
   
-  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento']
+  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento', '/estoque']
   const isOperacaoPath = operacaoPaths.some(p => pathname.startsWith(p))
   const isMedicaoPath = pathname.startsWith('/medicao-terceirizada') && !isOperacaoPath
 
@@ -80,6 +81,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const operacaoItems = [
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
     { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
+    { name: 'Estoque', href: '/estoque', icon: Boxes },
   ]
 
   const configuracoesItems = [
