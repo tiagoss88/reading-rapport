@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -8,10 +8,14 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { useToast } from '@/hooks/use-toast'
-import { format, parse, lastDayOfMonth } from 'date-fns'
+import { format, parse, lastDayOfMonth, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Copy, AlertTriangle, Building2, Users } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Copy, AlertTriangle, Building2, Users, CalendarIcon } from 'lucide-react'
+
 
 interface DiaUtil {
   id: string
@@ -31,9 +35,22 @@ interface Props {
   diasUteisAtuais: DiaUtil[]
 }
 
+const toDate = (d: string) => new Date(`${d}T00:00:00`)
 const fmtData = (d: string) => format(parse(d, 'yyyy-MM-dd', new Date()), "dd/MM/yyyy", { locale: ptBR })
 const nomeMes = (m: number, a: number) =>
   format(new Date(a, m - 1, 1), "MMMM 'de' yyyy", { locale: ptBR })
+
+// Dias úteis (seg-sex) do mês informado, em ordem
+const diasUteisDoMes = (a: number, m: number) => {
+  const out: string[] = []
+  const ultimo = lastDayOfMonth(new Date(a, m - 1, 1)).getDate()
+  for (let dia = 1; dia <= ultimo; dia++) {
+    const d = new Date(a, m - 1, dia)
+    const dow = getDay(d)
+    if (dow !== 0 && dow !== 6) out.push(format(d, 'yyyy-MM-dd'))
+  }
+  return out
+}
 
 export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano, mes, diasUteisAtuais }: Props) {
   const { toast } = useToast()
@@ -129,11 +146,14 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
     [rotasAtuais]
   )
 
+  const uteisMesAtual = useMemo(() => diasUteisDoMes(ano, mes), [ano, mes])
+
   // Monta as linhas: uma por rota do mês anterior que tenha planejamento
   const linhas = useMemo(() => {
     if (!diasAnteriores || !rotasAnteriores) return []
-    return diasAnteriores
-      .map(dia => {
+    const ordenados = [...diasAnteriores].sort((a, b) => a.data.localeCompare(b.data))
+    return ordenados
+      .map((dia, idx) => {
         const itens = (rotasAnteriores || []).filter(
           r => r.data === dia.data && r.empreendimento && r.empreendimento.uf === uf
         )
@@ -147,7 +167,9 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         const semEmpreendimento = (rotasAnteriores || []).some(
           r => r.data === dia.data && !r.empreendimento
         )
-        const destinoPadrao = mapaDestino.get(dia.numero_rota)
+        const destinoCadastrado = mapaDestino.get(dia.numero_rota)
+        // Sem dia útil cadastrado: sugere o dia útil de mesma posição no mês atual
+        const sugestao = uteisMesAtual[idx] || ''
         return {
           numero_rota: dia.numero_rota,
           dataOrigem: dia.data,
@@ -156,15 +178,21 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
           operadores,
           operadoresInativos,
           semEmpreendimento,
-          destinoPadrao: destinoPadrao?.data || ''
+          destinoPadrao: destinoCadastrado?.data || sugestao,
+          diaUtilCadastrado: !!destinoCadastrado
         }
       })
       .filter(l => l.itens.length > 0)
-  }, [diasAnteriores, rotasAnteriores, uf, idsOperadoresAtivos, mapaDestino])
+  }, [diasAnteriores, rotasAnteriores, uf, idsOperadoresAtivos, mapaDestino, uteisMesAtual])
 
-  // Inicializa seleção/destinos quando os dados chegam
+  // Inicializa seleção/destinos apenas uma vez por abertura do diálogo
+  const inicializado = useRef(false)
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      inicializado.current = false
+      return
+    }
+    if (inicializado.current || linhas.length === 0) return
     const sel: Record<number, boolean> = {}
     const dest: Record<number, string> = {}
     linhas.forEach(l => {
@@ -173,6 +201,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
     })
     setSelecionadas(sel)
     setDestinos(dest)
+    inicializado.current = true
   }, [open, linhas])
 
   const linhasSelecionadas = linhas.filter(
@@ -188,10 +217,28 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
     mutationFn: async () => {
       let inseridos = 0
       let ignorados = 0
+      let diasCriados = 0
+
+      const datasCadastradas = new Set(diasUteisAtuais.map(d => d.data))
+      const rotasCadastradas = new Set(diasUteisAtuais.map(d => d.numero_rota))
 
       for (const linha of linhasSelecionadas) {
         const dataDestino = destinos[linha.numero_rota]
         if (!dataDestino) continue
+
+        // Cria o dia útil no mês atual quando ainda não existir
+        if (!datasCadastradas.has(dataDestino)) {
+          let numeroRota = linha.numero_rota
+          while (rotasCadastradas.has(numeroRota)) numeroRota++
+          const { error: diaError } = await supabase.from('dias_uteis').insert({
+            uf, ano, mes, numero_rota: numeroRota, data: dataDestino
+          })
+          if (diaError) throw diaError
+          datasCadastradas.add(dataDestino)
+          rotasCadastradas.add(numeroRota)
+          diasCriados++
+        }
+
 
         const jaTemPlanejamento = datasComPlanejamento.has(dataDestino)
         if (jaTemPlanejamento && !substituir) {
@@ -226,15 +273,15 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         }
       }
 
-      return { inseridos, ignorados }
+      return { inseridos, ignorados, diasCriados }
     },
-    onSuccess: ({ inseridos, ignorados }) => {
+    onSuccess: ({ inseridos, ignorados, diasCriados }) => {
       queryClient.invalidateQueries({ queryKey: ['dias-uteis'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura-dia'] })
       toast({
         title: 'Planejamento replicado',
-        description: `${inseridos} empreendimento(s) copiado(s)${ignorados ? ` • ${ignorados} ignorado(s) (dia já planejado)` : ''}`
+        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${ignorados ? ` • ${ignorados} ignorado(s) (dia já planejado)` : ''}`
       })
       onOpenChange(false)
     },
@@ -281,7 +328,8 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
             <div className="space-y-2">
               {linhas.map(linha => {
                 const destino = destinos[linha.numero_rota] || ''
-                const semDiaUtil = !linha.destinoPadrao && !destino
+                const semDiaUtil = !destino
+                const diaNovo = !!destino && !diasUteisAtuais.some(d => d.data === destino)
                 const jaPlanejado = destino && datasComPlanejamento.has(destino)
                 return (
                   <div key={linha.numero_rota} className="rounded-md border p-3">
@@ -309,32 +357,72 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
                           {linha.operadores.join(', ')}
                         </span>
                       )}
-                      <div className="ml-auto">
-                        <Select
-                          value={destino}
-                          onValueChange={(v) => setDestinos(prev => ({ ...prev, [linha.numero_rota]: v }))}
-                        >
-                          <SelectTrigger className="h-8 w-[190px] text-xs">
-                            <SelectValue placeholder="Sem dia útil cadastrado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {diasUteisAtuais.map(d => (
-                              <SelectItem key={d.id} value={d.data}>
-                                Rota {d.numero_rota.toString().padStart(2, '0')} • {fmtData(d.data)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="ml-auto flex items-center gap-2">
+                        {diasUteisAtuais.length > 0 && (
+                          <Select
+                            value={diasUteisAtuais.some(d => d.data === destino) ? destino : ''}
+                            onValueChange={(v) => {
+                              setDestinos(prev => ({ ...prev, [linha.numero_rota]: v }))
+                              setSelecionadas(prev => ({ ...prev, [linha.numero_rota]: true }))
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-[180px] text-xs">
+                              <SelectValue placeholder="Dia útil cadastrado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {diasUteisAtuais.map(d => (
+                                <SelectItem key={d.id} value={d.data}>
+                                  Rota {d.numero_rota.toString().padStart(2, '0')} • {fmtData(d.data)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn('h-8 w-[150px] justify-start text-xs font-normal', !destino && 'text-muted-foreground')}
+                            >
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {destino ? fmtData(destino) : 'Escolher data'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              locale={ptBR}
+                              selected={destino ? toDate(destino) : undefined}
+                              defaultMonth={new Date(ano, mes - 1, 1)}
+                              fromDate={new Date(ano, mes - 1, 1)}
+                              toDate={lastDayOfMonth(new Date(ano, mes - 1, 1))}
+                              onSelect={(d) => {
+                                if (!d) return
+                                setDestinos(prev => ({ ...prev, [linha.numero_rota]: format(d, 'yyyy-MM-dd') }))
+                                setSelecionadas(prev => ({ ...prev, [linha.numero_rota]: true }))
+                              }}
+                              initialFocus
+                              className={cn('p-3 pointer-events-auto')}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
 
-                    {(semDiaUtil || jaPlanejado || linha.operadoresInativos || linha.semEmpreendimento) && (
+                    {(semDiaUtil || diaNovo || jaPlanejado || linha.operadoresInativos || linha.semEmpreendimento) && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {semDiaUtil && (
                           <Badge variant="outline" className="text-xs">
-                            <AlertTriangle className="mr-1 h-3 w-3" /> Sem dia útil cadastrado
+                            <AlertTriangle className="mr-1 h-3 w-3" /> Escolha a data de destino
                           </Badge>
                         )}
+                        {diaNovo && (
+                          <Badge variant="outline" className="text-xs">
+                            <CalendarIcon className="mr-1 h-3 w-3" /> Dia útil será criado automaticamente
+                          </Badge>
+                        )}
+
                         {jaPlanejado && (
                           <Badge variant="outline" className="text-xs">
                             <AlertTriangle className="mr-1 h-3 w-3" />
