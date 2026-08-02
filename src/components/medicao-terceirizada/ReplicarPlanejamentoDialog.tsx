@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -8,10 +8,14 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { useToast } from '@/hooks/use-toast'
-import { format, parse, lastDayOfMonth } from 'date-fns'
+import { format, parse, lastDayOfMonth, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Copy, AlertTriangle, Building2, Users } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Copy, AlertTriangle, Building2, Users, CalendarIcon } from 'lucide-react'
+
 
 interface DiaUtil {
   id: string
