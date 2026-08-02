@@ -40,6 +40,7 @@ export default function PlanejamentoRotas() {
   const [mes, setMes] = useState<string>((new Date().getMonth() + 1).toString())
   const [diaUtilDialogOpen, setDiaUtilDialogOpen] = useState(false)
   const [rotaDiariaDialogOpen, setRotaDiariaDialogOpen] = useState(false)
+  const [replicarDialogOpen, setReplicarDialogOpen] = useState(false)
   const [selectedDiaUtil, setSelectedDiaUtil] = useState<any>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
