@@ -273,15 +273,15 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         }
       }
 
-      return { inseridos, ignorados }
+      return { inseridos, ignorados, diasCriados }
     },
-    onSuccess: ({ inseridos, ignorados }) => {
+    onSuccess: ({ inseridos, ignorados, diasCriados }) => {
       queryClient.invalidateQueries({ queryKey: ['dias-uteis'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura-dia'] })
       toast({
         title: 'Planejamento replicado',
-        description: `${inseridos} empreendimento(s) copiado(s)${ignorados ? ` • ${ignorados} ignorado(s) (dia já planejado)` : ''}`
+        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${ignorados ? ` • ${ignorados} ignorado(s) (dia já planejado)` : ''}`
       })
       onOpenChange(false)
     },
