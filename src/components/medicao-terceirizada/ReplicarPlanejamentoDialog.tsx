@@ -146,11 +146,14 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
     [rotasAtuais]
   )
 
+  const uteisMesAtual = useMemo(() => diasUteisDoMes(ano, mes), [ano, mes])
+
   // Monta as linhas: uma por rota do mês anterior que tenha planejamento
   const linhas = useMemo(() => {
     if (!diasAnteriores || !rotasAnteriores) return []
-    return diasAnteriores
-      .map(dia => {
+    const ordenados = [...diasAnteriores].sort((a, b) => a.data.localeCompare(b.data))
+    return ordenados
+      .map((dia, idx) => {
         const itens = (rotasAnteriores || []).filter(
           r => r.data === dia.data && r.empreendimento && r.empreendimento.uf === uf
         )
@@ -164,7 +167,9 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         const semEmpreendimento = (rotasAnteriores || []).some(
           r => r.data === dia.data && !r.empreendimento
         )
-        const destinoPadrao = mapaDestino.get(dia.numero_rota)
+        const destinoCadastrado = mapaDestino.get(dia.numero_rota)
+        // Sem dia útil cadastrado: sugere o dia útil de mesma posição no mês atual
+        const sugestao = uteisMesAtual[idx] || ''
         return {
           numero_rota: dia.numero_rota,
           dataOrigem: dia.data,
@@ -173,15 +178,21 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
           operadores,
           operadoresInativos,
           semEmpreendimento,
-          destinoPadrao: destinoPadrao?.data || ''
+          destinoPadrao: destinoCadastrado?.data || sugestao,
+          diaUtilCadastrado: !!destinoCadastrado
         }
       })
       .filter(l => l.itens.length > 0)
-  }, [diasAnteriores, rotasAnteriores, uf, idsOperadoresAtivos, mapaDestino])
+  }, [diasAnteriores, rotasAnteriores, uf, idsOperadoresAtivos, mapaDestino, uteisMesAtual])
 
-  // Inicializa seleção/destinos quando os dados chegam
+  // Inicializa seleção/destinos apenas uma vez por abertura do diálogo
+  const inicializado = useRef(false)
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      inicializado.current = false
+      return
+    }
+    if (inicializado.current || linhas.length === 0) return
     const sel: Record<number, boolean> = {}
     const dest: Record<number, string> = {}
     linhas.forEach(l => {
@@ -190,6 +201,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
     })
     setSelecionadas(sel)
     setDestinos(dest)
+    inicializado.current = true
   }, [open, linhas])
 
   const linhasSelecionadas = linhas.filter(
