@@ -38,9 +38,24 @@ export function usePushNotifications() {
           return;
         }
 
-        // Register custom service worker for push
-        const registration = await navigator.serviceWorker.register('/sw-push.js');
-        await navigator.serviceWorker.ready;
+        // Keep push on a dedicated scope so it never replaces the app cleanup worker.
+        const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(
+          existingRegistrations.map((existingRegistration) => {
+            const scriptUrl = existingRegistration.active?.scriptURL
+              || existingRegistration.waiting?.scriptURL
+              || existingRegistration.installing?.scriptURL
+              || '';
+            const registrationScope = new URL(existingRegistration.scope).pathname;
+            if (scriptUrl.endsWith('/sw-push.js') && registrationScope === '/') {
+              return existingRegistration.unregister();
+            }
+            return Promise.resolve(false);
+          }),
+        );
+
+        const registration = await navigator.serviceWorker.register('/sw-push.js', { scope: '/push/' });
+        await registration.update();
 
         // Get push subscription
         const pushManager = (registration as any).pushManager;

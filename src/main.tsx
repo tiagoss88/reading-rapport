@@ -10,6 +10,3 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 createRoot(document.getElementById("root")!).render(<App />);
-
-// Registro guardado do Service Worker (só em produção fora do preview/editor)
-import('./pwa/registerSW').then(m => m.registerAppSW()).catch(() => {});
