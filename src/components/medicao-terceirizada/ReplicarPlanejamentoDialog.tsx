@@ -217,10 +217,28 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
     mutationFn: async () => {
       let inseridos = 0
       let ignorados = 0
+      let diasCriados = 0
+
+      const datasCadastradas = new Set(diasUteisAtuais.map(d => d.data))
+      const rotasCadastradas = new Set(diasUteisAtuais.map(d => d.numero_rota))
 
       for (const linha of linhasSelecionadas) {
         const dataDestino = destinos[linha.numero_rota]
         if (!dataDestino) continue
+
+        // Cria o dia útil no mês atual quando ainda não existir
+        if (!datasCadastradas.has(dataDestino)) {
+          let numeroRota = linha.numero_rota
+          while (rotasCadastradas.has(numeroRota)) numeroRota++
+          const { error: diaError } = await supabase.from('dias_uteis').insert({
+            uf, ano, mes, numero_rota: numeroRota, data: dataDestino
+          })
+          if (diaError) throw diaError
+          datasCadastradas.add(dataDestino)
+          rotasCadastradas.add(numeroRota)
+          diasCriados++
+        }
+
 
         const jaTemPlanejamento = datasComPlanejamento.has(dataDestino)
         if (jaTemPlanejamento && !substituir) {
