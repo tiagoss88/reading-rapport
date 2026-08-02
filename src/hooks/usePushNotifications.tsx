@@ -39,8 +39,8 @@ export function usePushNotifications() {
         }
 
         // Register custom service worker for push
-        const registration = await navigator.serviceWorker.register('/sw-push.js');
-        await navigator.serviceWorker.ready;
+        const registration = await navigator.serviceWorker.register('/sw-push.js', { scope: '/' });
+        await registration.update();
 
         // Get push subscription
         const pushManager = (registration as any).pushManager;
