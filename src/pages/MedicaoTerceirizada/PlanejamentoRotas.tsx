@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Plus, Trash2, Users, Building2 } from 'lucide-react'
+import { Calendar, Plus, Trash2, Users, Building2, Copy } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { format, parse, lastDayOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import DiaUtilDialog from '@/components/medicao-terceirizada/DiaUtilDialog'
 import RotaDiariaDialog from '@/components/medicao-terceirizada/RotaDiariaDialog'
+import ReplicarPlanejamentoDialog from '@/components/medicao-terceirizada/ReplicarPlanejamentoDialog'
 import { Badge } from '@/components/ui/badge'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 
@@ -39,6 +40,7 @@ export default function PlanejamentoRotas() {
   const [mes, setMes] = useState<string>((new Date().getMonth() + 1).toString())
   const [diaUtilDialogOpen, setDiaUtilDialogOpen] = useState(false)
   const [rotaDiariaDialogOpen, setRotaDiariaDialogOpen] = useState(false)
+  const [replicarDialogOpen, setReplicarDialogOpen] = useState(false)
   const [selectedDiaUtil, setSelectedDiaUtil] = useState<any>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -173,6 +175,10 @@ export default function PlanejamentoRotas() {
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar Dia Útil
               </Button>
+              <Button variant="outline" onClick={() => setReplicarDialogOpen(true)}>
+                <Copy className="mr-2 h-4 w-4" />
+                Replicar mês anterior
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -295,6 +301,15 @@ export default function PlanejamentoRotas() {
           diaUtil={selectedDiaUtil}
         />
       )}
+
+      <ReplicarPlanejamentoDialog
+        open={replicarDialogOpen}
+        onOpenChange={setReplicarDialogOpen}
+        uf={uf}
+        ano={parseInt(ano)}
+        mes={parseInt(mes)}
+        diasUteisAtuais={(diasUteis as any[]) || []}
+      />
     </Layout>
   )
 }
