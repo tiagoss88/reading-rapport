@@ -35,9 +35,22 @@ interface Props {
   diasUteisAtuais: DiaUtil[]
 }
 
+const toDate = (d: string) => new Date(`${d}T00:00:00`)
 const fmtData = (d: string) => format(parse(d, 'yyyy-MM-dd', new Date()), "dd/MM/yyyy", { locale: ptBR })
 const nomeMes = (m: number, a: number) =>
   format(new Date(a, m - 1, 1), "MMMM 'de' yyyy", { locale: ptBR })
+
+// Dias úteis (seg-sex) do mês informado, em ordem
+const diasUteisDoMes = (a: number, m: number) => {
+  const out: string[] = []
+  const ultimo = lastDayOfMonth(new Date(a, m - 1, 1)).getDate()
+  for (let dia = 1; dia <= ultimo; dia++) {
+    const d = new Date(a, m - 1, dia)
+    const dow = getDay(d)
+    if (dow !== 0 && dow !== 6) out.push(format(d, 'yyyy-MM-dd'))
+  }
+  return out
+}
 
 export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano, mes, diasUteisAtuais }: Props) {
   const { toast } = useToast()
