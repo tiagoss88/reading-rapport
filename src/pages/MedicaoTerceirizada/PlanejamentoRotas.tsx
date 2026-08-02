@@ -301,6 +301,15 @@ export default function PlanejamentoRotas() {
           diaUtil={selectedDiaUtil}
         />
       )}
+
+      <ReplicarPlanejamentoDialog
+        open={replicarDialogOpen}
+        onOpenChange={setReplicarDialogOpen}
+        uf={uf}
+        ano={parseInt(ano)}
+        mes={parseInt(mes)}
+        diasUteisAtuais={(diasUteis as any[]) || []}
+      />
     </Layout>
   )
 }
