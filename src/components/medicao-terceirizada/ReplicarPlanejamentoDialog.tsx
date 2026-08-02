@@ -328,7 +328,8 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
             <div className="space-y-2">
               {linhas.map(linha => {
                 const destino = destinos[linha.numero_rota] || ''
-                const semDiaUtil = !linha.destinoPadrao && !destino
+                const semDiaUtil = !destino
+                const diaNovo = !!destino && !diasUteisAtuais.some(d => d.data === destino)
                 const jaPlanejado = destino && datasComPlanejamento.has(destino)
                 return (
                   <div key={linha.numero_rota} className="rounded-md border p-3">
@@ -356,32 +357,72 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
                           {linha.operadores.join(', ')}
                         </span>
                       )}
-                      <div className="ml-auto">
-                        <Select
-                          value={destino}
-                          onValueChange={(v) => setDestinos(prev => ({ ...prev, [linha.numero_rota]: v }))}
-                        >
-                          <SelectTrigger className="h-8 w-[190px] text-xs">
-                            <SelectValue placeholder="Sem dia útil cadastrado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {diasUteisAtuais.map(d => (
-                              <SelectItem key={d.id} value={d.data}>
-                                Rota {d.numero_rota.toString().padStart(2, '0')} • {fmtData(d.data)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="ml-auto flex items-center gap-2">
+                        {diasUteisAtuais.length > 0 && (
+                          <Select
+                            value={diasUteisAtuais.some(d => d.data === destino) ? destino : ''}
+                            onValueChange={(v) => {
+                              setDestinos(prev => ({ ...prev, [linha.numero_rota]: v }))
+                              setSelecionadas(prev => ({ ...prev, [linha.numero_rota]: true }))
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-[180px] text-xs">
+                              <SelectValue placeholder="Dia útil cadastrado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {diasUteisAtuais.map(d => (
+                                <SelectItem key={d.id} value={d.data}>
+                                  Rota {d.numero_rota.toString().padStart(2, '0')} • {fmtData(d.data)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={cn('h-8 w-[150px] justify-start text-xs font-normal', !destino && 'text-muted-foreground')}
+                            >
+                              <CalendarIcon className="mr-1 h-3 w-3" />
+                              {destino ? fmtData(destino) : 'Escolher data'}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="end">
+                            <Calendar
+                              mode="single"
+                              locale={ptBR}
+                              selected={destino ? toDate(destino) : undefined}
+                              defaultMonth={new Date(ano, mes - 1, 1)}
+                              fromDate={new Date(ano, mes - 1, 1)}
+                              toDate={lastDayOfMonth(new Date(ano, mes - 1, 1))}
+                              onSelect={(d) => {
+                                if (!d) return
+                                setDestinos(prev => ({ ...prev, [linha.numero_rota]: format(d, 'yyyy-MM-dd') }))
+                                setSelecionadas(prev => ({ ...prev, [linha.numero_rota]: true }))
+                              }}
+                              initialFocus
+                              className={cn('p-3 pointer-events-auto')}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
 
-                    {(semDiaUtil || jaPlanejado || linha.operadoresInativos || linha.semEmpreendimento) && (
+                    {(semDiaUtil || diaNovo || jaPlanejado || linha.operadoresInativos || linha.semEmpreendimento) && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {semDiaUtil && (
                           <Badge variant="outline" className="text-xs">
-                            <AlertTriangle className="mr-1 h-3 w-3" /> Sem dia útil cadastrado
+                            <AlertTriangle className="mr-1 h-3 w-3" /> Escolha a data de destino
                           </Badge>
                         )}
+                        {diaNovo && (
+                          <Badge variant="outline" className="text-xs">
+                            <CalendarIcon className="mr-1 h-3 w-3" /> Dia útil será criado automaticamente
+                          </Badge>
+                        )}
+
                         {jaPlanejado && (
                           <Badge variant="outline" className="text-xs">
                             <AlertTriangle className="mr-1 h-3 w-3" />
