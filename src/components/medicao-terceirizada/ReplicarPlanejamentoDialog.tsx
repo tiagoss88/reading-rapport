@@ -374,7 +374,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
                       </span>
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Building2 className="h-3 w-3" />
-                        {linha.itens.length} empreend. • {linha.totalMedidores} medidores
+                        {linha.totalEmpreendimentos} empreend. • {linha.totalMedidores} medidores
                       </span>
                       {linha.operadores.length > 0 && (
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
