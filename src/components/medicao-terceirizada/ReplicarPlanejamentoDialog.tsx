@@ -449,7 +449,10 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
                         )}
 
                         {jaPlanejado && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge
+                            variant="outline"
+                            className={substituir ? 'text-xs' : 'text-xs border-destructive text-destructive'}
+                          >
                             <AlertTriangle className="mr-1 h-3 w-3" />
                             {substituir ? 'Planejamento do dia será substituído' : 'Dia já planejado — será ignorado'}
                           </Badge>
