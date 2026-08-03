@@ -122,7 +122,8 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
       const endDate = format(lastDayOfMonth(new Date(ano, mes - 1)), 'yyyy-MM-dd')
       const { data, error } = await supabase
         .from('rotas_leitura')
-        .select('id, data, empreendimento_id')
+        .select('id, data, empreendimento_id, empreendimento:empreendimentos_terceirizados!inner(uf)')
+        .eq('empreendimento.uf', uf)
         .gte('data', startDate)
         .lte('data', endDate)
       if (error) throw error
@@ -262,11 +263,17 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         }
 
         if (jaTemPlanejamento && substituir) {
-          const { error: delError } = await supabase
-            .from('rotas_leitura')
-            .delete()
-            .eq('data', dataDestino)
-          if (delError) throw delError
+          const idsDaUf = (rotasAtuais || [])
+            .filter((rota: any) => rota.data === dataDestino)
+            .map((rota: any) => rota.id)
+
+          if (idsDaUf.length > 0) {
+            const { error: delError } = await supabase
+              .from('rotas_leitura')
+              .delete()
+              .in('id', idsDaUf)
+            if (delError) throw delError
+          }
         }
 
         // Deduplica: no máximo uma linha por (empreendimento + operador).
@@ -304,9 +311,15 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
       queryClient.invalidateQueries({ queryKey: ['dias-uteis'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura-dia'] })
+      linhasSelecionadas.forEach(linha => {
+        const dataDestino = destinos[linha.numero_rota]
+        if (dataDestino) {
+          queryClient.invalidateQueries({ queryKey: ['rotas-leitura-dia', dataDestino, uf] })
+        }
+      })
       toast({
         title: 'Planejamento replicado',
-        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${rotasIgnoradas ? ` • ${rotasIgnoradas} rota(s) puladas (${ignorados} empreend.) porque o dia destino já tinha planejamento — marque "substituir" para sobrescrever` : ''}`
+        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${rotasIgnoradas ? ` • ${rotasIgnoradas} rota(s) puladas (${ignorados} empreend.) porque o dia destino já tinha planejamento em ${uf} — marque "substituir" para sobrescrever` : ''}`
       })
       onOpenChange(false)
     },

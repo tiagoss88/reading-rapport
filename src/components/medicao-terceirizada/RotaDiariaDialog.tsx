@@ -76,17 +76,18 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
     }
   })
 
-  const { data: rotasLeitura, isLoading } = useQuery({
-    queryKey: ['rotas-leitura-dia', diaUtil.data],
+  const { data: rotasLeitura, isLoading, error: rotasError } = useQuery({
+    queryKey: ['rotas-leitura-dia', diaUtil.data, diaUtil.uf],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('rotas_leitura')
         .select(`
           *,
-          empreendimento:empreendimentos_terceirizados(id, nome, quantidade_medidores, uf),
+          empreendimento:empreendimentos_terceirizados!inner(id, nome, quantidade_medidores, uf),
           operador:operadores(id, nome)
         `)
         .eq('data', diaUtil.data)
+        .eq('empreendimento.uf', diaUtil.uf)
       
       if (error) throw error
       return data
@@ -175,10 +176,7 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
     }
   })
 
-  // Filter by UF to avoid cross-state collisions
-  const filteredRotasLeitura = rotasLeitura?.filter(
-    r => (r as any).empreendimento?.uf === diaUtil.uf
-  ) || []
+  const filteredRotasLeitura = rotasLeitura || []
 
   // Group rotas by empreendimento
   const groupedByEmpreendimento: EmpreendimentoGroup[] = (() => {
@@ -304,7 +302,10 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
         
         <div className="flex-shrink-0 mb-4 p-3 bg-muted rounded-md text-sm">
           <p><strong>Data:</strong> {format(parse(diaUtil.data, 'yyyy-MM-dd', new Date()), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</p>
-          <p><strong>Empreendimentos da rota:</strong> {empreendimentos?.length || 0}</p>
+          <p><strong>Empreendimentos planejados:</strong> {groupedByEmpreendimento.length}</p>
+          <p className="text-xs text-muted-foreground">
+            Cadastrados na Rota {diaUtil.numero_rota.toString().padStart(2, '0')}: {empreendimentos?.length || 0}
+          </p>
         </div>
 
         {/* Adicionar Empreendimento */}
@@ -338,6 +339,10 @@ export default function RotaDiariaDialog({ open, onOpenChange, diaUtil }: Props)
         <div className="flex-1 min-h-0 overflow-y-auto">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+          ) : rotasError ? (
+            <div className="text-center py-8 text-destructive border rounded-md">
+              Não foi possível carregar os empreendimentos planejados. Tente novamente.
+            </div>
           ) : groupedByEmpreendimento.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground border rounded-md">
               Nenhum empreendimento adicionado a esta rota ainda
