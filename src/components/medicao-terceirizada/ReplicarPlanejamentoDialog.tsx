@@ -255,7 +255,8 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
 
         const jaTemPlanejamento = datasComPlanejamento.has(dataDestino)
         if (jaTemPlanejamento && !substituir) {
-          ignorados += linha.itens.length
+          ignorados += linha.totalEmpreendimentos
+          rotasIgnoradas++
           continue
         }
 
@@ -267,26 +268,36 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
           if (delError) throw delError
         }
 
-        const registros = linha.itens
-          .filter(r => r.empreendimento)
-          .map(r => ({
-            data: dataDestino,
-            empreendimento_id: r.empreendimento_id,
-            operador_id:
+        // Deduplica: no máximo uma linha por (empreendimento + operador).
+        // Sem "manter operadores", uma única linha por empreendimento.
+        const vistos = new Set<string>()
+        const registros: any[] = []
+        linha.itens
+          .filter(r => r.empreendimento && r.empreendimento_id)
+          .forEach(r => {
+            const operadorId =
               manterOperadores && r.operador_id && idsOperadoresAtivos.has(r.operador_id)
                 ? r.operador_id
-                : null,
-            status: 'pendente'
-          }))
+                : null
+            const chave = `${r.empreendimento_id}|${operadorId ?? ''}`
+            if (vistos.has(chave)) return
+            vistos.add(chave)
+            registros.push({
+              data: dataDestino,
+              empreendimento_id: r.empreendimento_id,
+              operador_id: operadorId,
+              status: 'pendente'
+            })
+          })
 
         if (registros.length > 0) {
           const { error } = await supabase.from('rotas_leitura').insert(registros)
           if (error) throw error
-          inseridos += registros.length
+          inseridos += new Set(registros.map(r => r.empreendimento_id)).size
         }
       }
 
-      return { inseridos, ignorados, diasCriados }
+      return { inseridos, ignorados, diasCriados, rotasIgnoradas }
     },
     onSuccess: ({ inseridos, ignorados, diasCriados }) => {
       queryClient.invalidateQueries({ queryKey: ['dias-uteis'] })
