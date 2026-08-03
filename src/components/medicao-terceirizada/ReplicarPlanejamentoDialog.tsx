@@ -222,7 +222,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
   )
   const resumo = {
     rotas: linhasSelecionadas.length,
-    empreendimentos: linhasSelecionadas.reduce((acc, l) => acc + l.itens.length, 0),
+    empreendimentos: linhasSelecionadas.reduce((acc, l) => acc + l.totalEmpreendimentos, 0),
     medidores: linhasSelecionadas.reduce((acc, l) => acc + l.totalMedidores, 0)
   }
 
