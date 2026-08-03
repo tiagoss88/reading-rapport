@@ -231,6 +231,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
       let inseridos = 0
       let ignorados = 0
       let diasCriados = 0
+      let rotasIgnoradas = 0
 
       const datasCadastradas = new Set(diasUteisAtuais.map(d => d.data))
       const rotasCadastradas = new Set(diasUteisAtuais.map(d => d.numero_rota))
