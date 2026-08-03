@@ -186,6 +186,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
           numero_rota: dia.numero_rota,
           dataOrigem: dia.data,
           itens,
+          totalEmpreendimentos,
           totalMedidores,
           operadores,
           operadoresInativos,
