@@ -157,7 +157,19 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         const itens = (rotasAnteriores || []).filter(
           r => r.data === dia.data && r.empreendimento && r.empreendimento.uf === uf
         )
-        const totalMedidores = itens.reduce((acc, r) => acc + (r.empreendimento?.quantidade_medidores || 0), 0)
+        // Um mesmo empreendimento pode ter várias linhas (uma por operador atribuído).
+        // Contagens devem considerar empreendimentos distintos.
+        const empreendimentosUnicos = new Map<string, any>()
+        itens.forEach(r => {
+          if (r.empreendimento_id && !empreendimentosUnicos.has(r.empreendimento_id)) {
+            empreendimentosUnicos.set(r.empreendimento_id, r.empreendimento)
+          }
+        })
+        const totalEmpreendimentos = empreendimentosUnicos.size
+        const totalMedidores = Array.from(empreendimentosUnicos.values()).reduce(
+          (acc, e) => acc + (e?.quantidade_medidores || 0),
+          0
+        )
         const operadores = Array.from(
           new Set(itens.filter(r => r.operador_id).map(r => r.operador?.nome).filter(Boolean))
         ) as string[]
@@ -174,6 +186,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
           numero_rota: dia.numero_rota,
           dataOrigem: dia.data,
           itens,
+          totalEmpreendimentos,
           totalMedidores,
           operadores,
           operadoresInativos,
@@ -209,7 +222,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
   )
   const resumo = {
     rotas: linhasSelecionadas.length,
-    empreendimentos: linhasSelecionadas.reduce((acc, l) => acc + l.itens.length, 0),
+    empreendimentos: linhasSelecionadas.reduce((acc, l) => acc + l.totalEmpreendimentos, 0),
     medidores: linhasSelecionadas.reduce((acc, l) => acc + l.totalMedidores, 0)
   }
 
@@ -218,6 +231,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
       let inseridos = 0
       let ignorados = 0
       let diasCriados = 0
+      let rotasIgnoradas = 0
 
       const datasCadastradas = new Set(diasUteisAtuais.map(d => d.data))
       const rotasCadastradas = new Set(diasUteisAtuais.map(d => d.numero_rota))
@@ -242,7 +256,8 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
 
         const jaTemPlanejamento = datasComPlanejamento.has(dataDestino)
         if (jaTemPlanejamento && !substituir) {
-          ignorados += linha.itens.length
+          ignorados += linha.totalEmpreendimentos
+          rotasIgnoradas++
           continue
         }
 
@@ -254,34 +269,44 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
           if (delError) throw delError
         }
 
-        const registros = linha.itens
-          .filter(r => r.empreendimento)
-          .map(r => ({
-            data: dataDestino,
-            empreendimento_id: r.empreendimento_id,
-            operador_id:
+        // Deduplica: no máximo uma linha por (empreendimento + operador).
+        // Sem "manter operadores", uma única linha por empreendimento.
+        const vistos = new Set<string>()
+        const registros: any[] = []
+        linha.itens
+          .filter(r => r.empreendimento && r.empreendimento_id)
+          .forEach(r => {
+            const operadorId =
               manterOperadores && r.operador_id && idsOperadoresAtivos.has(r.operador_id)
                 ? r.operador_id
-                : null,
-            status: 'pendente'
-          }))
+                : null
+            const chave = `${r.empreendimento_id}|${operadorId ?? ''}`
+            if (vistos.has(chave)) return
+            vistos.add(chave)
+            registros.push({
+              data: dataDestino,
+              empreendimento_id: r.empreendimento_id,
+              operador_id: operadorId,
+              status: 'pendente'
+            })
+          })
 
         if (registros.length > 0) {
           const { error } = await supabase.from('rotas_leitura').insert(registros)
           if (error) throw error
-          inseridos += registros.length
+          inseridos += new Set(registros.map(r => r.empreendimento_id)).size
         }
       }
 
-      return { inseridos, ignorados, diasCriados }
+      return { inseridos, ignorados, diasCriados, rotasIgnoradas }
     },
-    onSuccess: ({ inseridos, ignorados, diasCriados }) => {
+    onSuccess: ({ inseridos, ignorados, diasCriados, rotasIgnoradas }) => {
       queryClient.invalidateQueries({ queryKey: ['dias-uteis'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura'] })
       queryClient.invalidateQueries({ queryKey: ['rotas-leitura-dia'] })
       toast({
         title: 'Planejamento replicado',
-        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${ignorados ? ` • ${ignorados} ignorado(s) (dia já planejado)` : ''}`
+        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${rotasIgnoradas ? ` • ${rotasIgnoradas} rota(s) puladas (${ignorados} empreend.) porque o dia destino já tinha planejamento — marque "substituir" para sobrescrever` : ''}`
       })
       onOpenChange(false)
     },
@@ -349,7 +374,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
                       </span>
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Building2 className="h-3 w-3" />
-                        {linha.itens.length} empreend. • {linha.totalMedidores} medidores
+                        {linha.totalEmpreendimentos} empreend. • {linha.totalMedidores} medidores
                       </span>
                       {linha.operadores.length > 0 && (
                         <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -424,7 +449,10 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
                         )}
 
                         {jaPlanejado && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge
+                            variant="outline"
+                            className={substituir ? 'text-xs' : 'text-xs border-destructive text-destructive'}
+                          >
                             <AlertTriangle className="mr-1 h-3 w-3" />
                             {substituir ? 'Planejamento do dia será substituído' : 'Dia já planejado — será ignorado'}
                           </Badge>
