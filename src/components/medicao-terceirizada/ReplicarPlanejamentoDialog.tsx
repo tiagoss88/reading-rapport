@@ -157,7 +157,19 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         const itens = (rotasAnteriores || []).filter(
           r => r.data === dia.data && r.empreendimento && r.empreendimento.uf === uf
         )
-        const totalMedidores = itens.reduce((acc, r) => acc + (r.empreendimento?.quantidade_medidores || 0), 0)
+        // Um mesmo empreendimento pode ter várias linhas (uma por operador atribuído).
+        // Contagens devem considerar empreendimentos distintos.
+        const empreendimentosUnicos = new Map<string, any>()
+        itens.forEach(r => {
+          if (r.empreendimento_id && !empreendimentosUnicos.has(r.empreendimento_id)) {
+            empreendimentosUnicos.set(r.empreendimento_id, r.empreendimento)
+          }
+        })
+        const totalEmpreendimentos = empreendimentosUnicos.size
+        const totalMedidores = Array.from(empreendimentosUnicos.values()).reduce(
+          (acc, e) => acc + (e?.quantidade_medidores || 0),
+          0
+        )
         const operadores = Array.from(
           new Set(itens.filter(r => r.operador_id).map(r => r.operador?.nome).filter(Boolean))
         ) as string[]
