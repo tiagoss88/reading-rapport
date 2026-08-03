@@ -267,13 +267,13 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
             .filter((rota: any) => rota.data === dataDestino)
             .map((rota: any) => rota.id)
 
-          if (idsDaUf.length === 0) continue
-
-          const { error: delError } = await supabase
-            .from('rotas_leitura')
-            .delete()
-            .in('id', idsDaUf)
-          if (delError) throw delError
+          if (idsDaUf.length > 0) {
+            const { error: delError } = await supabase
+              .from('rotas_leitura')
+              .delete()
+              .in('id', idsDaUf)
+            if (delError) throw delError
+          }
         }
 
         // Deduplica: no máximo uma linha por (empreendimento + operador).
