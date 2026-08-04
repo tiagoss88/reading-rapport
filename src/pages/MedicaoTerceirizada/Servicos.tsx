@@ -208,6 +208,50 @@ export default function ServicosNacionalGas() {
   const startIndex = (safePage - 1) * pageSize
   const paginatedServicos = sortedServicos?.slice(startIndex, startIndex + pageSize)
 
+  const handleExportarClientes = () => {
+    const lista = sortedServicos ?? []
+    if (lista.length === 0) {
+      toast({ title: 'Nada para exportar', description: 'Ajuste os filtros e tente novamente.', variant: 'destructive' })
+      return
+    }
+
+    const headers = ['Protocolo', 'Data', 'Condomínio', 'Bloco', 'Apartamento', 'Nome do Cliente', 'E-mail', 'Telefone', 'CPF/CNPJ', 'Tipo de Serviço', 'Status', 'Valor (R$)']
+    const rows = lista.map((s) => {
+      const data = s.data_agendamento || s.data_solicitacao || (s.created_at ? String(s.created_at).split('T')[0] : null)
+      return [
+        s.numero_protocolo || '-',
+        data ? format(new Date(data + 'T00:00:00'), 'dd/MM/yyyy') : '-',
+        s.empreendimento?.nome || s.condominio_nome_original || '-',
+        s.bloco || '-',
+        s.apartamento || '-',
+        s.morador_nome || '-',
+        s.email || '-',
+        formatTelefone(s.telefone) || '-',
+        formatCpfCnpj(s.cpf_cnpj) || '-',
+        s.tipo_servico?.toUpperCase() || '-',
+        statusLabels[s.status_atendimento] || s.status_atendimento,
+        s.valor_servico != null ? Number(s.valor_servico) : null,
+      ]
+    })
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+    const valorCol = headers.length - 1
+    for (let i = 0; i < rows.length; i++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: i + 1, c: valorCol })]
+      if (cell && typeof cell.v === 'number') {
+        cell.t = 'n'
+        cell.z = 'R$ #,##0.00'
+      }
+    }
+    ws['!cols'] = headers.map((h) => ({ wch: Math.max(14, h.length + 4) }))
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Serviços')
+    XLSX.writeFile(wb, `servicos_clientes_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`)
+    toast({ title: 'Planilha gerada', description: `${lista.length} serviço(s) exportado(s).` })
+  }
+
+
   const handleEdit = (servico: ServicoNacionalGas) => {
     setSelectedServico(servico)
     setEditDialogOpen(true)
