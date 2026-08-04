@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays, Plus, ChevronLeft, ChevronRight, Eye, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Upload, Search, FileText, History, Pencil, AlertTriangle, Trash2, CalendarDays, Plus, ChevronLeft, ChevronRight, Eye, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { format } from 'date-fns'
+import * as XLSX from 'xlsx'
+import { formatCpfCnpj, formatTelefone } from '@/lib/formatters'
 import ImportarPlanilhaDialog from '@/components/medicao-terceirizada/ImportarPlanilhaDialog'
 import ServicoNacionalGasDialog from '@/components/medicao-terceirizada/ServicoNacionalGasDialog'
 import ServicoHistoricoDialog from '@/components/medicao-terceirizada/ServicoHistoricoDialog'
@@ -51,6 +53,9 @@ interface ServicoNacionalGas {
   observacao: string | null
   fotos_urls: string[] | null
   numero_protocolo: string | null
+  cpf_cnpj?: string | null
+  valor_servico?: number | null
+  forma_pagamento?: string | null
   created_at: string
   empreendimento?: { nome: string } | null
   tecnico?: { nome: string } | null
@@ -203,6 +208,50 @@ export default function ServicosNacionalGas() {
   const startIndex = (safePage - 1) * pageSize
   const paginatedServicos = sortedServicos?.slice(startIndex, startIndex + pageSize)
 
+  const handleExportarClientes = () => {
+    const lista = sortedServicos ?? []
+    if (lista.length === 0) {
+      toast({ title: 'Nada para exportar', description: 'Ajuste os filtros e tente novamente.', variant: 'destructive' })
+      return
+    }
+
+    const headers = ['Protocolo', 'Data', 'Condomínio', 'Bloco', 'Apartamento', 'Nome do Cliente', 'E-mail', 'Telefone', 'CPF/CNPJ', 'Tipo de Serviço', 'Status', 'Valor (R$)']
+    const rows = lista.map((s) => {
+      const data = s.data_agendamento || s.data_solicitacao || (s.created_at ? String(s.created_at).split('T')[0] : null)
+      return [
+        s.numero_protocolo || '-',
+        data ? format(new Date(data + 'T00:00:00'), 'dd/MM/yyyy') : '-',
+        s.empreendimento?.nome || s.condominio_nome_original || '-',
+        s.bloco || '-',
+        s.apartamento || '-',
+        s.morador_nome || '-',
+        s.email || '-',
+        formatTelefone(s.telefone) || '-',
+        formatCpfCnpj(s.cpf_cnpj) || '-',
+        s.tipo_servico?.toUpperCase() || '-',
+        statusLabels[s.status_atendimento] || s.status_atendimento,
+        s.valor_servico != null ? Number(s.valor_servico) : null,
+      ]
+    })
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
+    const valorCol = headers.length - 1
+    for (let i = 0; i < rows.length; i++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: i + 1, c: valorCol })]
+      if (cell && typeof cell.v === 'number') {
+        cell.t = 'n'
+        cell.z = 'R$ #,##0.00'
+      }
+    }
+    ws['!cols'] = headers.map((h) => ({ wch: Math.max(14, h.length + 4) }))
+
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Serviços')
+    XLSX.writeFile(wb, `servicos_clientes_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`)
+    toast({ title: 'Planilha gerada', description: `${lista.length} serviço(s) exportado(s).` })
+  }
+
+
   const handleEdit = (servico: ServicoNacionalGas) => {
     setSelectedServico(servico)
     setEditDialogOpen(true)
@@ -276,6 +325,11 @@ export default function ServicosNacionalGas() {
                       Excluir ({selectedIds.size})
                     </Button>
                   )}
+                  <Button variant="outline" onClick={handleExportarClientes} className="flex-1 sm:flex-none">
+                    <Download className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Exportar Excel</span>
+                    <span className="sm:hidden ml-2">Excel</span>
+                  </Button>
                   <Button variant="outline" onClick={() => setNovoDialogOpen(true)} className="flex-1 sm:flex-none">
                     <Plus className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Novo Serviço</span>
