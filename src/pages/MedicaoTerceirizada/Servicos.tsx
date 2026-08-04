@@ -53,6 +53,9 @@ interface ServicoNacionalGas {
   observacao: string | null
   fotos_urls: string[] | null
   numero_protocolo: string | null
+  cpf_cnpj?: string | null
+  valor_servico?: number | null
+  forma_pagamento?: string | null
   created_at: string
   empreendimento?: { nome: string } | null
   tecnico?: { nome: string } | null
