@@ -325,6 +325,11 @@ export default function ServicosNacionalGas() {
                       Excluir ({selectedIds.size})
                     </Button>
                   )}
+                  <Button variant="outline" onClick={handleExportarClientes} className="flex-1 sm:flex-none">
+                    <Download className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Exportar Excel</span>
+                    <span className="sm:hidden ml-2">Excel</span>
+                  </Button>
                   <Button variant="outline" onClick={() => setNovoDialogOpen(true)} className="flex-1 sm:flex-none">
                     <Plus className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Novo Serviço</span>
