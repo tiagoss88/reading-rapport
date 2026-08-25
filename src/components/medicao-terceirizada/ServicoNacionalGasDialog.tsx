@@ -348,7 +348,47 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
                     </FormItem>
                   )}
                 />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="valor_servico"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor (R$)</FormLabel>
+                        <FormControl>
+                          <Input inputMode="decimal" placeholder="Ex: 150,00" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="forma_pagamento"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Forma de Pagamento</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {FORMAS_PAGAMENTO_OPCOES.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
+
 
               {/* Agendamento */}
               <div className="space-y-3">
