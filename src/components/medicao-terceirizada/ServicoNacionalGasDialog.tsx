@@ -39,6 +39,27 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>
 
+const FORMAS_PAGAMENTO_OPCOES = [
+  { value: 'fatura', label: 'Fatura' },
+  { value: 'pix', label: 'PIX' },
+  { value: 'cartao_credito', label: 'Cartão de Crédito' },
+  { value: 'cartao_debito', label: 'Cartão de Débito' },
+  { value: 'boleto', label: 'Boleto' },
+  { value: 'dinheiro', label: 'Dinheiro' },
+  { value: 'outro', label: 'Outro' },
+]
+
+const parseValor = (valor?: string | null): number | null => {
+  if (!valor) return null
+  const limpo = valor.trim().replace(/[^\d,.-]/g, '')
+  if (!limpo) return null
+  const normalizado = limpo.includes(',')
+    ? limpo.replace(/\./g, '').replace(',', '.')
+    : limpo
+  const num = Number(normalizado)
+  return Number.isFinite(num) ? num : null
+}
+
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
