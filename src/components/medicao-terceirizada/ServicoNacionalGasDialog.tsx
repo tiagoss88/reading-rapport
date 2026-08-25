@@ -32,6 +32,8 @@ const formSchema = z.object({
   status_atendimento: z.enum(['pendente', 'agendado', 'executado', 'cancelado']),
   turno: z.enum(['manha', 'tarde']).optional().nullable(),
   tecnico_id: z.string().optional().nullable(),
+  valor_servico: z.string().trim().max(20).optional().nullable(),
+  forma_pagamento: z.string().optional().nullable(),
   observacao: z.string().max(1000).optional().nullable()
 })
 
