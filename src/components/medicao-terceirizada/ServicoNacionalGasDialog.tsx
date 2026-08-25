@@ -179,6 +179,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
           status_atendimento: data.status_atendimento,
           turno: data.turno || null,
           tecnico_id: data.tecnico_id || null,
+          valor_servico: parseValor(data.valor_servico),
+          forma_pagamento: data.forma_pagamento || null,
           observacao: data.observacao?.trim() || null
         },
         fotos
