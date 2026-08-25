@@ -119,6 +119,11 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
         status_atendimento: servico.status_atendimento as any,
         turno: (servico.turno as any) || undefined,
         tecnico_id: servico.tecnico_id || '',
+        valor_servico:
+          servico.valor_servico !== null && servico.valor_servico !== undefined
+            ? Number(servico.valor_servico).toFixed(2).replace('.', ',')
+            : '',
+        forma_pagamento: servico.forma_pagamento || '',
         observacao: extrairTextoObservacao(servico.observacao)
       })
     }
