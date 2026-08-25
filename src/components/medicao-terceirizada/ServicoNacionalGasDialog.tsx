@@ -32,10 +32,33 @@ const formSchema = z.object({
   status_atendimento: z.enum(['pendente', 'agendado', 'executado', 'cancelado']),
   turno: z.enum(['manha', 'tarde']).optional().nullable(),
   tecnico_id: z.string().optional().nullable(),
+  valor_servico: z.string().trim().max(20).optional().nullable(),
+  forma_pagamento: z.string().optional().nullable(),
   observacao: z.string().max(1000).optional().nullable()
 })
 
 type FormData = z.infer<typeof formSchema>
+
+const FORMAS_PAGAMENTO_OPCOES = [
+  { value: 'fatura', label: 'Fatura' },
+  { value: 'pix', label: 'PIX' },
+  { value: 'cartao_credito', label: 'Cartão de Crédito' },
+  { value: 'cartao_debito', label: 'Cartão de Débito' },
+  { value: 'boleto', label: 'Boleto' },
+  { value: 'dinheiro', label: 'Dinheiro' },
+  { value: 'outro', label: 'Outro' },
+]
+
+const parseValor = (valor?: string | null): number | null => {
+  if (!valor) return null
+  const limpo = valor.trim().replace(/[^\d,.-]/g, '')
+  if (!limpo) return null
+  const normalizado = limpo.includes(',')
+    ? limpo.replace(/\./g, '').replace(',', '.')
+    : limpo
+  const num = Number(normalizado)
+  return Number.isFinite(num) ? num : null
+}
 
 interface Props {
   open: boolean
@@ -54,6 +77,8 @@ interface Props {
     status_atendimento: string
     turno?: string | null
     tecnico_id?: string | null
+    valor_servico?: number | null
+    forma_pagamento?: string | null
     observacao?: string | null
     fotos_urls?: string[] | null
   }
@@ -94,6 +119,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
       status_atendimento: 'pendente',
       turno: undefined,
       tecnico_id: '',
+      valor_servico: '',
+      forma_pagamento: '',
       observacao: ''
     }
   })
@@ -113,6 +140,11 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
         status_atendimento: servico.status_atendimento as any,
         turno: (servico.turno as any) || undefined,
         tecnico_id: servico.tecnico_id || '',
+        valor_servico:
+          servico.valor_servico !== null && servico.valor_servico !== undefined
+            ? Number(servico.valor_servico).toFixed(2).replace('.', ',')
+            : '',
+        forma_pagamento: servico.forma_pagamento || '',
         observacao: extrairTextoObservacao(servico.observacao)
       })
     }
@@ -168,6 +200,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
           status_atendimento: data.status_atendimento,
           turno: data.turno || null,
           tecnico_id: data.tecnico_id || null,
+          valor_servico: parseValor(data.valor_servico),
+          forma_pagamento: data.forma_pagamento || null,
           observacao: data.observacao?.trim() || null
         },
         fotos
@@ -314,7 +348,47 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
                     </FormItem>
                   )}
                 />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="valor_servico"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Valor (R$)</FormLabel>
+                        <FormControl>
+                          <Input inputMode="decimal" placeholder="Ex: 150,00" {...field} value={field.value || ''} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="forma_pagamento"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Forma de Pagamento</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {FORMAS_PAGAMENTO_OPCOES.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
+
 
               {/* Agendamento */}
               <div className="space-y-3">
