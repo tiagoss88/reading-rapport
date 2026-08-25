@@ -56,6 +56,8 @@ interface Props {
     status_atendimento: string
     turno?: string | null
     tecnico_id?: string | null
+    valor_servico?: number | null
+    forma_pagamento?: string | null
     observacao?: string | null
     fotos_urls?: string[] | null
   }
