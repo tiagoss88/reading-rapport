@@ -98,6 +98,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
       status_atendimento: 'pendente',
       turno: undefined,
       tecnico_id: '',
+      valor_servico: '',
+      forma_pagamento: '',
       observacao: ''
     }
   })
