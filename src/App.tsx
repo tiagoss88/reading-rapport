@@ -44,6 +44,7 @@ import NotAuthorized from '@/pages/NotAuthorized'
 import AdminAtualizarRotasCE from '@/pages/AdminAtualizarRotasCE'
 import AdminGerarSQLRotas from '@/pages/AdminGerarSQLRotas'
 import LimparCache from '@/pages/LimparCache'
+import OAuthConsent from '@/pages/OAuthConsent'
 
 const queryClient = new QueryClient();
 
@@ -260,6 +261,7 @@ const App = () => (
                   </ColetorProtectedRoute>
                 } />
                 <Route path="/limpar-cache" element={<LimparCache />} />
+                <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                 <Route path="/not-authorized" element={<NotAuthorized />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
