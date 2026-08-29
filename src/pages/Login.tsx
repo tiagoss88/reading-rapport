@@ -62,7 +62,9 @@ export default function Login() {
   }
 
   if (user) {
-    console.log('User is logged in, redirecting...')
+    const rawNext = new URLSearchParams(window.location.search).get('next')
+    const safeNext = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null
+    if (safeNext) return <Navigate to={safeNext} replace />
     return <Navigate to={isOperatorOnly ? '/coletor' : '/'} replace />
   }
 

@@ -1,0 +1,365 @@
+{
+  "version": 1,
+  "sdk_version": "0.28.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://cfyhskxjvvqpnnzsebud.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "ag-ngd",
+      "version": "0.1.0",
+      "title": "ag-ngd"
+    },
+    "tools": [
+      {
+        "name": "listar_servicos",
+        "title": "Listar serviços",
+        "description": "Lista serviços da Nacional Gás com filtros por UF, condomínio, apartamento, status, tipo, protocolo e período de agendamento.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "uf": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2,
+              "description": "Sigla do estado, ex: CE ou BA"
+            },
+            "condominio": {
+              "type": "string",
+              "description": "Parte do nome do condomínio"
+            },
+            "apartamento": {
+              "type": "string"
+            },
+            "bloco": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pendente",
+                "agendado",
+                "executado",
+                "cancelado"
+              ],
+              "description": "Status do atendimento"
+            },
+            "tipo_servico": {
+              "type": "string"
+            },
+            "numero_protocolo": {
+              "type": "string"
+            },
+            "data_inicio": {
+              "type": "string",
+              "description": "Data inicial do agendamento (YYYY-MM-DD)"
+            },
+            "data_fim": {
+              "type": "string",
+              "description": "Data final do agendamento (YYYY-MM-DD)"
+            },
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "Máximo de registros (padrão 50)"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "buscar_servico",
+        "title": "Buscar serviço",
+        "description": "Retorna os detalhes completos de um serviço pelo número de protocolo ou pelo ID.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "numero_protocolo": {
+              "type": "string",
+              "description": "Ex: NG-000123"
+            },
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_empreendimentos",
+        "title": "Listar empreendimentos",
+        "description": "Lista os condomínios (empreendimentos terceirizados) com UF, rota e quantidade de medidores.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "uf": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2
+            },
+            "nome": {
+              "type": "string",
+              "description": "Parte do nome do condomínio"
+            },
+            "rota": {
+              "type": "integer"
+            },
+            "limite": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "listar_operadores",
+        "title": "Listar operadores",
+        "description": "Lista os técnicos/operadores cadastrados, com id, nome, e-mail e status.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "apenas_ativos": {
+              "type": "boolean",
+              "description": "Padrão: true"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "resumo_operacional",
+        "title": "Resumo operacional",
+        "description": "Retorna contagens de serviços por status e por tipo em um período de agendamento, opcionalmente filtrado por UF.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "uf": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2
+            },
+            "data_inicio": {
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            },
+            "data_fim": {
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "criar_servico",
+        "title": "Criar serviço",
+        "description": "Cria um novo serviço da Nacional Gás. O número de protocolo é gerado automaticamente. Informe UF e o nome do condomínio exatamente como cadastrado.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "uf": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 2,
+              "description": "CE ou BA"
+            },
+            "condominio_nome": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Nome do condomínio"
+            },
+            "tipo_servico": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Ex: Visita Técnica, Religação, Desligamento"
+            },
+            "bloco": {
+              "type": "string"
+            },
+            "apartamento": {
+              "type": "string"
+            },
+            "morador_nome": {
+              "type": "string"
+            },
+            "telefone": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "cpf_cnpj": {
+              "type": "string"
+            },
+            "fonte": {
+              "type": "string"
+            },
+            "data_solicitacao": {
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            },
+            "data_agendamento": {
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            },
+            "turno": {
+              "type": "string",
+              "enum": [
+                "manha",
+                "tarde"
+              ]
+            },
+            "status_atendimento": {
+              "type": "string",
+              "enum": [
+                "pendente",
+                "agendado",
+                "executado",
+                "cancelado"
+              ]
+            },
+            "valor_servico": {
+              "type": "number"
+            },
+            "forma_pagamento": {
+              "type": "string"
+            },
+            "observacao": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "required": [
+            "uf",
+            "condominio_nome",
+            "tipo_servico"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "atualizar_servico",
+        "title": "Atualizar serviço",
+        "description": "Atualiza campos de um serviço existente (identificado por ID ou protocolo): agendamento, turno, status, técnico, valor, forma de pagamento e observação.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "numero_protocolo": {
+              "type": "string"
+            },
+            "data_agendamento": {
+              "type": "string",
+              "description": "YYYY-MM-DD"
+            },
+            "turno": {
+              "type": "string",
+              "enum": [
+                "manha",
+                "tarde"
+              ]
+            },
+            "status_atendimento": {
+              "type": "string",
+              "enum": [
+                "pendente",
+                "agendado",
+                "executado",
+                "cancelado"
+              ]
+            },
+            "tecnico_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "ID do operador (ver listar_operadores)"
+            },
+            "morador_nome": {
+              "type": "string"
+            },
+            "telefone": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "cpf_cnpj": {
+              "type": "string"
+            },
+            "valor_servico": {
+              "type": "number"
+            },
+            "forma_pagamento": {
+              "type": "string"
+            },
+            "observacao": {
+              "type": "string",
+              "maxLength": 1000
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
