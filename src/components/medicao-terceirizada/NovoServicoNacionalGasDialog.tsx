@@ -141,6 +141,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
         })
       if (error) throw error
     },
+
     onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
       toast({ title: 'Serviço cadastrado com sucesso' })
