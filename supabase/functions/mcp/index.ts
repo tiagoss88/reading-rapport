@@ -221,10 +221,47 @@ var resumo_operacional_default = defineTool5({
 // src/lib/mcp/tools/criar-servico.ts
 import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.28.0";
 import { z as z6 } from "npm:zod@^3.25.76";
+
+// src/lib/duplicidadeServico.ts
+var STATUS_ABERTO = ["pendente", "agendado"];
+var normText = (v) => (v ?? "").toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+var normCondo = (v) => {
+  let s = normText(v);
+  s = s.replace(/\([^)]*\)/g, " ");
+  s = s.replace(/^ba\s+/, " ");
+  s = s.replace(/\b(condominio|cond|residencial|resid|edificio|ed)\b/g, " ");
+  s = s.replace(/[^a-z0-9]/g, "");
+  return s;
+};
+var normUnidade = (v) => {
+  let s = normText(v).replace(/[^a-z0-9]/g, "");
+  if (s === "unico" || s === "u") s = "";
+  s = s.replace(/^0+/, "");
+  return s;
+};
+var makeServicoDupKey = (row) => [
+  normText(row.uf),
+  normCondo(row.condominio_nome_original),
+  normUnidade(row.bloco),
+  normUnidade(row.apartamento),
+  normText(row.morador_nome).replace(/[^a-z0-9]/g, ""),
+  normText(row.tipo_servico).replace(/[^a-z0-9]/g, "")
+].join("|");
+async function buscarServicoDuplicado(client, row) {
+  const chave = makeServicoDupKey(row);
+  let query = client.from("servicos_nacional_gas").select("id, numero_protocolo, status_atendimento, uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico").in("status_atendimento", STATUS_ABERTO).limit(1e3);
+  if (row.uf) query = query.eq("uf", String(row.uf).toUpperCase());
+  const { data, error } = await query;
+  if (error) throw error;
+  const achado = (data || []).find((s) => makeServicoDupKey(s) === chave);
+  return achado ? { id: achado.id, numero_protocolo: achado.numero_protocolo, status_atendimento: achado.status_atendimento } : null;
+}
+
+// src/lib/mcp/tools/criar-servico.ts
 var criar_servico_default = defineTool6({
   name: "criar_servico",
   title: "Criar servi\xE7o",
-  description: "Cria um novo servi\xE7o da Nacional G\xE1s. O n\xFAmero de protocolo \xE9 gerado automaticamente. Informe UF e o nome do condom\xEDnio exatamente como cadastrado.",
+  description: "Cria um novo servi\xE7o da Nacional G\xE1s. O n\xFAmero de protocolo \xE9 gerado automaticamente. Informe UF e o nome do condom\xEDnio exatamente como cadastrado. Servi\xE7os duplicados (mesmo condom\xEDnio, unidade, morador e tipo, ainda em aberto) s\xE3o bloqueados salvo permitir_duplicado.",
   inputSchema: {
     uf: z6.string().trim().length(2).describe("CE ou BA"),
     condominio_nome: z6.string().trim().min(1).describe("Nome do condom\xEDnio"),
@@ -242,13 +279,29 @@ var criar_servico_default = defineTool6({
     status_atendimento: z6.enum(["pendente", "agendado", "executado", "cancelado"]).optional(),
     valor_servico: z6.number().optional(),
     forma_pagamento: z6.string().trim().optional(),
-    observacao: z6.string().trim().max(1e3).optional()
+    observacao: z6.string().trim().max(1e3).optional(),
+    permitir_duplicado: z6.boolean().optional().describe("Cria mesmo que j\xE1 exista servi\xE7o igual em aberto")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
     if (!ctx.isAuthenticated()) return errorResult("N\xE3o autenticado.");
     const supabase = supabaseForUser(ctx);
     const uf = input.uf.toUpperCase();
+    if (!input.permitir_duplicado) {
+      const dup = await buscarServicoDuplicado(supabase, {
+        uf,
+        condominio_nome_original: input.condominio_nome,
+        bloco: input.bloco,
+        apartamento: input.apartamento,
+        morador_nome: input.morador_nome,
+        tipo_servico: input.tipo_servico
+      });
+      if (dup) {
+        return errorResult(
+          `Servi\xE7o duplicado: j\xE1 existe um atendimento em aberto (protocolo ${dup.numero_protocolo ?? dup.id}, status ${dup.status_atendimento}) para essa unidade, morador e tipo de servi\xE7o. Use permitir_duplicado=true para for\xE7ar.`
+        );
+      }
+    }
     const { data: emp } = await supabase.from("empreendimentos_terceirizados").select("id, nome").eq("uf", uf).ilike("nome", `%${input.condominio_nome}%`).limit(2);
     const empreendimento_id = emp && emp.length === 1 ? emp[0].id : null;
     const { data, error } = await supabase.from("servicos_nacional_gas").insert({
