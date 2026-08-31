@@ -171,9 +171,32 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
     }
   })
 
-  const onSubmit = (data: FormData) => {
+  const [dupAviso, setDupAviso] = useState<{ protocolo: string; dados: FormData } | null>(null)
+  const [checandoDup, setChecandoDup] = useState(false)
+
+  const onSubmit = async (data: FormData) => {
+    setChecandoDup(true)
+    try {
+      const dup = await buscarServicoDuplicado(supabase as any, {
+        uf: data.uf,
+        condominio_nome_original: data.condominio_nome_original,
+        bloco: data.bloco,
+        apartamento: data.apartamento,
+        morador_nome: data.morador_nome,
+        tipo_servico: data.tipo_servico
+      })
+      if (dup) {
+        setDupAviso({ protocolo: dup.numero_protocolo || 'sem protocolo', dados: data })
+        return
+      }
+    } catch (err) {
+      console.error('Falha ao verificar duplicidade:', err)
+    } finally {
+      setChecandoDup(false)
+    }
     mutation.mutate(data)
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
