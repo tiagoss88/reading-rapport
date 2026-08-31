@@ -22,7 +22,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   BookOpen,
-  HardHat
+  HardHat,
+  Bug
+
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
@@ -84,10 +86,12 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const configuracoesItems = [
     { name: 'Sistema', href: '/configuracoes/sistema', icon: Settings, role: 'admin' },
+    { name: 'Log de Erros', href: '/configuracoes/logs', icon: Bug, role: 'admin' },
     { name: 'Tipos de Serviço', href: '/configuracoes/tipos-servico', icon: Wrench, permission: 'manage_operadores' },
     { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
     { name: 'Permissões', href: '/permissions', icon: Shield, role: 'admin' }
   ]
+
 
   const navLinkClass = (isActive: boolean) =>
     `flex items-center ${isCompact ? 'justify-center' : ''} px-3 py-2 text-sm font-medium rounded-md transition-colors ${

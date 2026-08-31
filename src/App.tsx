@@ -18,6 +18,8 @@ import RelatoriosLeituras from '@/pages/RelatoriosLeituras'
 import RelatoriosServicos from '@/pages/RelatoriosServicos'
 import TiposServico from '@/pages/TiposServico'
 import ConfiguracoesSistema from '@/pages/ConfiguracoesSistema'
+import LogsErro from '@/pages/LogsErro'
+
 import EmpreendimentosTerceirizados from '@/pages/MedicaoTerceirizada/Empreendimentos'
 import PlanejamentoRotas from '@/pages/MedicaoTerceirizada/PlanejamentoRotas'
 import ServicosNacionalGas from '@/pages/MedicaoTerceirizada/Servicos'
@@ -197,6 +199,14 @@ const App = () => (
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
+                <Route path="/configuracoes/logs" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <LogsErro />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+
                 <Route path="/medicao-terceirizada/empreendimentos" element={
                   <ProtectedRoute>
                     <PermissionRoute role="admin">

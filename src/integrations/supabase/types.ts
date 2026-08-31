@@ -443,6 +443,45 @@ export type Database = {
           },
         ]
       }
+      logs_erro: {
+        Row: {
+          contexto: Json
+          created_at: string
+          detalhes: string | null
+          id: string
+          mensagem: string
+          rota: string | null
+          severidade: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          contexto?: Json
+          created_at?: string
+          detalhes?: string | null
+          id?: string
+          mensagem: string
+          rota?: string | null
+          severidade?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          contexto?: Json
+          created_at?: string
+          detalhes?: string | null
+          id?: string
+          mensagem?: string
+          rota?: string | null
+          severidade?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       materiais: {
         Row: {
           ativo: boolean
