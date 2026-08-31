@@ -23,7 +23,8 @@ import {
   PanelLeftOpen,
   BookOpen,
   HardHat,
-  Bug
+  Bug,
+  Plug
 
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -87,6 +88,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const configuracoesItems = [
     { name: 'Sistema', href: '/configuracoes/sistema', icon: Settings, role: 'admin' },
     { name: 'Log de Erros', href: '/configuracoes/logs', icon: Bug, role: 'admin' },
+    { name: 'Integração MCP (API)', href: '/configuracoes/mcp', icon: Plug, role: 'admin' },
     { name: 'Tipos de Serviço', href: '/configuracoes/tipos-servico', icon: Wrench, permission: 'manage_operadores' },
     { name: 'Operadores', href: '/operadores', icon: UserCheck, permission: 'manage_operadores' },
     { name: 'Permissões', href: '/permissions', icon: Shield, role: 'admin' }

@@ -19,6 +19,7 @@ import RelatoriosServicos from '@/pages/RelatoriosServicos'
 import TiposServico from '@/pages/TiposServico'
 import ConfiguracoesSistema from '@/pages/ConfiguracoesSistema'
 import LogsErro from '@/pages/LogsErro'
+import ConfiguracoesMCP from '@/pages/ConfiguracoesMCP'
 
 import EmpreendimentosTerceirizados from '@/pages/MedicaoTerceirizada/Empreendimentos'
 import PlanejamentoRotas from '@/pages/MedicaoTerceirizada/PlanejamentoRotas'
@@ -203,6 +204,13 @@ const App = () => (
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
                       <LogsErro />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/configuracoes/mcp" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <ConfiguracoesMCP />
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
