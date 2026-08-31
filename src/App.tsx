@@ -197,6 +197,14 @@ const App = () => (
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
+                <Route path="/configuracoes/logs" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <LogsErro />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+
                 <Route path="/medicao-terceirizada/empreendimentos" element={
                   <ProtectedRoute>
                     <PermissionRoute role="admin">
