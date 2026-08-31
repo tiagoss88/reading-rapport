@@ -207,6 +207,13 @@ const App = () => (
                     </PermissionRoute>
                   </ProtectedRoute>
                 } />
+                <Route path="/configuracoes/mcp" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <ConfiguracoesMCP />
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
 
                 <Route path="/medicao-terceirizada/empreendimentos" element={
                   <ProtectedRoute>
