@@ -172,9 +172,17 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
       form.reset()
       onOpenChange(false)
     },
-    onError: () => {
-      toast({ title: 'Erro ao cadastrar serviço', variant: 'destructive' })
+    onError: (error: any) => {
+      const duplicado = error?.code === '23505' || String(error?.message || '').includes('uniq_servico_ng_aberto')
+      toast({
+        title: duplicado ? 'Serviço duplicado' : 'Erro ao cadastrar serviço',
+        description: duplicado
+          ? 'Já existe um serviço em aberto para este condomínio, unidade, morador e tipo de serviço.'
+          : undefined,
+        variant: 'destructive'
+      })
     }
+
   })
 
   const [dupAviso, setDupAviso] = useState<{ protocolo: string; dados: FormData } | null>(null)
