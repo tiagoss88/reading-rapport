@@ -82,16 +82,17 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     }
   })
 
-  // Fetch existing services for duplicate checking (paginated to bypass 1000-row limit)
+  // Serviços EM ABERTO existentes, para checagem de duplicidade (paginado)
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; data_agendamento: string | null; numero_protocolo: string | null }> = []
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; numero_protocolo: string | null }> = []
       const PAGE = 1000
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from('servicos_nacional_gas')
-          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, data_agendamento, numero_protocolo')
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, numero_protocolo')
+          .in('status_atendimento', STATUS_ABERTO as unknown as string[])
           .range(from, from + PAGE - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -107,7 +108,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const existingKeyToProtocol = (() => {
     const map = new Map<string, string>()
     ;(existingServices || []).forEach(s => {
-      if (!hasDuplicateSignal(s)) return
       const k = makeDuplicateKey(s)
       if (!map.has(k)) map.set(k, s.numero_protocolo || 'já cadastrado')
     })
@@ -117,9 +117,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
     const seenIndexByKey = new Map<string, number>()
     return rows.map((row, idx) => {
-      if (!hasDuplicateSignal(row)) {
-        return { ...row, isDuplicate: false, duplicateReason: undefined }
-      }
+
       const fullKey = makeDuplicateKey(row)
       const existingProtocol = existingKeyToProtocol.get(fullKey)
       const seenIdx = seenIndexByKey.get(fullKey)
