@@ -22,7 +22,9 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   BookOpen,
-  HardHat
+  HardHat,
+  Bug
+
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
