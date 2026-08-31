@@ -1235,6 +1235,9 @@ export type Database = {
         }
         Returns: boolean
       }
+      ng_norm: { Args: { t: string }; Returns: string }
+      ng_norm_condo: { Args: { t: string }; Returns: string }
+      ng_norm_unidade: { Args: { t: string }; Returns: string }
     }
     Enums: {
       app_permission:

@@ -197,7 +197,7 @@
       {
         "name": "criar_servico",
         "title": "Criar serviço",
-        "description": "Cria um novo serviço da Nacional Gás. O número de protocolo é gerado automaticamente. Informe UF e o nome do condomínio exatamente como cadastrado.",
+        "description": "Cria um novo serviço da Nacional Gás. O número de protocolo é gerado automaticamente. Informe UF e o nome do condomínio exatamente como cadastrado. Serviços duplicados (mesmo condomínio, unidade, morador e tipo, ainda em aberto) são bloqueados salvo permitir_duplicado.",
         "annotations": {
           "readOnlyHint": false,
           "destructiveHint": false,
@@ -276,6 +276,10 @@
             "observacao": {
               "type": "string",
               "maxLength": 1000
+            },
+            "permitir_duplicado": {
+              "type": "boolean",
+              "description": "Cria mesmo que já exista serviço igual em aberto"
             }
           },
           "required": [

@@ -1,12 +1,13 @@
 import { defineTool } from "@lovable.dev/mcp-js";
 import { z } from "zod";
 import { errorResult, jsonResult, supabaseForUser } from "../supabase";
+import { buscarServicoDuplicado } from "@/lib/duplicidadeServico";
 
 export default defineTool({
   name: "criar_servico",
   title: "Criar serviço",
   description:
-    "Cria um novo serviço da Nacional Gás. O número de protocolo é gerado automaticamente. Informe UF e o nome do condomínio exatamente como cadastrado.",
+    "Cria um novo serviço da Nacional Gás. O número de protocolo é gerado automaticamente. Informe UF e o nome do condomínio exatamente como cadastrado. Serviços duplicados (mesmo condomínio, unidade, morador e tipo, ainda em aberto) são bloqueados salvo permitir_duplicado.",
   inputSchema: {
     uf: z.string().trim().length(2).describe("CE ou BA"),
     condominio_nome: z.string().trim().min(1).describe("Nome do condomínio"),
@@ -25,12 +26,32 @@ export default defineTool({
     valor_servico: z.number().optional(),
     forma_pagamento: z.string().trim().optional(),
     observacao: z.string().trim().max(1000).optional(),
+    permitir_duplicado: z
+      .boolean()
+      .optional()
+      .describe("Cria mesmo que já exista serviço igual em aberto"),
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
   handler: async (input, ctx) => {
     if (!ctx.isAuthenticated()) return errorResult("Não autenticado.");
     const supabase = supabaseForUser(ctx);
     const uf = input.uf.toUpperCase();
+
+    if (!input.permitir_duplicado) {
+      const dup = await buscarServicoDuplicado(supabase as any, {
+        uf,
+        condominio_nome_original: input.condominio_nome,
+        bloco: input.bloco,
+        apartamento: input.apartamento,
+        morador_nome: input.morador_nome,
+        tipo_servico: input.tipo_servico,
+      });
+      if (dup) {
+        return errorResult(
+          `Serviço duplicado: já existe um atendimento em aberto (protocolo ${dup.numero_protocolo ?? dup.id}, status ${dup.status_atendimento}) para essa unidade, morador e tipo de serviço. Use permitir_duplicado=true para forçar.`
+        );
+      }
+    }
 
     // Tenta vincular ao empreendimento cadastrado (mesma UF).
     const { data: emp } = await supabase
@@ -41,6 +62,7 @@ export default defineTool({
       .limit(2);
 
     const empreendimento_id = emp && emp.length === 1 ? emp[0].id : null;
+
 
     const { data, error } = await supabase
       .from("servicos_nacional_gas")

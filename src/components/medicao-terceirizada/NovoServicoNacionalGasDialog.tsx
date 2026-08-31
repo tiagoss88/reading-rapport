@@ -14,6 +14,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { useToast } from '@/hooks/use-toast'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { buscarServicoDuplicado, descreverUnidade } from '@/lib/duplicidadeServico'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+} from '@/components/ui/alert-dialog'
+
 
 const formSchema = z.object({
   uf: z.enum(['BA', 'CE'], { required_error: 'Selecione a UF' }),
@@ -141,6 +147,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
         })
       if (error) throw error
     },
+
     onSuccess: async (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
       toast({ title: 'Serviço cadastrado com sucesso' })
@@ -165,14 +172,45 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
       form.reset()
       onOpenChange(false)
     },
-    onError: () => {
-      toast({ title: 'Erro ao cadastrar serviço', variant: 'destructive' })
+    onError: (error: any) => {
+      const duplicado = error?.code === '23505' || String(error?.message || '').includes('uniq_servico_ng_aberto')
+      toast({
+        title: duplicado ? 'Serviço duplicado' : 'Erro ao cadastrar serviço',
+        description: duplicado
+          ? 'Já existe um serviço em aberto para este condomínio, unidade, morador e tipo de serviço.'
+          : undefined,
+        variant: 'destructive'
+      })
     }
+
   })
 
-  const onSubmit = (data: FormData) => {
+  const [dupAviso, setDupAviso] = useState<{ protocolo: string; dados: FormData } | null>(null)
+  const [checandoDup, setChecandoDup] = useState(false)
+
+  const onSubmit = async (data: FormData) => {
+    setChecandoDup(true)
+    try {
+      const dup = await buscarServicoDuplicado(supabase as any, {
+        uf: data.uf,
+        condominio_nome_original: data.condominio_nome_original,
+        bloco: data.bloco,
+        apartamento: data.apartamento,
+        morador_nome: data.morador_nome,
+        tipo_servico: data.tipo_servico
+      })
+      if (dup) {
+        setDupAviso({ protocolo: dup.numero_protocolo || 'sem protocolo', dados: data })
+        return
+      }
+    } catch (err) {
+      console.error('Falha ao verificar duplicidade:', err)
+    } finally {
+      setChecandoDup(false)
+    }
     mutation.mutate(data)
   }
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -497,14 +535,42 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? 'Salvando...' : 'Cadastrar'}
+                <Button type="submit" disabled={mutation.isPending || checandoDup}>
+                  {checandoDup ? 'Verificando...' : mutation.isPending ? 'Salvando...' : 'Cadastrar'}
                 </Button>
               </div>
             </form>
           </Form>
         </ScrollArea>
+
+        <AlertDialog open={!!dupAviso} onOpenChange={(o) => !o && setDupAviso(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Serviço possivelmente duplicado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Já existe um serviço em aberto (protocolo <strong>{dupAviso?.protocolo}</strong>) do tipo{' '}
+                <strong>{dupAviso?.dados.tipo_servico}</strong> para{' '}
+                <strong>{dupAviso ? descreverUnidade(dupAviso.dados) : ''}</strong>
+                {dupAviso?.dados.morador_nome ? ` (${dupAviso.dados.morador_nome})` : ''}.
+                Deseja cadastrar mesmo assim?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const dados = dupAviso?.dados
+                  setDupAviso(null)
+                  if (dados) mutation.mutate(dados)
+                }}
+              >
+                Cadastrar mesmo assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
+
   )
 }

@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { makeServicoDupKey, STATUS_ABERTO } from '@/lib/duplicidadeServico'
+
 
 interface ImportedRow {
   data_solicitacao: string | null
@@ -41,81 +43,10 @@ interface Props {
   onOpenChange: (open: boolean) => void
 }
 
-// Normalização agressiva para comparação de duplicidade
-const normText = (v: string | null | undefined): string =>
-  (v || '')
-    .toString()
-    .toLowerCase()
-    .trim()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
+// Regra de duplicidade centralizada em src/lib/duplicidadeServico.ts:
+// condomínio (UF + nome) + unidade (bloco + apto) + morador + tipo de serviço.
+const makeDuplicateKey = makeServicoDupKey
 
-const normCondo = (v: string | null | undefined): string => {
-  let s = normText(v)
-  // remove sufixos tipo "(gti)", "(fs)", "(...)" e prefixo "ba "
-  s = s.replace(/\([^)]*\)/g, '').trim()
-  s = s.replace(/^ba\s+/, '').trim()
-  s = s.replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim()
-  return s
-}
-
-const normUnidade = (v: string | null | undefined): string => {
-  let s = normText(v).replace(/[^a-z0-9]/g, '')
-  // bloco "unico"/"único"/"u" e vazio são equivalentes
-  if (s === 'unico' || s === 'u') s = ''
-  // remove zeros à esquerda (apto "0404" == "404")
-  s = s.replace(/^0+/, '')
-  return s
-}
-
-// Chave por unidade física (sem morador) — base mínima para duplicidade
-const makeUnitKey = (row: {
-  uf?: string
-  condominio_nome_original?: string
-  bloco?: string | null
-  apartamento?: string | null
-}): string => {
-  return [
-    normText(row.uf),
-    normCondo(row.condominio_nome_original),
-    normUnidade(row.bloco),
-    normUnidade(row.apartamento),
-  ].join('|')
-}
-
-// Chave completa: unidade + tipo de serviço + morador + data de agendamento.
-// Regra: mesma unidade + mesmo tipo + mesmo morador (ou ambos vazios) + mesma data.
-// Se a data estiver ausente nos dois lados e o morador também, NÃO é duplicado
-// (não há evidência suficiente — provavelmente é uma nova solicitação).
-const makeDuplicateKey = (row: {
-  uf?: string
-  condominio_nome_original?: string
-  bloco?: string | null
-  apartamento?: string | null
-  morador_nome?: string | null
-  tipo_servico?: string | null
-  data_agendamento?: string | null
-}): string => {
-  return (
-    makeUnitKey(row) +
-    '|' +
-    normText(row.tipo_servico) +
-    '|' +
-    normText(row.morador_nome) +
-    '|' +
-    normText(row.data_agendamento)
-  )
-}
-
-// Retorna true se a linha tem sinal suficiente para ser marcada como duplicada
-// (evita colapsar tudo que tenha morador vazio e sem data).
-const hasDuplicateSignal = (row: {
-  morador_nome?: string | null
-  data_agendamento?: string | null
-}): boolean => {
-  return !!normText(row.morador_nome) || !!normText(row.data_agendamento)
-}
 
 export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [file, setFile] = useState<File | null>(null)
@@ -153,16 +84,17 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     }
   })
 
-  // Fetch existing services for duplicate checking (paginated to bypass 1000-row limit)
+  // Serviços EM ABERTO existentes, para checagem de duplicidade (paginado)
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; data_agendamento: string | null; numero_protocolo: string | null }> = []
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; numero_protocolo: string | null }> = []
       const PAGE = 1000
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from('servicos_nacional_gas')
-          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, data_agendamento, numero_protocolo')
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, numero_protocolo')
+          .in('status_atendimento', STATUS_ABERTO as unknown as string[])
           .range(from, from + PAGE - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -178,7 +110,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const existingKeyToProtocol = (() => {
     const map = new Map<string, string>()
     ;(existingServices || []).forEach(s => {
-      if (!hasDuplicateSignal(s)) return
       const k = makeDuplicateKey(s)
       if (!map.has(k)) map.set(k, s.numero_protocolo || 'já cadastrado')
     })
@@ -188,9 +119,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const markDuplicates = (rows: ImportedRow[]): ImportedRow[] => {
     const seenIndexByKey = new Map<string, number>()
     return rows.map((row, idx) => {
-      if (!hasDuplicateSignal(row)) {
-        return { ...row, isDuplicate: false, duplicateReason: undefined }
-      }
+
       const fullKey = makeDuplicateKey(row)
       const existingProtocol = existingKeyToProtocol.get(fullKey)
       const seenIdx = seenIndexByKey.get(fullKey)
@@ -414,10 +343,18 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas-duplicates'] })
       setStep('success')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Import error:', error)
-      toast({ title: 'Erro ao importar serviços', variant: 'destructive' })
+      const duplicado = error?.code === '23505' || String(error?.message || '').includes('uniq_servico_ng_aberto')
+      toast({
+        title: duplicado ? 'Importação bloqueada por duplicidade' : 'Erro ao importar serviços',
+        description: duplicado
+          ? 'Um ou mais serviços da planilha já existem em aberto (mesmo condomínio, unidade, morador e tipo de serviço).'
+          : undefined,
+        variant: 'destructive'
+      })
     }
+
   })
 
   const handleClose = () => {
