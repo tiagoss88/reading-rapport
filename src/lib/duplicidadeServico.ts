@@ -16,11 +16,15 @@ export const normText = (v: string | null | undefined): string =>
 
 export const normCondo = (v: string | null | undefined): string => {
   let s = normText(v)
-  // remove prefixos/palavras genéricas e pontuação
-  s = s.replace(/\b(condominio|cond|residencial|resid|edificio|ed|bl|bloco|apto|ap|apartamento)\b/g, ' ')
+  // remove sufixos tipo "(gti)", "(fs)" e prefixo de UF "ba "
+  s = s.replace(/\([^)]*\)/g, ' ')
+  s = s.replace(/^ba\s+/, ' ')
+  // remove palavras genéricas
+  s = s.replace(/\b(condominio|cond|residencial|resid|edificio|ed)\b/g, ' ')
   s = s.replace(/[^a-z0-9]/g, '')
   return s
 }
+
 
 export const normUnidade = (v: string | null | undefined): string => {
   let s = normText(v).replace(/[^a-z0-9]/g, '')
