@@ -527,14 +527,42 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={mutation.isPending}>
-                  {mutation.isPending ? 'Salvando...' : 'Cadastrar'}
+                <Button type="submit" disabled={mutation.isPending || checandoDup}>
+                  {checandoDup ? 'Verificando...' : mutation.isPending ? 'Salvando...' : 'Cadastrar'}
                 </Button>
               </div>
             </form>
           </Form>
         </ScrollArea>
+
+        <AlertDialog open={!!dupAviso} onOpenChange={(o) => !o && setDupAviso(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Serviço possivelmente duplicado</AlertDialogTitle>
+              <AlertDialogDescription>
+                Já existe um serviço em aberto (protocolo <strong>{dupAviso?.protocolo}</strong>) do tipo{' '}
+                <strong>{dupAviso?.dados.tipo_servico}</strong> para{' '}
+                <strong>{dupAviso ? descreverUnidade(dupAviso.dados) : ''}</strong>
+                {dupAviso?.dados.morador_nome ? ` (${dupAviso.dados.morador_nome})` : ''}.
+                Deseja cadastrar mesmo assim?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const dados = dupAviso?.dados
+                  setDupAviso(null)
+                  if (dados) mutation.mutate(dados)
+                }}
+              >
+                Cadastrar mesmo assim
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
+
   )
 }
