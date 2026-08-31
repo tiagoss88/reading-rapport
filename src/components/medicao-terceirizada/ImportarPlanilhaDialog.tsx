@@ -343,10 +343,18 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas-duplicates'] })
       setStep('success')
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Import error:', error)
-      toast({ title: 'Erro ao importar serviços', variant: 'destructive' })
+      const duplicado = error?.code === '23505' || String(error?.message || '').includes('uniq_servico_ng_aberto')
+      toast({
+        title: duplicado ? 'Importação bloqueada por duplicidade' : 'Erro ao importar serviços',
+        description: duplicado
+          ? 'Um ou mais serviços da planilha já existem em aberto (mesmo condomínio, unidade, morador e tipo de serviço).'
+          : undefined,
+        variant: 'destructive'
+      })
     }
+
   })
 
   const handleClose = () => {
