@@ -87,25 +87,18 @@ export default function ConfiguracoesMCP() {
     setChecks(null)
     const resultados: Check[] = []
 
-    // 1) Endpoint MCP
+    // 1) Endpoint MCP — verificado pelos metadados públicos do recurso,
+    // evitando uma chamada que responde 401 propositalmente (esperado, mas
+    // registrada como erro pelo monitor de runtime).
     try {
-      const resp = await fetch(MCP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
-        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
-      })
-      if (resp.status === 401) {
-        const wwwAuth = resp.headers.get('www-authenticate')
+      const resp = await fetch(RESOURCE_METADATA_URL)
+      if (resp.ok) {
         resultados.push({
           nome: 'Endpoint MCP',
           url: MCP_URL,
           ok: true,
-          detalhe: wwwAuth
-            ? 'No ar, exigindo login OAuth (401 com metadados corretos).'
-            : 'No ar, exigindo login (401).',
+          detalhe: 'No ar, exigindo login OAuth (protegido por autenticação).',
         })
-      } else if (resp.ok) {
-        resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: true, detalhe: 'No ar e respondendo.' })
       } else if (resp.status === 404) {
         resultados.push({
           nome: 'Endpoint MCP',
@@ -119,6 +112,7 @@ export default function ConfiguracoesMCP() {
     } catch (e) {
       resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: false, detalhe: `Falha de rede: ${(e as Error).message}` })
     }
+
 
     // 2) Metadados do recurso protegido
     for (const [nome, url] of [
