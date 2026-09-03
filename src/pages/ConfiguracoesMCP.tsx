@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { Check, Copy, Loader2, Plug, ShieldCheck, Wifi } from 'lucide-react'
+import { AlertTriangle, Check, Copy, Loader2, Plug, ShieldCheck, Wifi } from 'lucide-react'
 import mcpManifest from '../../.lovable/mcp/manifest.json'
 
 type ManifestTool = {
