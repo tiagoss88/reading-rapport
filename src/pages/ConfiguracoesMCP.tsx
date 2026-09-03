@@ -136,6 +136,117 @@ export default function ConfiguracoesMCP() {
     setTestando(false)
   }
 
+  const tools = manifest.mcp?.tools ?? []
+  const leitura = tools.filter((t) => t.annotations?.readOnlyHint)
+  const escrita = tools.filter((t) => !t.annotations?.readOnlyHint)
+
+  return (
+    <Layout title="Integração MCP (API)">
+      <div className="space-y-4 max-w-4xl">
+        <Card>
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Plug className="h-4 w-4" />
+              Servidor MCP — {manifest.mcp?.server?.title || manifest.mcp?.server?.name}
+            </CardTitle>
+            <CardDescription>
+              Endereço para conectar agentes de IA (OpenClaw, Claude, ChatGPT, Cursor) a este sistema.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-2 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs break-all">{MCP_URL}</code>
+              <Button variant="outline" size="sm" onClick={copiar}>
+                {copiado ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                Copiar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Use exatamente este endereço. O domínio do site (ngd.agasen.com.br) <strong>não</strong> é o servidor MCP
+              e retorna 404 / página do sistema para o agente.
+            </p>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="secondary">versão {manifest.mcp?.server?.version}</Badge>
+              <Badge variant="secondary">{tools.length} ferramentas</Badge>
+              <Badge variant="secondary">transporte: HTTP (streamable)</Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button size="sm" onClick={testarConexao} disabled={testando}>
+                {testando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wifi className="h-4 w-4 mr-1" />}
+                Testar conexão
+              </Button>
+            </div>
+            {checks && (
+              <div className="space-y-1.5">
+                {checks.map((c) => (
+                  <div key={c.nome} className="rounded-md border p-2.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      {c.ok ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                      )}
+                      <span className="font-medium">{c.nome}</span>
+                      <span className={`text-xs ${c.ok ? 'text-green-600' : 'text-destructive'}`}>{c.detalhe}</span>
+                    </div>
+                    <code className="text-[10px] text-muted-foreground break-all">{c.url}</code>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-base">Como conectar</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-2">
+            <ol className="list-decimal pl-5 space-y-1.5 text-sm text-muted-foreground">
+              <li>No agente (OpenClaw, Claude, ChatGPT), adicione um servidor MCP e cole o endereço acima.</li>
+              <li>O agente abrirá a tela de login deste sistema — entre com seu e-mail e senha.</li>
+              <li>Aprove a tela de consentimento ("Conectar ... à sua conta").</li>
+              <li>Pronto: o agente passa a enxergar as ferramentas listadas abaixo.</li>
+            </ol>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-base">Configuração manual (se o agente retornar 404)</CardTitle>
+            <CardDescription>
+              Alguns agentes antigos procuram os metadados OAuth na raiz do domínio e recebem 404. Nesse caso,
+              informe os endereços abaixo manualmente no OpenClaw.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-2 space-y-3 text-sm">
+            <ul className="space-y-1.5 text-xs">
+              {[
+                ['Servidor MCP', MCP_URL],
+                ['Metadados do recurso', RESOURCE_METADATA_URL],
+                ['Metadados de autorização', AS_METADATA_URL],
+                ['Autorização', AUTHORIZE_URL],
+                ['Token', TOKEN_URL],
+                ['Registro dinâmico de cliente', REGISTER_URL],
+              ].map(([nome, url]) => (
+                <li key={nome} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                  <span className="w-56 shrink-0 text-muted-foreground">{nome}</span>
+                  <code className="break-all">{url}</code>
+                </li>
+              ))}
+            </ul>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">Bloco de configuração pronto</span>
+                <Button variant="outline" size="sm" onClick={() => copiarTexto(CONFIG_MANUAL, 'Configuração copiada')}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+              <pre className="rounded-md bg-muted p-3 text-[11px] overflow-x-auto">{CONFIG_MANUAL}</pre>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="p-4 pb-2">
