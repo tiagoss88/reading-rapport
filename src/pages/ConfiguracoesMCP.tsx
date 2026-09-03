@@ -24,12 +24,18 @@ const manifest = mcpManifest as unknown as {
   mcp: { server: { name: string; title?: string; version?: string }; tools: ManifestTool[] }
 }
 
+// O manifesto é gerado junto com a function publicada: o emissor OAuth aponta
+// para o projeto onde a function MCP realmente está no ar. Usar a env do runtime
+// pode apontar para outro projeto e resultar em 404 ("function not found").
+const issuerFromManifest = manifest.auth?.issuer ?? ''
+const baseFromManifest = issuerFromManifest.replace(/\/auth\/v1\/?$/, '')
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? ''
-const BASE = `https://${projectRef}.supabase.co`
+const BASE = baseFromManifest || `https://${projectRef}.supabase.co`
 const MCP_URL = `${BASE}${manifest.path}`
 const RESOURCE_METADATA_URL = `${MCP_URL}/.well-known/oauth-protected-resource`
-const ISSUER = manifest.auth?.issuer || `${BASE}/auth/v1`
+const ISSUER = issuerFromManifest || `${BASE}/auth/v1`
 const AS_METADATA_URL = `${BASE}/.well-known/oauth-authorization-server/auth/v1`
+
 const AUTHORIZE_URL = `${ISSUER}/oauth/authorize`
 const TOKEN_URL = `${ISSUER}/oauth/token`
 const REGISTER_URL = `${ISSUER}/oauth/clients/register`
