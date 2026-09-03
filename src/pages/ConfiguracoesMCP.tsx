@@ -25,27 +25,63 @@ const manifest = mcpManifest as unknown as {
 }
 
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? ''
-const MCP_URL = `https://${projectRef}.supabase.co${manifest.path}`
+const BASE = `https://${projectRef}.supabase.co`
+const MCP_URL = `${BASE}${manifest.path}`
+const RESOURCE_METADATA_URL = `${MCP_URL}/.well-known/oauth-protected-resource`
+const ISSUER = manifest.auth?.issuer || `${BASE}/auth/v1`
+const AS_METADATA_URL = `${BASE}/.well-known/oauth-authorization-server/auth/v1`
+const AUTHORIZE_URL = `${ISSUER}/oauth/authorize`
+const TOKEN_URL = `${ISSUER}/oauth/token`
+const REGISTER_URL = `${ISSUER}/oauth/clients/register`
+
+const CONFIG_MANUAL = JSON.stringify(
+  {
+    mcpServers: {
+      'ag-ngd': {
+        type: 'http',
+        url: MCP_URL,
+        oauth: {
+          issuer: ISSUER,
+          authorization_endpoint: AUTHORIZE_URL,
+          token_endpoint: TOKEN_URL,
+          registration_endpoint: REGISTER_URL,
+          scopes: [],
+        },
+      },
+    },
+  },
+  null,
+  2,
+)
+
+type Check = { nome: string; url: string; ok: boolean; detalhe: string }
 
 export default function ConfiguracoesMCP() {
   const [copiado, setCopiado] = useState(false)
   const [testando, setTestando] = useState(false)
-  const [resultado, setResultado] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [checks, setChecks] = useState<Check[] | null>(null)
 
-  const copiar = async () => {
+  const copiarTexto = async (texto: string, msg = 'Copiado') => {
     try {
-      await navigator.clipboard.writeText(MCP_URL)
-      setCopiado(true)
-      toast.success('Endereço copiado')
-      setTimeout(() => setCopiado(false), 2000)
+      await navigator.clipboard.writeText(texto)
+      toast.success(msg)
     } catch {
       toast.error('Não foi possível copiar')
     }
   }
 
+  const copiar = async () => {
+    await copiarTexto(MCP_URL, 'Endereço copiado')
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
+
   const testarConexao = async () => {
     setTestando(true)
-    setResultado(null)
+    setChecks(null)
+    const resultados: Check[] = []
+
+    // 1) Endpoint MCP
     try {
       const resp = await fetch(MCP_URL, {
         method: 'POST',
@@ -54,81 +90,52 @@ export default function ConfiguracoesMCP() {
       })
       if (resp.status === 401) {
         const wwwAuth = resp.headers.get('www-authenticate')
-        setResultado({
+        resultados.push({
+          nome: 'Endpoint MCP',
+          url: MCP_URL,
           ok: true,
-          msg: wwwAuth
-            ? 'Servidor no ar e exigindo autenticação OAuth (resposta 401 com metadados corretos).'
-            : 'Servidor no ar e exigindo autenticação (401).',
+          detalhe: wwwAuth
+            ? 'No ar, exigindo login OAuth (401 com metadados corretos).'
+            : 'No ar, exigindo login (401).',
         })
       } else if (resp.ok) {
-        setResultado({ ok: true, msg: 'Servidor no ar e respondendo às chamadas MCP.' })
+        resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: true, detalhe: 'No ar e respondendo.' })
+      } else if (resp.status === 404) {
+        resultados.push({
+          nome: 'Endpoint MCP',
+          url: MCP_URL,
+          ok: false,
+          detalhe: '404 — o servidor MCP não está publicado neste endereço.',
+        })
       } else {
-        setResultado({ ok: false, msg: `Resposta inesperada do servidor (HTTP ${resp.status}).` })
+        resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: false, detalhe: `HTTP ${resp.status}.` })
       }
     } catch (e) {
-      setResultado({ ok: false, msg: `Falha ao contatar o servidor: ${(e as Error).message}` })
-    } finally {
-      setTestando(false)
+      resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: false, detalhe: `Falha de rede: ${(e as Error).message}` })
     }
+
+    // 2) Metadados do recurso protegido
+    for (const [nome, url] of [
+      ['Metadados do recurso', RESOURCE_METADATA_URL],
+      ['Metadados de autorização', AS_METADATA_URL],
+    ] as const) {
+      try {
+        const resp = await fetch(url)
+        resultados.push({
+          nome,
+          url,
+          ok: resp.ok,
+          detalhe: resp.ok ? 'Disponível (200).' : `Indisponível (HTTP ${resp.status}).`,
+        })
+      } catch (e) {
+        resultados.push({ nome, url, ok: false, detalhe: `Falha de rede: ${(e as Error).message}` })
+      }
+    }
+
+    setChecks(resultados)
+    setTestando(false)
   }
 
-  const tools = manifest.mcp?.tools ?? []
-  const leitura = tools.filter((t) => t.annotations?.readOnlyHint)
-  const escrita = tools.filter((t) => !t.annotations?.readOnlyHint)
-
-  return (
-    <Layout title="Integração MCP (API)">
-      <div className="space-y-4 max-w-4xl">
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Plug className="h-4 w-4" />
-              Servidor MCP — {manifest.mcp?.server?.title || manifest.mcp?.server?.name}
-            </CardTitle>
-            <CardDescription>
-              Endereço para conectar agentes de IA (OpenClaw, Claude, ChatGPT, Cursor) a este sistema.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-2 space-y-3">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs break-all">{MCP_URL}</code>
-              <Button variant="outline" size="sm" onClick={copiar}>
-                {copiado ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                Copiar
-              </Button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="secondary">versão {manifest.mcp?.server?.version}</Badge>
-              <Badge variant="secondary">{tools.length} ferramentas</Badge>
-              <Badge variant="secondary">transporte: HTTP (streamable)</Badge>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button size="sm" onClick={testarConexao} disabled={testando}>
-                {testando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wifi className="h-4 w-4 mr-1" />}
-                Testar conexão
-              </Button>
-              {resultado && (
-                <span className={`text-xs ${resultado.ok ? 'text-green-600' : 'text-destructive'}`}>
-                  {resultado.msg}
-                </span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-base">Como conectar</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-2">
-            <ol className="list-decimal pl-5 space-y-1.5 text-sm text-muted-foreground">
-              <li>No agente (OpenClaw, Claude, ChatGPT), adicione um servidor MCP e cole o endereço acima.</li>
-              <li>O agente abrirá a tela de login deste sistema — entre com seu e-mail e senha.</li>
-              <li>Aprove a tela de consentimento ("Conectar ... à sua conta").</li>
-              <li>Pronto: o agente passa a enxergar as ferramentas listadas abaixo.</li>
-            </ol>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader className="p-4 pb-2">
