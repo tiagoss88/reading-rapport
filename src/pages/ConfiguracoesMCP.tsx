@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { Check, Copy, Loader2, Plug, ShieldCheck, Wifi } from 'lucide-react'
+import { AlertTriangle, Check, Copy, Loader2, Plug, ShieldCheck, Wifi } from 'lucide-react'
 import mcpManifest from '../../.lovable/mcp/manifest.json'
 
 type ManifestTool = {
@@ -25,27 +25,63 @@ const manifest = mcpManifest as unknown as {
 }
 
 const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? ''
-const MCP_URL = `https://${projectRef}.supabase.co${manifest.path}`
+const BASE = `https://${projectRef}.supabase.co`
+const MCP_URL = `${BASE}${manifest.path}`
+const RESOURCE_METADATA_URL = `${MCP_URL}/.well-known/oauth-protected-resource`
+const ISSUER = manifest.auth?.issuer || `${BASE}/auth/v1`
+const AS_METADATA_URL = `${BASE}/.well-known/oauth-authorization-server/auth/v1`
+const AUTHORIZE_URL = `${ISSUER}/oauth/authorize`
+const TOKEN_URL = `${ISSUER}/oauth/token`
+const REGISTER_URL = `${ISSUER}/oauth/clients/register`
+
+const CONFIG_MANUAL = JSON.stringify(
+  {
+    mcpServers: {
+      'ag-ngd': {
+        type: 'http',
+        url: MCP_URL,
+        oauth: {
+          issuer: ISSUER,
+          authorization_endpoint: AUTHORIZE_URL,
+          token_endpoint: TOKEN_URL,
+          registration_endpoint: REGISTER_URL,
+          scopes: [],
+        },
+      },
+    },
+  },
+  null,
+  2,
+)
+
+type Check = { nome: string; url: string; ok: boolean; detalhe: string }
 
 export default function ConfiguracoesMCP() {
   const [copiado, setCopiado] = useState(false)
   const [testando, setTestando] = useState(false)
-  const [resultado, setResultado] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [checks, setChecks] = useState<Check[] | null>(null)
 
-  const copiar = async () => {
+  const copiarTexto = async (texto: string, msg = 'Copiado') => {
     try {
-      await navigator.clipboard.writeText(MCP_URL)
-      setCopiado(true)
-      toast.success('Endereço copiado')
-      setTimeout(() => setCopiado(false), 2000)
+      await navigator.clipboard.writeText(texto)
+      toast.success(msg)
     } catch {
       toast.error('Não foi possível copiar')
     }
   }
 
+  const copiar = async () => {
+    await copiarTexto(MCP_URL, 'Endereço copiado')
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
+
   const testarConexao = async () => {
     setTestando(true)
-    setResultado(null)
+    setChecks(null)
+    const resultados: Check[] = []
+
+    // 1) Endpoint MCP
     try {
       const resp = await fetch(MCP_URL, {
         method: 'POST',
@@ -54,22 +90,50 @@ export default function ConfiguracoesMCP() {
       })
       if (resp.status === 401) {
         const wwwAuth = resp.headers.get('www-authenticate')
-        setResultado({
+        resultados.push({
+          nome: 'Endpoint MCP',
+          url: MCP_URL,
           ok: true,
-          msg: wwwAuth
-            ? 'Servidor no ar e exigindo autenticação OAuth (resposta 401 com metadados corretos).'
-            : 'Servidor no ar e exigindo autenticação (401).',
+          detalhe: wwwAuth
+            ? 'No ar, exigindo login OAuth (401 com metadados corretos).'
+            : 'No ar, exigindo login (401).',
         })
       } else if (resp.ok) {
-        setResultado({ ok: true, msg: 'Servidor no ar e respondendo às chamadas MCP.' })
+        resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: true, detalhe: 'No ar e respondendo.' })
+      } else if (resp.status === 404) {
+        resultados.push({
+          nome: 'Endpoint MCP',
+          url: MCP_URL,
+          ok: false,
+          detalhe: '404 — o servidor MCP não está publicado neste endereço.',
+        })
       } else {
-        setResultado({ ok: false, msg: `Resposta inesperada do servidor (HTTP ${resp.status}).` })
+        resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: false, detalhe: `HTTP ${resp.status}.` })
       }
     } catch (e) {
-      setResultado({ ok: false, msg: `Falha ao contatar o servidor: ${(e as Error).message}` })
-    } finally {
-      setTestando(false)
+      resultados.push({ nome: 'Endpoint MCP', url: MCP_URL, ok: false, detalhe: `Falha de rede: ${(e as Error).message}` })
     }
+
+    // 2) Metadados do recurso protegido
+    for (const [nome, url] of [
+      ['Metadados do recurso', RESOURCE_METADATA_URL],
+      ['Metadados de autorização', AS_METADATA_URL],
+    ] as const) {
+      try {
+        const resp = await fetch(url)
+        resultados.push({
+          nome,
+          url,
+          ok: resp.ok,
+          detalhe: resp.ok ? 'Disponível (200).' : `Indisponível (HTTP ${resp.status}).`,
+        })
+      } catch (e) {
+        resultados.push({ nome, url, ok: false, detalhe: `Falha de rede: ${(e as Error).message}` })
+      }
+    }
+
+    setChecks(resultados)
+    setTestando(false)
   }
 
   const tools = manifest.mcp?.tools ?? []
@@ -97,6 +161,10 @@ export default function ConfiguracoesMCP() {
                 Copiar
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Use exatamente este endereço. O domínio do site (ngd.agasen.com.br) <strong>não</strong> é o servidor MCP
+              e retorna 404 / página do sistema para o agente.
+            </p>
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="secondary">versão {manifest.mcp?.server?.version}</Badge>
               <Badge variant="secondary">{tools.length} ferramentas</Badge>
@@ -107,12 +175,25 @@ export default function ConfiguracoesMCP() {
                 {testando ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wifi className="h-4 w-4 mr-1" />}
                 Testar conexão
               </Button>
-              {resultado && (
-                <span className={`text-xs ${resultado.ok ? 'text-green-600' : 'text-destructive'}`}>
-                  {resultado.msg}
-                </span>
-              )}
             </div>
+            {checks && (
+              <div className="space-y-1.5">
+                {checks.map((c) => (
+                  <div key={c.nome} className="rounded-md border p-2.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      {c.ok ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4 text-destructive" />
+                      )}
+                      <span className="font-medium">{c.nome}</span>
+                      <span className={`text-xs ${c.ok ? 'text-green-600' : 'text-destructive'}`}>{c.detalhe}</span>
+                    </div>
+                    <code className="text-[10px] text-muted-foreground break-all">{c.url}</code>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -127,6 +208,43 @@ export default function ConfiguracoesMCP() {
               <li>Aprove a tela de consentimento ("Conectar ... à sua conta").</li>
               <li>Pronto: o agente passa a enxergar as ferramentas listadas abaixo.</li>
             </ol>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-base">Configuração manual (se o agente retornar 404)</CardTitle>
+            <CardDescription>
+              Alguns agentes antigos procuram os metadados OAuth na raiz do domínio e recebem 404. Nesse caso,
+              informe os endereços abaixo manualmente no OpenClaw.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-2 space-y-3 text-sm">
+            <ul className="space-y-1.5 text-xs">
+              {[
+                ['Servidor MCP', MCP_URL],
+                ['Metadados do recurso', RESOURCE_METADATA_URL],
+                ['Metadados de autorização', AS_METADATA_URL],
+                ['Autorização', AUTHORIZE_URL],
+                ['Token', TOKEN_URL],
+                ['Registro dinâmico de cliente', REGISTER_URL],
+              ].map(([nome, url]) => (
+                <li key={nome} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                  <span className="w-56 shrink-0 text-muted-foreground">{nome}</span>
+                  <code className="break-all">{url}</code>
+                </li>
+              ))}
+            </ul>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">Bloco de configuração pronto</span>
+                <Button variant="outline" size="sm" onClick={() => copiarTexto(CONFIG_MANUAL, 'Configuração copiada')}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+              <pre className="rounded-md bg-muted p-3 text-[11px] overflow-x-auto">{CONFIG_MANUAL}</pre>
+            </div>
           </CardContent>
         </Card>
 
