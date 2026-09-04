@@ -232,11 +232,11 @@ function drawCardRow(
   doc: jsPDF,
   items: { label: string; value: string }[],
   y: number,
-  gap = 4,
+  gap = 3.5,
 ): number {
   const cw = contentWidth(doc);
   const w = (cw - gap * (items.length - 1)) / items.length;
-  const h = Math.max(...items.map((i) => cardHeight(doc, i.value, w)), 14);
+  const h = Math.max(...items.map((i) => cardHeight(doc, i.value, w)), 13);
   items.forEach((item, idx) => {
     drawCard(doc, item.label, item.value, LEFT + idx * (w + gap), y, w, h);
   });
@@ -335,7 +335,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   // ---- 01 Dados do atendimento ----
   ensure(45);
   y = drawSectionHead(doc, '01', 'Dados do atendimento', y);
-  const fullH = Math.max(cardHeight(doc, data.condominio, cw), 14);
+  const fullH = Math.max(cardHeight(doc, data.condominio, cw), 13);
   drawCard(doc, 'Condomínio / Local', data.condominio, LEFT, y, cw, fullH);
   y += fullH + 4;
   y = drawCardRow(doc, [
@@ -346,7 +346,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     { label: 'Data de agendamento', value: dataAg },
     { label: 'Turno', value: turno },
   ], y);
-  y += 4;
+  y += 2;
 
   // ---- 02 Dados do cliente ----
   ensure(40);
@@ -359,7 +359,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     { label: 'E-mail', value: data.email || '—' },
     { label: 'CPF / CNPJ', value: formatCpfCnpj(data.cpf_cnpj) || '—' },
   ], y);
-  y += 4;
+  y += 2;
 
   // ---- 03 Pagamento e cadastro ----
   if (data.forma_pagamento || data.valor_servico != null || data.cpf_cnpj) {
@@ -422,7 +422,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
       try {
         const props = doc.getImageProperties(imgData);
         const maxW = sigW - 10;
-        const maxH = 26;
+        const maxH = 19;
         const ratio = props.width / props.height;
         let w = maxW;
         let h = w / ratio;
