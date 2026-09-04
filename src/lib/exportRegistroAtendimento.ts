@@ -273,12 +273,12 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   const ensure = (needed: number) => {
     if (y + needed > getContentBottom(doc)) {
       doc.addPage();
-      y = drawHeader(doc, logo, 'RELATÓRIO DE ATENDIMENTO', `Protocolo ${protocolo || '—'}`, protocolo);
+      y = drawHeader(doc, logo, 'RELATÓRIO DE ATENDIMENTO', 'Documento técnico • continuação', protocolo);
     }
   };
 
   // ---- Hero ----
-  const heroH = 26;
+  const heroH = 25;
   doc.setFillColor(247, 251, 254);
   doc.setDrawColor(220, 231, 240);
   doc.setLineWidth(0.25);
@@ -289,10 +289,17 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   doc.setTextColor(...BLUE);
   doc.text(data.tipo_servico.toUpperCase(), LEFT + 6, y + 7);
 
-  doc.setFontSize(14);
+  const heroTitleW = cw * 0.58;
+  let heroFont = 14;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(heroFont);
+  while (heroFont > 9 && doc.getTextWidth(data.condominio) > heroTitleW) {
+    heroFont -= 0.5;
+    doc.setFontSize(heroFont);
+  }
   doc.setTextColor(...NAVY);
-  const condLines = doc.splitTextToSize(data.condominio, cw * 0.55);
-  doc.text(condLines[0], LEFT + 6, y + 15);
+  const condLines = doc.splitTextToSize(data.condominio, heroTitleW);
+  doc.text(condLines.slice(0, 2).join(' ').substring(0, 70), LEFT + 6, y + 14.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
