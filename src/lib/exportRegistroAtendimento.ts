@@ -488,13 +488,10 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
       images.push({ data: b64, ratio });
     }
 
-    const perPage = images.length <= 2 ? images.length || 1 : 4;
-    const cols = images.length === 1 ? 1 : 2;
-
     let idx = 0;
     while (idx < images.length) {
       doc.addPage();
-      let fy = drawHeader(doc, logo, 'ANEXO FOTOGRÁFICO', `Protocolo ${protocolo || '—'}`, protocolo);
+      let fy = drawHeader(doc, logo, 'ANEXO FOTOGRÁFICO', 'Anexo do relatório de atendimento', protocolo);
       fy = drawSectionHead(doc, '06', 'Registros realizados durante o atendimento', fy);
 
       doc.setFont('helvetica', 'normal');
@@ -508,10 +505,21 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
       fy += 8;
 
       const gap = 8;
-      const frameW = cols === 1 ? cw : (cw - gap) / 2;
       const available = getContentBottom(doc) - fy;
-      const rows = Math.ceil(Math.min(perPage, images.length - idx) / cols);
-      const frameH = Math.min((available - gap * (rows - 1)) / rows, cols === 1 ? available : available / rows);
+      const remaining = images.length - idx;
+
+      // Com 1 ou 2 fotos restantes, elas crescem para ocupar melhor a página.
+      const perPage = remaining <= 2 ? remaining : 4;
+      const cols = remaining <= 2 ? 1 : 2;
+      const rows = Math.ceil(perPage / cols);
+      const frameW = cols === 1 ? cw : (cw - gap) / 2;
+
+      // Altura do quadro respeitando a proporção real das imagens desta página.
+      const maxRatioH = Math.max(
+        ...images.slice(idx, idx + perPage).map((im) => frameW / im.ratio),
+      );
+      const slotH = (available - gap * (rows - 1)) / rows;
+      const frameH = Math.min(slotH, maxRatioH + 14);
 
       for (let i = 0; i < perPage && idx < images.length; i++, idx++) {
         const col = i % cols;
