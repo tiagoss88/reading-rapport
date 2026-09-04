@@ -375,7 +375,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     doc.setFontSize(14);
     doc.setTextColor(...WHITE);
     const valorStr = data.valor_servico != null
-      ? `R$ ${Number(data.valor_servico).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d)(?=,))/g, '.')}`
+      ? `R$ ${Number(data.valor_servico).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : '—';
     doc.text(valorStr, ax + 4, y + 13);
 
