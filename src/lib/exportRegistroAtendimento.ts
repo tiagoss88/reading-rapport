@@ -202,7 +202,7 @@ function drawSectionHead(doc: jsPDF, num: string, title: string, y: number): num
   doc.setLineWidth(0.3);
   doc.line(LEFT + 13 + tw, y + 3.5, pw - MARGIN, y + 3.5);
 
-  return y + 11;
+  return y + 9.5;
 }
 
 function cardHeight(doc: jsPDF, value: string, w: number): number {
@@ -331,14 +331,14 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     doc.text(String(value).substring(0, 18), x, my + 4.5, { align: 'right' });
   });
 
-  y += heroH + 8;
+  y += heroH + 6;
 
   // ---- 01 Dados do atendimento ----
   ensure(45);
   y = drawSectionHead(doc, '01', 'Dados do atendimento', y);
   const fullH = Math.max(cardHeight(doc, data.condominio, cw), 13);
   drawCard(doc, 'Condomínio / Local', data.condominio, LEFT, y, cw, fullH);
-  y += fullH + 4;
+  y += fullH + 3;
   y = drawCardRow(doc, [
     { label: 'Unidade (bloco / apto)', value: unidade },
     { label: 'Estado', value: data.uf || '—' },
@@ -405,17 +405,17 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     doc.setFontSize(8);
     doc.setTextColor(...INK);
     doc.text(obsLines, LEFT + 6, y + 6);
-    y += obsH + 8;
+    y += obsH + 6;
   }
 
   // ---- Assinaturas ----
-  const signBlockH = 42;
+  const signBlockH = 38;
   ensure(signBlockH);
   y = drawSectionHead(doc, data.observacao_texto ? '05' : '04', 'Assinaturas', y);
 
   const sigGap = 14;
   const sigW = (cw - sigGap) / 2;
-  const lineY = y + 24;
+  const lineY = y + 22;
 
   if (data.assinatura_url) {
     const imgData = await getBase64FromUrl(data.assinatura_url);
