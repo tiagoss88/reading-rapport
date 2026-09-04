@@ -408,13 +408,13 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   }
 
   // ---- Assinaturas ----
-  const signBlockH = 46;
-  ensure(signBlockH + 12);
+  const signBlockH = 42;
+  ensure(signBlockH);
   y = drawSectionHead(doc, data.observacao_texto ? '05' : '04', 'Assinaturas', y);
 
   const sigGap = 14;
   const sigW = (cw - sigGap) / 2;
-  const lineY = y + 30;
+  const lineY = y + 24;
 
   if (data.assinatura_url) {
     const imgData = await getBase64FromUrl(data.assinatura_url);
