@@ -208,7 +208,7 @@ function drawSectionHead(doc: jsPDF, num: string, title: string, y: number): num
 function cardHeight(doc: jsPDF, value: string, w: number): number {
   doc.setFontSize(9);
   const lines = doc.splitTextToSize(value || '—', w - 8);
-  return 8 + lines.length * 4.2 + 3;
+  return 6.5 + lines.length * 4 + 2;
 }
 
 function drawCard(doc: jsPDF, label: string, value: string, x: number, y: number, w: number, h: number, soft = false) {
@@ -220,13 +220,14 @@ function drawCard(doc: jsPDF, label: string, value: string, x: number, y: number
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(6);
   doc.setTextColor(...MUTED);
-  doc.text(label.toUpperCase(), x + 4, y + 5);
+  doc.text(label.toUpperCase(), x + 4, y + 4.3);
 
   doc.setFontSize(9);
   doc.setTextColor(...INK);
   const lines = doc.splitTextToSize(value || '—', w - 8);
-  doc.text(lines, x + 4, y + 10);
+  doc.text(lines, x + 4, y + 9);
 }
+
 
 function drawCardRow(
   doc: jsPDF,
