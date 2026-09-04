@@ -369,7 +369,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
 
     const gap = 4;
     const colW = (cw - gap * 2) / 3;
-    const h = 18;
+    const h = 15;
     drawCard(doc, 'Forma de pagamento', formatFormaPagamento(data.forma_pagamento) || '—', LEFT, y, colW, h);
     drawCard(doc, 'Documento', formatCpfCnpj(data.cpf_cnpj) || '—', LEFT + colW + gap, y, colW, h);
 
@@ -379,15 +379,15 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(6);
     doc.setTextColor(188, 211, 231);
-    doc.text('VALOR DO SERVIÇO', ax + 4, y + 5);
-    doc.setFontSize(14);
+    doc.text('VALOR DO SERVIÇO', ax + 4, y + 4.6);
+    doc.setFontSize(13);
     doc.setTextColor(...WHITE);
     const valorStr = data.valor_servico != null
       ? `R$ ${Number(data.valor_servico).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       : '—';
-    doc.text(valorStr, ax + 4, y + 13);
+    doc.text(valorStr, ax + 4, y + 12);
 
-    y += h + 8;
+    y += h + 6;
   }
 
   // ---- Observação do técnico ----
