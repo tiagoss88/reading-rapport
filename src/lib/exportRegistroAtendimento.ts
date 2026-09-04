@@ -279,7 +279,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   };
 
   // ---- Hero ----
-  const heroH = 25;
+  const heroH = 23;
   doc.setFillColor(247, 251, 254);
   doc.setDrawColor(220, 231, 240);
   doc.setLineWidth(0.25);
@@ -409,13 +409,13 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   }
 
   // ---- Assinaturas ----
-  const signBlockH = 38;
+  const signBlockH = 36;
   ensure(signBlockH);
   y = drawSectionHead(doc, data.observacao_texto ? '05' : '04', 'Assinaturas', y);
 
   const sigGap = 14;
   const sigW = (cw - sigGap) / 2;
-  const lineY = y + 22;
+  const lineY = y + 19;
 
   if (data.assinatura_url) {
     const imgData = await getBase64FromUrl(data.assinatura_url);
@@ -423,7 +423,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
       try {
         const props = doc.getImageProperties(imgData);
         const maxW = sigW - 10;
-        const maxH = 19;
+        const maxH = 16;
         const ratio = props.width / props.height;
         let w = maxW;
         let h = w / ratio;
@@ -446,16 +446,16 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(...INK);
-  doc.text('Assinatura do Cliente', LEFT + sigW / 2, lineY + 5, { align: 'center' });
-  doc.text('Responsável Técnico', LEFT + sigW + sigGap + sigW / 2, lineY + 5, { align: 'center' });
+  doc.text('Assinatura do Cliente', LEFT + sigW / 2, lineY + 4.5, { align: 'center' });
+  doc.text('Responsável Técnico', LEFT + sigW + sigGap + sigW / 2, lineY + 4.5, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7.5);
   doc.setTextColor(...MUTED);
-  doc.text(data.morador_nome || '—', LEFT + sigW / 2, lineY + 9.5, { align: 'center' });
-  doc.text(data.tecnico_nome || '—', LEFT + sigW + sigGap + sigW / 2, lineY + 9.5, { align: 'center' });
+  doc.text(data.morador_nome || '—', LEFT + sigW / 2, lineY + 8.7, { align: 'center' });
+  doc.text(data.tecnico_nome || '—', LEFT + sigW + sigGap + sigW / 2, lineY + 8.7, { align: 'center' });
 
-  y = lineY + 18;
+  y = lineY + 14;
 
   // ---- Nota final ----
   const fotos = data.fotos_urls || [];
