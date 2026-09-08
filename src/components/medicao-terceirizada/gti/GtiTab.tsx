@@ -355,6 +355,11 @@ export default function GtiTab() {
             Planilha GTI — Coletas CE/BA
           </CardTitle>
           <div className="flex flex-wrap gap-2">
+            {podeEditar && (
+              <Button size="sm" variant="outline" onClick={recalcularPrazos} disabled={recalculando || filtrados.length===0}>
+                <RefreshCw className={`h-4 w-4 mr-1 ${recalculando ? 'animate-spin' : ''}`} /> Recalcular prazos
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={exportarCSV} disabled={filtrados.length===0}>
               <Download className="h-4 w-4 mr-1" /> Exportar CSV
             </Button>
