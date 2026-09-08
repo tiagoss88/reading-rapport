@@ -83,6 +83,38 @@ export default function ConfiguracoesMCP() {
   const [copiado, setCopiado] = useState(false)
   const [testando, setTestando] = useState(false)
   const [checks, setChecks] = useState<Check[] | null>(null)
+  const [chave, setChave] = useState('')
+  const [testandoChave, setTestandoChave] = useState(false)
+  const [resultadoChave, setResultadoChave] = useState<{ ok: boolean; detalhe: string } | null>(null)
+
+  const testarChave = async () => {
+    setTestandoChave(true)
+    setResultadoChave(null)
+    try {
+      const resp = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+          Authorization: `Bearer ${chave.trim()}`,
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      })
+      if (resp.status === 401) {
+        setResultadoChave({ ok: false, detalhe: 'Chave inválida ou ainda não cadastrada no servidor.' })
+      } else if (!resp.ok) {
+        setResultadoChave({ ok: false, detalhe: `Servidor respondeu HTTP ${resp.status}.` })
+      } else {
+        const data = await resp.json()
+        const qtd = data?.result?.tools?.length ?? 0
+        setResultadoChave({ ok: qtd > 0, detalhe: qtd > 0 ? `Conectado — ${qtd} ferramentas disponíveis.` : 'Resposta inesperada do servidor.' })
+      }
+    } catch (e) {
+      setResultadoChave({ ok: false, detalhe: `Falha de rede: ${(e as Error).message}` })
+    }
+    setTestandoChave(false)
+  }
+
 
   const copiarTexto = async (texto: string, msg = 'Copiado') => {
     try {
