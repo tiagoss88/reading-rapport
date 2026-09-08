@@ -129,7 +129,7 @@ function SortableHead({ column, activeColumn, direction, onClick, children }: {
   activeColumn: SortColumn | null
   direction: SortDirection | null
   onClick: (column: SortColumn) => void
-  children: React.ReactNode
+  children: ReactNode
 }) {
   const active = activeColumn === column
   const Icon = active ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
