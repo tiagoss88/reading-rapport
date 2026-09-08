@@ -4,8 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { AlertTriangle, Check, Copy, Loader2, Plug, ShieldCheck, Wifi } from 'lucide-react'
+import { AlertTriangle, Check, Copy, KeyRound, Loader2, Plug, ShieldCheck, Wifi } from 'lucide-react'
 import mcpManifest from '../../.lovable/mcp/manifest.json'
 
 type ManifestTool = {
@@ -60,12 +61,61 @@ const CONFIG_MANUAL = JSON.stringify(
   2,
 )
 
+const API_URL = `${BASE}/functions/v1/mcp-api`
+
+const CONFIG_CHAVE = JSON.stringify(
+  {
+    mcpServers: {
+      'ag-ngd': {
+        type: 'http',
+        url: API_URL,
+        headers: { Authorization: 'Bearer SUA_CHAVE_AQUI' },
+      },
+    },
+  },
+  null,
+  2,
+)
+
 type Check = { nome: string; url: string; ok: boolean; detalhe: string }
+
 
 export default function ConfiguracoesMCP() {
   const [copiado, setCopiado] = useState(false)
   const [testando, setTestando] = useState(false)
   const [checks, setChecks] = useState<Check[] | null>(null)
+  const [chave, setChave] = useState('')
+  const [testandoChave, setTestandoChave] = useState(false)
+  const [resultadoChave, setResultadoChave] = useState<{ ok: boolean; detalhe: string } | null>(null)
+
+  const testarChave = async () => {
+    setTestandoChave(true)
+    setResultadoChave(null)
+    try {
+      const resp = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+          Authorization: `Bearer ${chave.trim()}`,
+        },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+      })
+      if (resp.status === 401) {
+        setResultadoChave({ ok: false, detalhe: 'Chave inválida ou ainda não cadastrada no servidor.' })
+      } else if (!resp.ok) {
+        setResultadoChave({ ok: false, detalhe: `Servidor respondeu HTTP ${resp.status}.` })
+      } else {
+        const data = await resp.json()
+        const qtd = data?.result?.tools?.length ?? 0
+        setResultadoChave({ ok: qtd > 0, detalhe: qtd > 0 ? `Conectado — ${qtd} ferramentas disponíveis.` : 'Resposta inesperada do servidor.' })
+      }
+    } catch (e) {
+      setResultadoChave({ ok: false, detalhe: `Falha de rede: ${(e as Error).message}` })
+    }
+    setTestandoChave(false)
+  }
+
 
   const copiarTexto = async (texto: string, msg = 'Copiado') => {
     try {
@@ -143,7 +193,72 @@ export default function ConfiguracoesMCP() {
   return (
     <Layout title="Integração MCP (API)">
       <div className="space-y-4 max-w-4xl">
+        <Card className="border-primary/40">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <KeyRound className="h-4 w-4" />
+              Conexão rápida por chave (recomendado para o OpenClaw)
+            </CardTitle>
+            <CardDescription>
+              Sem login e sem tela de consentimento: cole o endereço abaixo e a chave de acesso no agente.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-2 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs break-all">{API_URL}</code>
+              <Button variant="outline" size="sm" onClick={() => copiarTexto(API_URL, 'Endereço copiado')}>
+                <Copy className="h-4 w-4 mr-1" />
+                Copiar
+              </Button>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">Configuração pronta para o OpenClaw</span>
+                <Button variant="outline" size="sm" onClick={() => copiarTexto(CONFIG_CHAVE, 'Configuração copiada')}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+              <pre className="rounded-md bg-muted p-3 text-[11px] overflow-x-auto">{CONFIG_CHAVE}</pre>
+              <p className="text-xs text-muted-foreground mt-1">
+                Substitua <code>SUA_CHAVE_AQUI</code> pela chave de acesso cadastrada no sistema. Guarde-a como uma
+                senha: quem tiver a chave consulta e grava serviços.
+              </p>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <span className="text-xs text-muted-foreground">Testar a chave</span>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  type="password"
+                  value={chave}
+                  onChange={(e) => setChave(e.target.value)}
+                  placeholder="Cole a chave para verificar a conexão"
+                  className="h-9 text-xs"
+                />
+                <Button size="sm" onClick={testarChave} disabled={testandoChave || !chave.trim()}>
+                  {testandoChave ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Wifi className="h-4 w-4 mr-1" />}
+                  Testar
+                </Button>
+              </div>
+              {resultadoChave && (
+                <div className="flex items-center gap-2 text-sm">
+                  {resultadoChave.ok ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  )}
+                  <span className={`text-xs ${resultadoChave.ok ? 'text-green-600' : 'text-destructive'}`}>
+                    {resultadoChave.detalhe}
+                  </span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
+
           <CardHeader className="p-4 pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
               <Plug className="h-4 w-4" />
