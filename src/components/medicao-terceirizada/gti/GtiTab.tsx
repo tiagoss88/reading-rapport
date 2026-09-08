@@ -124,6 +124,33 @@ function GtiDatePicker({ value, onChange, placeholder = 'Selecionar', className 
   )
 }
 
+function SortableHead({ column, activeColumn, direction, onClick, children }: {
+  column: SortColumn
+  activeColumn: SortColumn | null
+  direction: SortDirection | null
+  onClick: (column: SortColumn) => void
+  children: React.ReactNode
+}) {
+  const active = activeColumn === column
+  const Icon = active ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  return (
+    <TableHead className="text-xs">
+      <button
+        type="button"
+        onClick={() => onClick(column)}
+        className={cn(
+          "flex items-center gap-1 font-medium select-none",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+        )}
+        aria-label={`Ordenar por ${children}${active ? (direction === 'asc' ? ' (crescente)' : ' (decrescente)') : ''}`}
+      >
+        {children}
+        <Icon className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")} />
+      </button>
+    </TableHead>
+  )
+}
+
 function normHeader(h: string) {
   return String(h || '').trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
