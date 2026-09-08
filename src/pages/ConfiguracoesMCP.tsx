@@ -60,7 +60,24 @@ const CONFIG_MANUAL = JSON.stringify(
   2,
 )
 
+const API_URL = `${BASE}/functions/v1/mcp-api`
+
+const CONFIG_CHAVE = JSON.stringify(
+  {
+    mcpServers: {
+      'ag-ngd': {
+        type: 'http',
+        url: API_URL,
+        headers: { Authorization: 'Bearer SUA_CHAVE_AQUI' },
+      },
+    },
+  },
+  null,
+  2,
+)
+
 type Check = { nome: string; url: string; ok: boolean; detalhe: string }
+
 
 export default function ConfiguracoesMCP() {
   const [copiado, setCopiado] = useState(false)
