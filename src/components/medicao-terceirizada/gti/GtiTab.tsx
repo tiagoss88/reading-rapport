@@ -277,6 +277,7 @@ export default function GtiTab() {
   const [editRow, setEditRow] = useState<Row | null>(null)
   const [delRow, setDelRow] = useState<Row | null>(null)
   const [recalculando, setRecalculando] = useState(false)
+  const [sort, setSort] = useState<{ column: SortColumn | null; direction: SortDirection | null }>({ column: null, direction: null })
 
   const { data: queryResult, isLoading, error: loadError, refetch, isFetching } = useQuery<GtiQueryResult>({
     queryKey: ['gti-leituras', ano, mes, uf],
