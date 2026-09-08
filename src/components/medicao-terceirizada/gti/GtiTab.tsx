@@ -566,6 +566,7 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
   const reset = () => {
     setRows([])
     setFileName('')
+    setHeaderAviso(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
