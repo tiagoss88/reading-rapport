@@ -304,11 +304,37 @@ export default function GtiTab() {
   const registros = queryResult?.rows ?? []
   const usandoCompatibilidade = queryResult?.storage === 'config'
 
+  const toggleSort = (column: SortColumn) => {
+    setSort(prev => {
+      if (prev.column !== column) return { column, direction: 'asc' }
+      if (prev.direction === 'asc') return { column, direction: 'desc' }
+      return { column: null, direction: null }
+    })
+  }
+
   const filtrados = useMemo(() => {
-    if (!busca) return registros
-    const b = busca.toLowerCase()
-    return registros.filter(r => r.condominio.toLowerCase().includes(b))
-  }, [registros, busca])
+    let list = registros
+    if (busca) {
+      const b = busca.toLowerCase()
+      list = list.filter(r => r.condominio.toLowerCase().includes(b))
+    }
+    if (sort.column && sort.direction) {
+      list = [...list].sort((a, b) => {
+        const av = a[sort.column!]
+        const bv = b[sort.column!]
+        if (!av && !bv) return 0
+        if (!av) return 1
+        if (!bv) return -1
+        const ad = new Date(av + 'T00:00:00').getTime()
+        const bd = new Date(bv + 'T00:00:00').getTime()
+        if (isNaN(ad) && isNaN(bd)) return 0
+        if (isNaN(ad)) return 1
+        if (isNaN(bd)) return -1
+        return sort.direction === 'asc' ? ad - bd : bd - ad
+      })
+    }
+    return list
+  }, [registros, busca, sort])
 
   const anos = Array.from({ length: 6 }, (_, i) => anoAtual - 3 + i)
 
