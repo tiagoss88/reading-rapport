@@ -216,6 +216,7 @@ export default function GtiTab() {
   const [importOpen, setImportOpen] = useState(false)
   const [editRow, setEditRow] = useState<Row | null>(null)
   const [delRow, setDelRow] = useState<Row | null>(null)
+  const [recalculando, setRecalculando] = useState(false)
 
   const { data: queryResult, isLoading, error: loadError, refetch, isFetching } = useQuery<GtiQueryResult>({
     queryKey: ['gti-leituras', ano, mes, uf],
