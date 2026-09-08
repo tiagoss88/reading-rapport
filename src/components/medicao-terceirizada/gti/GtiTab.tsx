@@ -556,6 +556,7 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
   const [rows, setRows] = useState<ParsedRow[]>([])
   const [fileName, setFileName] = useState('')
   const [importing, setImporting] = useState(false)
+  const [headerAviso, setHeaderAviso] = useState<string | null>(null)
 
   const validos = rows.filter(r => !r._error)
   const invalidos = rows.filter(r => r._error)
