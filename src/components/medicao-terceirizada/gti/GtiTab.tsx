@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef, type ReactNode } from 'react'
 import * as XLSX from 'xlsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet, AlertTriangle, RefreshCw, CalendarIcon } from 'lucide-react'
+import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet, AlertTriangle, RefreshCw, CalendarIcon, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
@@ -34,6 +34,9 @@ type GtiQueryResult = {
   rows: Row[]
   storage: 'table' | 'config'
 }
+
+type SortColumn = 'leitura_anterior' | 'prazo_inicial' | 'prazo_final'
+type SortDirection = 'asc' | 'desc'
 
 const MESES = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -118,6 +121,33 @@ function GtiDatePicker({ value, onChange, placeholder = 'Selecionar', className 
         />
       </PopoverContent>
     </Popover>
+  )
+}
+
+function SortableHead({ column, activeColumn, direction, onClick, children }: {
+  column: SortColumn
+  activeColumn: SortColumn | null
+  direction: SortDirection | null
+  onClick: (column: SortColumn) => void
+  children: ReactNode
+}) {
+  const active = activeColumn === column
+  const Icon = active ? (direction === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  return (
+    <TableHead className="text-xs">
+      <button
+        type="button"
+        onClick={() => onClick(column)}
+        className={cn(
+          "flex items-center gap-1 font-medium select-none",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+        )}
+        aria-label={`Ordenar por ${children}${active ? (direction === 'asc' ? ' (crescente)' : ' (decrescente)') : ''}`}
+      >
+        {children}
+        <Icon className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")} />
+      </button>
+    </TableHead>
   )
 }
 
@@ -274,6 +304,7 @@ export default function GtiTab() {
   const [editRow, setEditRow] = useState<Row | null>(null)
   const [delRow, setDelRow] = useState<Row | null>(null)
   const [recalculando, setRecalculando] = useState(false)
+  const [sort, setSort] = useState<{ column: SortColumn | null; direction: SortDirection | null }>({ column: null, direction: null })
 
   const { data: queryResult, isLoading, error: loadError, refetch, isFetching } = useQuery<GtiQueryResult>({
     queryKey: ['gti-leituras', ano, mes, uf],
@@ -300,11 +331,37 @@ export default function GtiTab() {
   const registros = queryResult?.rows ?? []
   const usandoCompatibilidade = queryResult?.storage === 'config'
 
+  const toggleSort = (column: SortColumn) => {
+    setSort(prev => {
+      if (prev.column !== column) return { column, direction: 'asc' }
+      if (prev.direction === 'asc') return { column, direction: 'desc' }
+      return { column: null, direction: null }
+    })
+  }
+
   const filtrados = useMemo(() => {
-    if (!busca) return registros
-    const b = busca.toLowerCase()
-    return registros.filter(r => r.condominio.toLowerCase().includes(b))
-  }, [registros, busca])
+    let list = registros
+    if (busca) {
+      const b = busca.toLowerCase()
+      list = list.filter(r => r.condominio.toLowerCase().includes(b))
+    }
+    if (sort.column && sort.direction) {
+      list = [...list].sort((a, b) => {
+        const av = a[sort.column!]
+        const bv = b[sort.column!]
+        if (!av && !bv) return 0
+        if (!av) return 1
+        if (!bv) return -1
+        const ad = new Date(av + 'T00:00:00').getTime()
+        const bd = new Date(bv + 'T00:00:00').getTime()
+        if (isNaN(ad) && isNaN(bd)) return 0
+        if (isNaN(ad)) return 1
+        if (isNaN(bd)) return -1
+        return sort.direction === 'asc' ? ad - bd : bd - ad
+      })
+    }
+    return list
+  }, [registros, busca, sort])
 
   const anos = Array.from({ length: 6 }, (_, i) => anoAtual - 3 + i)
 
@@ -484,9 +541,9 @@ export default function GtiTab() {
               <TableRow className="h-9">
                 <TableHead className="text-xs">UF</TableHead>
                 <TableHead className="text-xs">Condomínio</TableHead>
-                <TableHead className="text-xs">Leitura anterior</TableHead>
-                <TableHead className="text-xs">Prazo inicial</TableHead>
-                <TableHead className="text-xs">Prazo final</TableHead>
+                <SortableHead column="leitura_anterior" activeColumn={sort.column} direction={sort.direction} onClick={toggleSort}>Leitura anterior</SortableHead>
+                <SortableHead column="prazo_inicial" activeColumn={sort.column} direction={sort.direction} onClick={toggleSort}>Prazo inicial</SortableHead>
+                <SortableHead column="prazo_final" activeColumn={sort.column} direction={sort.direction} onClick={toggleSort}>Prazo final</SortableHead>
                 <TableHead className="text-xs">Importado em</TableHead>
                 {podeEditar && <TableHead className="text-xs w-[90px]">Ações</TableHead>}
               </TableRow>
