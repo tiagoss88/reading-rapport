@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/contexts/PermissionsContext'
-import { format } from 'date-fns'
+import { format, addDays, differenceInCalendarDays } from 'date-fns'
 
 type Row = {
   id: string
