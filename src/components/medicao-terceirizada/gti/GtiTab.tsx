@@ -13,7 +13,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/contexts/PermissionsContext'
-import { format } from 'date-fns'
+import { format, addDays, differenceInCalendarDays } from 'date-fns'
 
 type Row = {
   id: string
@@ -60,6 +60,32 @@ function parseDate(input: unknown): string | null {
   if (!isNaN(parsed.getTime())) return format(parsed, 'yyyy-MM-dd')
   return null
 }
+
+// Regra de coleta: mínimo 28 e máximo 32 dias corridos entre uma coleta e outra
+const PRAZO_MIN_DIAS = 28
+const PRAZO_MAX_DIAS = 32
+
+function toLocalDate(d: string) {
+  return new Date(d + 'T00:00:00')
+}
+
+function calcularPrazos(leituraAnterior: string | null | undefined) {
+  if (!leituraAnterior) return { prazo_inicial: null as string | null, prazo_final: null as string | null }
+  const base = toLocalDate(leituraAnterior)
+  if (isNaN(base.getTime())) return { prazo_inicial: null as string | null, prazo_final: null as string | null }
+  return {
+    prazo_inicial: format(addDays(base, PRAZO_MIN_DIAS), 'yyyy-MM-dd'),
+    prazo_final: format(addDays(base, PRAZO_MAX_DIAS), 'yyyy-MM-dd'),
+  }
+}
+
+function prazoForaDaJanela(leituraAnterior: string | null, prazo: string | null) {
+  if (!leituraAnterior || !prazo) return false
+  const dias = differenceInCalendarDays(toLocalDate(prazo), toLocalDate(leituraAnterior))
+  if (isNaN(dias)) return false
+  return dias < PRAZO_MIN_DIAS || dias > PRAZO_MAX_DIAS
+}
+
 
 function normHeader(h: string) {
   return String(h || '').trim().toLowerCase()
@@ -190,6 +216,7 @@ export default function GtiTab() {
   const [importOpen, setImportOpen] = useState(false)
   const [editRow, setEditRow] = useState<Row | null>(null)
   const [delRow, setDelRow] = useState<Row | null>(null)
+  const [recalculando, setRecalculando] = useState(false)
 
   const { data: queryResult, isLoading, error: loadError, refetch, isFetching } = useQuery<GtiQueryResult>({
     queryKey: ['gti-leituras', ano, mes, uf],
@@ -282,6 +309,43 @@ export default function GtiTab() {
     }
   }
 
+  const atualizarLeituraAnterior = async (r: Row, valor: string) => {
+    const leitura = valor || null
+    const prazos = calcularPrazos(leitura)
+    await salvarEdicao({ ...r, leitura_anterior: leitura, ...prazos })
+  }
+
+  const recalcularPrazos = async () => {
+    const alvos = filtrados.filter(r => r.leitura_anterior)
+    if (alvos.length === 0) {
+      toast({ title: 'Nenhum registro com leitura anterior informada' })
+      return
+    }
+    setRecalculando(true)
+    try {
+      let alterados = 0
+      for (const r of alvos) {
+        const p = calcularPrazos(r.leitura_anterior)
+        if (r.prazo_inicial === p.prazo_inicial && r.prazo_final === p.prazo_final) continue
+        if (usandoCompatibilidade) {
+          await updateGtiRowInConfig({ ...r, ...p })
+        } else {
+          const { error } = await supabase.from('gti_leituras_mensais' as any)
+            .update({ prazo_inicial: p.prazo_inicial, prazo_final: p.prazo_final })
+            .eq('id', r.id)
+          if (error) throw error
+        }
+        alterados++
+      }
+      toast({ title: 'Prazos recalculados', description: `${alterados} registro(s) atualizado(s).` })
+      qc.invalidateQueries({ queryKey: ['gti-leituras'] })
+    } catch (error) {
+      toast({ title: 'Erro ao recalcular', description: getGtiErrorMessage(error), variant: 'destructive' })
+    }
+    setRecalculando(false)
+  }
+
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -291,6 +355,11 @@ export default function GtiTab() {
             Planilha GTI — Coletas CE/BA
           </CardTitle>
           <div className="flex flex-wrap gap-2">
+            {podeEditar && (
+              <Button size="sm" variant="outline" onClick={recalcularPrazos} disabled={recalculando || filtrados.length===0}>
+                <RefreshCw className={`h-4 w-4 mr-1 ${recalculando ? 'animate-spin' : ''}`} /> Recalcular prazos
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={exportarCSV} disabled={filtrados.length===0}>
               <Download className="h-4 w-4 mr-1" /> Exportar CSV
             </Button>
@@ -376,9 +445,29 @@ export default function GtiTab() {
                 <TableRow key={r.id} className="text-xs">
                   <TableCell><Badge variant={r.uf==='CE'?'default':'secondary'}>{r.uf}</Badge></TableCell>
                   <TableCell className="font-medium">{r.condominio}</TableCell>
-                  <TableCell>{r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{r.prazo_inicial ? format(new Date(r.prazo_inicial+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{r.prazo_final ? format(new Date(r.prazo_final+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
+                  <TableCell>
+                    {podeEditar ? (
+                      <Input
+                        type="date"
+                        value={r.leitura_anterior ?? ''}
+                        onChange={e => atualizarLeituraAnterior(r, e.target.value)}
+                        className="h-7 w-[140px] text-xs"
+                      />
+                    ) : (
+                      r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'
+                    )}
+                  </TableCell>
+                  <TableCell className={prazoForaDaJanela(r.leitura_anterior, r.prazo_inicial) ? 'text-amber-600 font-medium' : ''}>
+                    {r.prazo_inicial ? format(new Date(r.prazo_inicial+'T00:00:00'),'dd/MM/yyyy') : '-'}
+                  </TableCell>
+                  <TableCell className={prazoForaDaJanela(r.leitura_anterior, r.prazo_final) ? 'text-amber-600 font-medium' : ''}>
+                    <span className="inline-flex items-center gap-1">
+                      {r.prazo_final ? format(new Date(r.prazo_final+'T00:00:00'),'dd/MM/yyyy') : '-'}
+                      {(prazoForaDaJanela(r.leitura_anterior, r.prazo_inicial) || prazoForaDaJanela(r.leitura_anterior, r.prazo_final)) && (
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600" aria-label="Fora da janela de 28 a 32 dias" />
+                      )}
+                    </span>
+                  </TableCell>
                   <TableCell>{format(new Date(r.importado_em),'dd/MM/yyyy HH:mm')}</TableCell>
                   {podeEditar && (
                     <TableCell>
@@ -488,12 +577,15 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
         condominio = 'BA ' + condominio
       }
 
+      const leituraAnterior = parseDate(mapped.leitura_anterior)
+      const calculados = calcularPrazos(leituraAnterior)
+
       return {
         uf: ufv,
         condominio,
-        leitura_anterior: parseDate(mapped.leitura_anterior),
-        prazo_inicial: parseDate(mapped.prazo_inicial),
-        prazo_final: parseDate(mapped.prazo_final),
+        leitura_anterior: leituraAnterior,
+        prazo_inicial: parseDate(mapped.prazo_inicial) ?? calculados.prazo_inicial,
+        prazo_final: parseDate(mapped.prazo_final) ?? calculados.prazo_final,
         _rowIndex: idx + 2, // header row + 1-based
         _error: error,
       }
@@ -671,16 +763,30 @@ function EditDialog({ row, onClose, onSave }: {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground">Leitura anterior</label>
-            <Input type="date" value={r.leitura_anterior ?? ''} onChange={e => setR({...r, leitura_anterior: e.target.value || null})} className="h-9" />
+            <Input
+              type="date"
+              value={r.leitura_anterior ?? ''}
+              onChange={e => {
+                const leitura = e.target.value || null
+                setR({ ...r, leitura_anterior: leitura, ...calcularPrazos(leitura) })
+              }}
+              className="h-9"
+            />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Prazo inicial</label>
+            <label className="text-xs text-muted-foreground">Prazo inicial (leitura anterior + {PRAZO_MIN_DIAS} dias)</label>
             <Input type="date" value={r.prazo_inicial ?? ''} onChange={e => setR({...r, prazo_inicial: e.target.value || null})} className="h-9" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Prazo final</label>
+            <label className="text-xs text-muted-foreground">Prazo final (leitura anterior + {PRAZO_MAX_DIAS} dias)</label>
             <Input type="date" value={r.prazo_final ?? ''} onChange={e => setR({...r, prazo_final: e.target.value || null})} className="h-9" />
           </div>
+          {(prazoForaDaJanela(r.leitura_anterior, r.prazo_inicial) || prazoForaDaJanela(r.leitura_anterior, r.prazo_final)) && (
+            <p className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Prazo fora da janela de {PRAZO_MIN_DIAS} a {PRAZO_MAX_DIAS} dias corridos.
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
