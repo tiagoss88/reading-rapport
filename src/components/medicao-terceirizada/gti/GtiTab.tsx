@@ -61,6 +61,32 @@ function parseDate(input: unknown): string | null {
   return null
 }
 
+// Regra de coleta: mínimo 28 e máximo 32 dias corridos entre uma coleta e outra
+const PRAZO_MIN_DIAS = 28
+const PRAZO_MAX_DIAS = 32
+
+function toLocalDate(d: string) {
+  return new Date(d + 'T00:00:00')
+}
+
+function calcularPrazos(leituraAnterior: string | null | undefined) {
+  if (!leituraAnterior) return { prazo_inicial: null as string | null, prazo_final: null as string | null }
+  const base = toLocalDate(leituraAnterior)
+  if (isNaN(base.getTime())) return { prazo_inicial: null as string | null, prazo_final: null as string | null }
+  return {
+    prazo_inicial: format(addDays(base, PRAZO_MIN_DIAS), 'yyyy-MM-dd'),
+    prazo_final: format(addDays(base, PRAZO_MAX_DIAS), 'yyyy-MM-dd'),
+  }
+}
+
+function prazoForaDaJanela(leituraAnterior: string | null, prazo: string | null) {
+  if (!leituraAnterior || !prazo) return false
+  const dias = differenceInCalendarDays(toLocalDate(prazo), toLocalDate(leituraAnterior))
+  if (isNaN(dias)) return false
+  return dias < PRAZO_MIN_DIAS || dias > PRAZO_MAX_DIAS
+}
+
+
 function normHeader(h: string) {
   return String(h || '').trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
