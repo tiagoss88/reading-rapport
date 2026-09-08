@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet, AlertTriangle, RefreshCw, CalendarIcon } from 'lucide-react'
+import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet, AlertTriangle, RefreshCw, CalendarIcon, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
