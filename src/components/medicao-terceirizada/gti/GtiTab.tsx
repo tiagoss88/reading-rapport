@@ -89,6 +89,37 @@ function prazoForaDaJanela(leituraAnterior: string | null, prazo: string | null)
   return dias < PRAZO_MIN_DIAS || dias > PRAZO_MAX_DIAS
 }
 
+function GtiDatePicker({ value, onChange, placeholder = 'Selecionar', className }: {
+  value: string | null
+  onChange: (isoDate: string | null) => void
+  placeholder?: string
+  className?: string
+}) {
+  const date = value ? new Date(value + 'T00:00:00') : undefined
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn("justify-start text-left font-normal h-7 text-xs", !value && "text-muted-foreground", className)}
+        >
+          <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+          {value && date && !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy') : <span>{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={d => onChange(d ? format(d, 'yyyy-MM-dd') : null)}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 function normHeader(h: string) {
   return String(h || '').trim().toLowerCase()
