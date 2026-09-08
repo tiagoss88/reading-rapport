@@ -308,6 +308,43 @@ export default function GtiTab() {
     }
   }
 
+  const atualizarLeituraAnterior = async (r: Row, valor: string) => {
+    const leitura = valor || null
+    const prazos = calcularPrazos(leitura)
+    await salvarEdicao({ ...r, leitura_anterior: leitura, ...prazos })
+  }
+
+  const recalcularPrazos = async () => {
+    const alvos = filtrados.filter(r => r.leitura_anterior)
+    if (alvos.length === 0) {
+      toast({ title: 'Nenhum registro com leitura anterior informada' })
+      return
+    }
+    setRecalculando(true)
+    try {
+      let alterados = 0
+      for (const r of alvos) {
+        const p = calcularPrazos(r.leitura_anterior)
+        if (r.prazo_inicial === p.prazo_inicial && r.prazo_final === p.prazo_final) continue
+        if (usandoCompatibilidade) {
+          await updateGtiRowInConfig({ ...r, ...p })
+        } else {
+          const { error } = await supabase.from('gti_leituras_mensais' as any)
+            .update({ prazo_inicial: p.prazo_inicial, prazo_final: p.prazo_final })
+            .eq('id', r.id)
+          if (error) throw error
+        }
+        alterados++
+      }
+      toast({ title: 'Prazos recalculados', description: `${alterados} registro(s) atualizado(s).` })
+      qc.invalidateQueries({ queryKey: ['gti-leituras'] })
+    } catch (error) {
+      toast({ title: 'Erro ao recalcular', description: getGtiErrorMessage(error), variant: 'destructive' })
+    }
+    setRecalculando(false)
+  }
+
+
   return (
     <Card>
       <CardHeader className="pb-3">
