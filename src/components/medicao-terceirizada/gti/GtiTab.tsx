@@ -504,11 +504,10 @@ export default function GtiTab() {
                   <TableCell className="font-medium">{r.condominio}</TableCell>
                   <TableCell>
                     {podeEditar ? (
-                      <Input
-                        type="date"
-                        value={r.leitura_anterior ?? ''}
-                        onChange={e => atualizarLeituraAnterior(r, e.target.value)}
-                        className="h-7 w-[140px] text-xs"
+                      <GtiDatePicker
+                        value={r.leitura_anterior}
+                        onChange={v => atualizarLeituraAnterior(r, v ?? '')}
+                        className="w-[140px]"
                       />
                     ) : (
                       r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'
