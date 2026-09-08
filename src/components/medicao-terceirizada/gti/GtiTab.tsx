@@ -90,22 +90,36 @@ function prazoForaDaJanela(leituraAnterior: string | null, prazo: string | null)
 function normHeader(h: string) {
   return String(h || '').trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 const HEADER_ALIASES: Record<string, string> = {
   uf: 'uf',
+  estado: 'uf',
   condominio: 'condominio',
-  'condomínio': 'condominio',
+  condominios: 'condominio',
+  empreendimento: 'condominio',
+  empreendimentos: 'condominio',
   cliente: 'condominio',
+  'nome do condominio': 'condominio',
   'leitura anterior': 'leitura_anterior',
+  'leitura ant': 'leitura_anterior',
+  'ultima leitura': 'leitura_anterior',
   'data leitura anterior': 'leitura_anterior',
+  'data da leitura anterior': 'leitura_anterior',
   'data coleta anterior': 'leitura_anterior',
+  'coleta anterior': 'leitura_anterior',
   'prazo inicial': 'prazo_inicial',
+  'prazo inicio': 'prazo_inicial',
   'data inicial': 'prazo_inicial',
+  'data inicio': 'prazo_inicial',
   'inicio': 'prazo_inicial',
-  'início': 'prazo_inicial',
   'prazo final': 'prazo_final',
+  'prazo fim': 'prazo_final',
   'data final': 'prazo_final',
+  'data fim': 'prazo_final',
   'fim': 'prazo_final',
 }
 
@@ -120,8 +134,12 @@ function isMissingGtiTableError(error: unknown) {
 
 function getGtiErrorMessage(error: unknown) {
   const err = error as { code?: string; message?: string } | null
+  console.error('[GTI]', error)
   if (isMissingGtiTableError(error)) {
     return 'A tabela GTI ainda não está disponível no backend conectado a este app. Atualize o app e tente novamente; se persistir, o backend ativo precisa receber a migração da tabela GTI.'
+  }
+  if (err?.code === '42501' || /permission denied|row-level security/i.test(err?.message || '')) {
+    return 'Você não tem permissão para realizar esta ação. Apenas administradores e gestores podem importar ou alterar os registros GTI.'
   }
   return err?.message || 'Não foi possível carregar os registros GTI.'
 }
@@ -538,6 +556,7 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
   const [rows, setRows] = useState<ParsedRow[]>([])
   const [fileName, setFileName] = useState('')
   const [importing, setImporting] = useState(false)
+  const [headerAviso, setHeaderAviso] = useState<string | null>(null)
 
   const validos = rows.filter(r => !r._error)
   const invalidos = rows.filter(r => r._error)
@@ -547,22 +566,58 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
   const reset = () => {
     setRows([])
     setFileName('')
+    setHeaderAviso(null)
     if (fileRef.current) fileRef.current.value = ''
   }
 
   const handleFile = async (file: File) => {
     setFileName(file.name)
-    const buf = await file.arrayBuffer()
-    const wb = XLSX.read(buf, { type: 'array' })
-    const ws = wb.Sheets[wb.SheetNames[0]]
-    const raw = XLSX.utils.sheet_to_json<any>(ws, { defval: null, raw: true })
+    setRows([])
+    setHeaderAviso(null)
+    let matrix: any[][] = []
+    try {
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array', cellDates: false })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      if (!ws) {
+        setHeaderAviso('A planilha está vazia ou não pôde ser lida.')
+        return
+      }
+      matrix = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, defval: null, raw: true, blankrows: false })
+    } catch (e) {
+      console.error('[GTI] erro ao ler planilha', e)
+      setHeaderAviso('Não foi possível ler o arquivo. Salve como .xlsx ou .csv e tente novamente.')
+      return
+    }
 
-    const parsed: ParsedRow[] = raw.map((r, idx) => {
-      // Map headers via aliases
+    // Localiza a linha de cabeçalho (pode não ser a primeira, se houver títulos acima)
+    let headerIdx = -1
+    let headers: string[] = []
+    for (let i = 0; i < Math.min(matrix.length, 20); i++) {
+      const cells = (matrix[i] || []).map(c => normHeader(String(c ?? '')))
+      const canons = cells.map(c => HEADER_ALIASES[c]).filter(Boolean)
+      if (canons.includes('condominio') && canons.includes('uf')) {
+        headerIdx = i
+        headers = cells
+        break
+      }
+    }
+
+    if (headerIdx === -1) {
+      const primeira = (matrix[0] || []).map(c => String(c ?? '').trim()).filter(Boolean)
+      setHeaderAviso(
+        `Não encontrei as colunas UF e CONDOMINIO na planilha.${primeira.length ? ` Cabeçalhos encontrados: ${primeira.join(', ')}.` : ''}`
+      )
+      return
+    }
+
+    const corpo = matrix.slice(headerIdx + 1).filter(linha => (linha || []).some(c => c !== null && String(c).trim() !== ''))
+
+    const parsed: ParsedRow[] = corpo.map((linha, idx) => {
       const mapped: Record<string, any> = {}
-      Object.keys(r).forEach(k => {
-        const canon = HEADER_ALIASES[normHeader(k)]
-        if (canon) mapped[canon] = r[k]
+      headers.forEach((h, ci) => {
+        const canon = HEADER_ALIASES[h]
+        if (canon && mapped[canon] == null) mapped[canon] = linha[ci]
       })
 
       let condominio = String(mapped.condominio ?? '').trim()
@@ -690,6 +745,14 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
               />
             </div>
           </div>
+
+          {headerAviso && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{headerAviso}</span>
+            </div>
+          )}
+
 
           {rows.length > 0 && (
             <div className="space-y-2">
