@@ -746,6 +746,14 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
             </div>
           </div>
 
+          {headerAviso && (
+            <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+              <span>{headerAviso}</span>
+            </div>
+          )}
+
+
           {rows.length > 0 && (
             <div className="space-y-2">
               <div className="flex gap-2 text-xs">
