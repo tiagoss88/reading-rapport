@@ -120,8 +120,12 @@ function isMissingGtiTableError(error: unknown) {
 
 function getGtiErrorMessage(error: unknown) {
   const err = error as { code?: string; message?: string } | null
+  console.error('[GTI]', error)
   if (isMissingGtiTableError(error)) {
     return 'A tabela GTI ainda não está disponível no backend conectado a este app. Atualize o app e tente novamente; se persistir, o backend ativo precisa receber a migração da tabela GTI.'
+  }
+  if (err?.code === '42501' || /permission denied|row-level security/i.test(err?.message || '')) {
+    return 'Você não tem permissão para realizar esta ação. Apenas administradores e gestores podem importar ou alterar os registros GTI.'
   }
   return err?.message || 'Não foi possível carregar os registros GTI.'
 }
