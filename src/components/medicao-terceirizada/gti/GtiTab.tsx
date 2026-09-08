@@ -90,22 +90,36 @@ function prazoForaDaJanela(leituraAnterior: string | null, prazo: string | null)
 function normHeader(h: string) {
   return String(h || '').trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 const HEADER_ALIASES: Record<string, string> = {
   uf: 'uf',
+  estado: 'uf',
   condominio: 'condominio',
-  'condomínio': 'condominio',
+  condominios: 'condominio',
+  empreendimento: 'condominio',
+  empreendimentos: 'condominio',
   cliente: 'condominio',
+  'nome do condominio': 'condominio',
   'leitura anterior': 'leitura_anterior',
+  'leitura ant': 'leitura_anterior',
+  'ultima leitura': 'leitura_anterior',
   'data leitura anterior': 'leitura_anterior',
+  'data da leitura anterior': 'leitura_anterior',
   'data coleta anterior': 'leitura_anterior',
+  'coleta anterior': 'leitura_anterior',
   'prazo inicial': 'prazo_inicial',
+  'prazo inicio': 'prazo_inicial',
   'data inicial': 'prazo_inicial',
+  'data inicio': 'prazo_inicial',
   'inicio': 'prazo_inicial',
-  'início': 'prazo_inicial',
   'prazo final': 'prazo_final',
+  'prazo fim': 'prazo_final',
   'data final': 'prazo_final',
+  'data fim': 'prazo_final',
   'fim': 'prazo_final',
 }
 
