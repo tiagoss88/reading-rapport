@@ -445,9 +445,29 @@ export default function GtiTab() {
                 <TableRow key={r.id} className="text-xs">
                   <TableCell><Badge variant={r.uf==='CE'?'default':'secondary'}>{r.uf}</Badge></TableCell>
                   <TableCell className="font-medium">{r.condominio}</TableCell>
-                  <TableCell>{r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{r.prazo_inicial ? format(new Date(r.prazo_inicial+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
-                  <TableCell>{r.prazo_final ? format(new Date(r.prazo_final+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
+                  <TableCell>
+                    {podeEditar ? (
+                      <Input
+                        type="date"
+                        value={r.leitura_anterior ?? ''}
+                        onChange={e => atualizarLeituraAnterior(r, e.target.value)}
+                        className="h-7 w-[140px] text-xs"
+                      />
+                    ) : (
+                      r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'
+                    )}
+                  </TableCell>
+                  <TableCell className={prazoForaDaJanela(r.leitura_anterior, r.prazo_inicial) ? 'text-amber-600 font-medium' : ''}>
+                    {r.prazo_inicial ? format(new Date(r.prazo_inicial+'T00:00:00'),'dd/MM/yyyy') : '-'}
+                  </TableCell>
+                  <TableCell className={prazoForaDaJanela(r.leitura_anterior, r.prazo_final) ? 'text-amber-600 font-medium' : ''}>
+                    <span className="inline-flex items-center gap-1">
+                      {r.prazo_final ? format(new Date(r.prazo_final+'T00:00:00'),'dd/MM/yyyy') : '-'}
+                      {(prazoForaDaJanela(r.leitura_anterior, r.prazo_inicial) || prazoForaDaJanela(r.leitura_anterior, r.prazo_final)) && (
+                        <AlertTriangle className="h-3.5 w-3.5 text-amber-600" aria-label="Fora da janela de 28 a 32 dias" />
+                      )}
+                    </span>
+                  </TableCell>
                   <TableCell>{format(new Date(r.importado_em),'dd/MM/yyyy HH:mm')}</TableCell>
                   {podeEditar && (
                     <TableCell>
