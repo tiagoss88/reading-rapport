@@ -577,12 +577,15 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
         condominio = 'BA ' + condominio
       }
 
+      const leituraAnterior = parseDate(mapped.leitura_anterior)
+      const calculados = calcularPrazos(leituraAnterior)
+
       return {
         uf: ufv,
         condominio,
-        leitura_anterior: parseDate(mapped.leitura_anterior),
-        prazo_inicial: parseDate(mapped.prazo_inicial),
-        prazo_final: parseDate(mapped.prazo_final),
+        leitura_anterior: leituraAnterior,
+        prazo_inicial: parseDate(mapped.prazo_inicial) ?? calculados.prazo_inicial,
+        prazo_final: parseDate(mapped.prazo_final) ?? calculados.prazo_final,
         _rowIndex: idx + 2, // header row + 1-based
         _error: error,
       }
