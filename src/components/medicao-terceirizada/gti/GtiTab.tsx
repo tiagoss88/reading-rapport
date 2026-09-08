@@ -570,17 +570,52 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
 
   const handleFile = async (file: File) => {
     setFileName(file.name)
-    const buf = await file.arrayBuffer()
-    const wb = XLSX.read(buf, { type: 'array' })
-    const ws = wb.Sheets[wb.SheetNames[0]]
-    const raw = XLSX.utils.sheet_to_json<any>(ws, { defval: null, raw: true })
+    setRows([])
+    setHeaderAviso(null)
+    let matrix: any[][] = []
+    try {
+      const buf = await file.arrayBuffer()
+      const wb = XLSX.read(buf, { type: 'array', cellDates: false })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      if (!ws) {
+        setHeaderAviso('A planilha está vazia ou não pôde ser lida.')
+        return
+      }
+      matrix = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, defval: null, raw: true, blankrows: false })
+    } catch (e) {
+      console.error('[GTI] erro ao ler planilha', e)
+      setHeaderAviso('Não foi possível ler o arquivo. Salve como .xlsx ou .csv e tente novamente.')
+      return
+    }
 
-    const parsed: ParsedRow[] = raw.map((r, idx) => {
-      // Map headers via aliases
+    // Localiza a linha de cabeçalho (pode não ser a primeira, se houver títulos acima)
+    let headerIdx = -1
+    let headers: string[] = []
+    for (let i = 0; i < Math.min(matrix.length, 20); i++) {
+      const cells = (matrix[i] || []).map(c => normHeader(String(c ?? '')))
+      const canons = cells.map(c => HEADER_ALIASES[c]).filter(Boolean)
+      if (canons.includes('condominio') && canons.includes('uf')) {
+        headerIdx = i
+        headers = cells
+        break
+      }
+    }
+
+    if (headerIdx === -1) {
+      const primeira = (matrix[0] || []).map(c => String(c ?? '').trim()).filter(Boolean)
+      setHeaderAviso(
+        `Não encontrei as colunas UF e CONDOMINIO na planilha.${primeira.length ? ` Cabeçalhos encontrados: ${primeira.join(', ')}.` : ''}`
+      )
+      return
+    }
+
+    const corpo = matrix.slice(headerIdx + 1).filter(linha => (linha || []).some(c => c !== null && String(c).trim() !== ''))
+
+    const parsed: ParsedRow[] = corpo.map((linha, idx) => {
       const mapped: Record<string, any> = {}
-      Object.keys(r).forEach(k => {
-        const canon = HEADER_ALIASES[normHeader(k)]
-        if (canon) mapped[canon] = r[k]
+      headers.forEach((h, ci) => {
+        const canon = HEADER_ALIASES[h]
+        if (canon && mapped[canon] == null) mapped[canon] = linha[ci]
       })
 
       let condominio = String(mapped.condominio ?? '').trim()
