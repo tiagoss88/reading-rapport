@@ -125,7 +125,6 @@ const HEADER_ALIASES: Record<string, string> = {
   'prazo fim': 'prazo_final',
   'data final': 'prazo_final',
   'data fim': 'prazo_final',
-  'data fim': 'prazo_final',
   'fim': 'prazo_final',
 }
 
