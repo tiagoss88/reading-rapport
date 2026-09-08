@@ -760,16 +760,30 @@ function EditDialog({ row, onClose, onSave }: {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground">Leitura anterior</label>
-            <Input type="date" value={r.leitura_anterior ?? ''} onChange={e => setR({...r, leitura_anterior: e.target.value || null})} className="h-9" />
+            <Input
+              type="date"
+              value={r.leitura_anterior ?? ''}
+              onChange={e => {
+                const leitura = e.target.value || null
+                setR({ ...r, leitura_anterior: leitura, ...calcularPrazos(leitura) })
+              }}
+              className="h-9"
+            />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Prazo inicial</label>
+            <label className="text-xs text-muted-foreground">Prazo inicial (leitura anterior + {PRAZO_MIN_DIAS} dias)</label>
             <Input type="date" value={r.prazo_inicial ?? ''} onChange={e => setR({...r, prazo_inicial: e.target.value || null})} className="h-9" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Prazo final</label>
+            <label className="text-xs text-muted-foreground">Prazo final (leitura anterior + {PRAZO_MAX_DIAS} dias)</label>
             <Input type="date" value={r.prazo_final ?? ''} onChange={e => setR({...r, prazo_final: e.target.value || null})} className="h-9" />
           </div>
+          {(prazoForaDaJanela(r.leitura_anterior, r.prazo_inicial) || prazoForaDaJanela(r.leitura_anterior, r.prazo_final)) && (
+            <p className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Prazo fora da janela de {PRAZO_MIN_DIAS} a {PRAZO_MAX_DIAS} dias corridos.
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
