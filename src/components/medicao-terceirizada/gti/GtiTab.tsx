@@ -818,9 +818,9 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
                         <TableCell>{r._rowIndex}</TableCell>
                         <TableCell>{r.uf}</TableCell>
                         <TableCell>{r.condominio}</TableCell>
-                        <TableCell>{r.leitura_anterior ?? '-'}</TableCell>
-                        <TableCell>{r.prazo_inicial ?? '-'}</TableCell>
-                        <TableCell>{r.prazo_final ?? '-'}</TableCell>
+                        <TableCell>{r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
+                        <TableCell>{r.prazo_inicial ? format(new Date(r.prazo_inicial+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
+                        <TableCell>{r.prazo_final ? format(new Date(r.prazo_final+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
                         <TableCell>{r._error
                           ? <Badge variant="destructive" className="text-[10px]">{r._error}</Badge>
                           : <Badge variant="default" className="text-[10px]">OK</Badge>}</TableCell>
