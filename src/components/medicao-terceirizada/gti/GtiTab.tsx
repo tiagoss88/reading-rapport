@@ -3,16 +3,19 @@ import * as XLSX from 'xlsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Upload, Download, Loader2, Trash2, Pencil, FileSpreadsheet, AlertTriangle, RefreshCw, CalendarIcon } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import { usePermissions } from '@/contexts/PermissionsContext'
+import { cn } from '@/lib/utils'
 import { format, addDays, differenceInCalendarDays } from 'date-fns'
 
 type Row = {
@@ -86,6 +89,37 @@ function prazoForaDaJanela(leituraAnterior: string | null, prazo: string | null)
   return dias < PRAZO_MIN_DIAS || dias > PRAZO_MAX_DIAS
 }
 
+function GtiDatePicker({ value, onChange, placeholder = 'Selecionar', className }: {
+  value: string | null
+  onChange: (isoDate: string | null) => void
+  placeholder?: string
+  className?: string
+}) {
+  const date = value ? new Date(value + 'T00:00:00') : undefined
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn("justify-start text-left font-normal h-7 text-xs", !value && "text-muted-foreground", className)}
+        >
+          <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+          {value && date && !isNaN(date.getTime()) ? format(date, 'dd/MM/yyyy') : <span>{placeholder}</span>}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={date}
+          onSelect={d => onChange(d ? format(d, 'yyyy-MM-dd') : null)}
+          initialFocus
+          className={cn("p-3 pointer-events-auto")}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
 
 function normHeader(h: string) {
   return String(h || '').trim().toLowerCase()
@@ -470,11 +504,10 @@ export default function GtiTab() {
                   <TableCell className="font-medium">{r.condominio}</TableCell>
                   <TableCell>
                     {podeEditar ? (
-                      <Input
-                        type="date"
-                        value={r.leitura_anterior ?? ''}
-                        onChange={e => atualizarLeituraAnterior(r, e.target.value)}
-                        className="h-7 w-[140px] text-xs"
+                      <GtiDatePicker
+                        value={r.leitura_anterior}
+                        onChange={v => atualizarLeituraAnterior(r, v ?? '')}
+                        className="w-[140px]"
                       />
                     ) : (
                       r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'
@@ -785,9 +818,9 @@ function ImportDialog({ open, onOpenChange, defaultMes, defaultAno }: {
                         <TableCell>{r._rowIndex}</TableCell>
                         <TableCell>{r.uf}</TableCell>
                         <TableCell>{r.condominio}</TableCell>
-                        <TableCell>{r.leitura_anterior ?? '-'}</TableCell>
-                        <TableCell>{r.prazo_inicial ?? '-'}</TableCell>
-                        <TableCell>{r.prazo_final ?? '-'}</TableCell>
+                        <TableCell>{r.leitura_anterior ? format(new Date(r.leitura_anterior+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
+                        <TableCell>{r.prazo_inicial ? format(new Date(r.prazo_inicial+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
+                        <TableCell>{r.prazo_final ? format(new Date(r.prazo_final+'T00:00:00'),'dd/MM/yyyy') : '-'}</TableCell>
                         <TableCell>{r._error
                           ? <Badge variant="destructive" className="text-[10px]">{r._error}</Badge>
                           : <Badge variant="default" className="text-[10px]">OK</Badge>}</TableCell>
@@ -831,23 +864,27 @@ function EditDialog({ row, onClose, onSave }: {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground">Leitura anterior</label>
-            <Input
-              type="date"
-              value={r.leitura_anterior ?? ''}
-              onChange={e => {
-                const leitura = e.target.value || null
-                setR({ ...r, leitura_anterior: leitura, ...calcularPrazos(leitura) })
-              }}
-              className="h-9"
+            <GtiDatePicker
+              value={r.leitura_anterior}
+              onChange={leitura => setR({ ...r, leitura_anterior: leitura, ...calcularPrazos(leitura) })}
+              className="w-full h-9"
             />
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Prazo inicial (leitura anterior + {PRAZO_MIN_DIAS} dias)</label>
-            <Input type="date" value={r.prazo_inicial ?? ''} onChange={e => setR({...r, prazo_inicial: e.target.value || null})} className="h-9" />
+            <GtiDatePicker
+              value={r.prazo_inicial}
+              onChange={v => setR({...r, prazo_inicial: v})}
+              className="w-full h-9"
+            />
           </div>
           <div>
             <label className="text-xs text-muted-foreground">Prazo final (leitura anterior + {PRAZO_MAX_DIAS} dias)</label>
-            <Input type="date" value={r.prazo_final ?? ''} onChange={e => setR({...r, prazo_final: e.target.value || null})} className="h-9" />
+            <GtiDatePicker
+              value={r.prazo_final}
+              onChange={v => setR({...r, prazo_final: v})}
+              className="w-full h-9"
+            />
           </div>
           {(prazoForaDaJanela(r.leitura_anterior, r.prazo_inicial) || prazoForaDaJanela(r.leitura_anterior, r.prazo_final)) && (
             <p className="text-xs text-amber-600 flex items-center gap-1">
