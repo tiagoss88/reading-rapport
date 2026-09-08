@@ -541,9 +541,9 @@ export default function GtiTab() {
               <TableRow className="h-9">
                 <TableHead className="text-xs">UF</TableHead>
                 <TableHead className="text-xs">Condomínio</TableHead>
-                <TableHead className="text-xs">Leitura anterior</TableHead>
-                <TableHead className="text-xs">Prazo inicial</TableHead>
-                <TableHead className="text-xs">Prazo final</TableHead>
+                <SortableHead column="leitura_anterior" activeColumn={sort.column} direction={sort.direction} onClick={toggleSort}>Leitura anterior</SortableHead>
+                <SortableHead column="prazo_inicial" activeColumn={sort.column} direction={sort.direction} onClick={toggleSort}>Prazo inicial</SortableHead>
+                <SortableHead column="prazo_final" activeColumn={sort.column} direction={sort.direction} onClick={toggleSort}>Prazo final</SortableHead>
                 <TableHead className="text-xs">Importado em</TableHead>
                 {podeEditar && <TableHead className="text-xs w-[90px]">Ações</TableHead>}
               </TableRow>
