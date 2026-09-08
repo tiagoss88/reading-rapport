@@ -35,6 +35,9 @@ type GtiQueryResult = {
   storage: 'table' | 'config'
 }
 
+type SortColumn = 'leitura_anterior' | 'prazo_inicial' | 'prazo_final'
+type SortDirection = 'asc' | 'desc'
+
 const MESES = [
   'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
   'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro',
