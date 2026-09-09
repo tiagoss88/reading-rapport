@@ -8,6 +8,7 @@ const relatorioTitulos: Record<TipoRelatorio, string> = {
   condominios_competencia: 'Condomínios Coletados por Competência',
   rdo_servicos: 'RDO - Relatório Diário de Obra',
   cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
+  cadastro_condominios_uf_completo: 'Cadastro de Condomínios por UF Completo',
   coletas_sem_pendencia: 'Coletas Sem Pendência',
 };
 
@@ -16,14 +17,15 @@ export function exportarPDF(
   dados: any[],
   filtros: FiltrosRelatorioType
 ) {
-  const doc = new jsPDF();
+  const isCompleto = tipoRelatorio === 'cadastro_condominios_uf_completo';
+  const doc = new jsPDF(isCompleto ? { orientation: 'landscape' } : undefined);
   const titulo = relatorioTitulos[tipoRelatorio];
 
   doc.setFontSize(18);
   doc.text(titulo, 14, 20);
 
   doc.setFontSize(10);
-  if (tipoRelatorio === 'cadastro_condominios_uf') {
+  if (tipoRelatorio === 'cadastro_condominios_uf' || isCompleto) {
     if (filtros.ufFiltro) {
       doc.text(`UF: ${filtros.ufFiltro}`, 14, 28);
     } else {
