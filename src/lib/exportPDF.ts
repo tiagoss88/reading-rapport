@@ -9,6 +9,7 @@ const relatorioTitulos: Record<TipoRelatorio, string> = {
   rdo_servicos: 'RDO - Relatório Diário de Obra',
   cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
   cadastro_condominios_uf_completo: 'Cadastro de Condomínios por UF Completo',
+  condominios_georreferenciados: 'Condomínios Georreferenciados',
   coletas_sem_pendencia: 'Coletas Sem Pendência',
 };
 
