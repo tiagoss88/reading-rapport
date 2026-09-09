@@ -11,6 +11,7 @@ const relatoriosDisponiveis = [
   { value: 'condominios_competencia', label: 'Condomínios Coletados por Competência', categoria: 'Leituras' },
   { value: 'cadastro_condominios_uf', label: 'Cadastro de Condomínios por UF', categoria: 'Leituras' },
   { value: 'cadastro_condominios_uf_completo', label: 'Cadastro de Condomínios por UF Completo', categoria: 'Leituras' },
+  { value: 'condominios_georreferenciados', label: 'Condomínios Georreferenciados', categoria: 'Leituras' },
   { value: 'coletas_sem_pendencia', label: 'Coletas Sem Pendência', categoria: 'Leituras' },
   { value: 'rdo_servicos', label: 'RDO - Relatório Diário de Obra', categoria: 'Serviços' },
 ];
