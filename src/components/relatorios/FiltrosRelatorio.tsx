@@ -10,6 +10,7 @@ import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
 import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
 import { useRelatorioCadastroCondominiosCompleto } from '@/hooks/useRelatorioCadastroCondominiosCompleto';
 import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
+import { useRelatorioCondominiosGeorreferenciados } from '@/hooks/useRelatorioCondominiosGeorreferenciados';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Loader2 } from 'lucide-react';

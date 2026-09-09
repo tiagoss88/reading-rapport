@@ -124,6 +124,26 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
               <TableCell>{item.endereco || '-'}</TableCell>
             </TableRow>
           );
+        case 'condominios_georreferenciados':
+          return (
+            <TableRow
+              key={index}
+              className={item.is_subtotal ? 'bg-muted font-bold' : ''}
+            >
+              <TableCell>{item.uf || ''}</TableCell>
+              <TableCell className={item.is_subtotal ? 'font-bold' : 'font-medium'}>
+                {item.condominio}
+              </TableCell>
+              <TableCell>{item.rota != null ? item.rota : '--'}</TableCell>
+              <TableCell>{item.qtd_medidores}</TableCell>
+              <TableCell className={!item.is_subtotal && item.latitude == null ? 'text-muted-foreground' : ''}>
+                {item.is_subtotal ? '' : item.latitude != null ? Number(item.latitude).toFixed(6) : 'Não georreferenciado'}
+              </TableCell>
+              <TableCell className={!item.is_subtotal && item.longitude == null ? 'text-muted-foreground' : ''}>
+                {item.is_subtotal ? '' : item.longitude != null ? Number(item.longitude).toFixed(6) : 'Não georreferenciado'}
+              </TableCell>
+            </TableRow>
+          );
         case 'rdo_servicos':
           return (
             <TableRow key={index}>
