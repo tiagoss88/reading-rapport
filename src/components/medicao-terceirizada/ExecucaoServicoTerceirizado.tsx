@@ -145,21 +145,29 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
   }
 
   const uploadFile = async (file: File | Blob, name: string): Promise<string | null> => {
-    const path = `servicos/${Date.now()}_${name}`
-    const { error } = await supabase.storage.from('medidor-fotos').upload(path, file)
-    if (error) return null
+    const path = caminhoFotoServico(name)
+    const { error } = await supabase.storage
+      .from('medidor-fotos')
+      .upload(path, file, { upsert: true })
+    if (error) {
+      console.error('Falha ao enviar arquivo', name, error)
+      return null
+    }
     const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(path)
     return data.publicUrl
   }
 
   const handleSubmit = async () => {
+    if (saving) return
     setSaving(true)
     try {
       // Upload photos
       const fotoUrls: string[] = []
+      const falhasFotos: string[] = []
       for (const foto of fotos) {
         const url = await uploadFile(foto.file, foto.file.name)
         if (url) fotoUrls.push(url)
+        else falhasFotos.push(foto.file.name || 'foto')
       }
 
       // Upload signature
