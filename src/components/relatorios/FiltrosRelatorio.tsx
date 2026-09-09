@@ -35,6 +35,7 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
   const { gerarRelatorioCadastroCondominiosCompleto } = useRelatorioCadastroCondominiosCompleto();
   const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
+  const { gerarRelatorioCondominiosGeorreferenciados } = useRelatorioCondominiosGeorreferenciados();
 
   const { data: ufsDisponiveis } = useQuery({
     queryKey: ['ufs_disponiveis'],
@@ -47,7 +48,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
   });
 
   const { data: operadores } = useQuery({
