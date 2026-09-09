@@ -196,8 +196,20 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
 
       await updateServicoComFotos(supabase, servico.id, updateData, fotoUrls)
 
-
-      toast({ title: 'Serviço concluído', description: 'Registro salvo com sucesso.' })
+      if (falhasFotos.length) {
+        toast({
+          title: `${fotoUrls.length} de ${fotos.length} fotos enviadas`,
+          description: `Não foi possível enviar: ${falhasFotos.join(', ')}`,
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Serviço concluído',
+          description: fotos.length
+            ? `Registro salvo com ${fotoUrls.length} foto(s).`
+            : 'Registro salvo com sucesso.',
+        })
+      }
       onSuccess()
     } catch (error: any) {
       console.error('Erro ao salvar:', error)
