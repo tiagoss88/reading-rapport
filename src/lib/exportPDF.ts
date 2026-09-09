@@ -19,14 +19,15 @@ export function exportarPDF(
   filtros: FiltrosRelatorioType
 ) {
   const isCompleto = tipoRelatorio === 'cadastro_condominios_uf_completo';
-  const doc = new jsPDF(isCompleto ? { orientation: 'landscape' } : undefined);
+  const isGeo = tipoRelatorio === 'condominios_georreferenciados';
+  const doc = new jsPDF(isCompleto || isGeo ? { orientation: 'landscape' } : undefined);
   const titulo = relatorioTitulos[tipoRelatorio];
 
   doc.setFontSize(18);
   doc.text(titulo, 14, 20);
 
   doc.setFontSize(10);
-  if (tipoRelatorio === 'cadastro_condominios_uf' || isCompleto) {
+  if (tipoRelatorio === 'cadastro_condominios_uf' || isCompleto || isGeo) {
     if (filtros.ufFiltro) {
       doc.text(`UF: ${filtros.ufFiltro}`, 14, 28);
     } else {
