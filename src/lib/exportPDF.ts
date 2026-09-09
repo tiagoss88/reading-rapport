@@ -76,6 +76,19 @@ export function exportarPDF(
       ]);
       break;
 
+    case 'condominios_georreferenciados':
+      colunas = ['UF', 'Condomínio', 'Rota', 'Qtd Medidores', 'Latitude', 'Longitude'];
+      linhas = dados.map((item) => [
+        item.uf || '',
+        item.condominio,
+        item.rota != null ? item.rota : '--',
+        item.qtd_medidores,
+        item.is_subtotal ? '' : item.latitude != null ? Number(item.latitude).toFixed(6) : 'Não georreferenciado',
+        item.is_subtotal ? '' : item.longitude != null ? Number(item.longitude).toFixed(6) : 'Não georreferenciado',
+      ]);
+      break;
+
+
 
     case 'rdo_servicos':
       colunas = ['Data', 'Condomínio', 'Bloco', 'Apto', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];

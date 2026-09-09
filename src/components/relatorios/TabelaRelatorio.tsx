@@ -40,6 +40,17 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead>Endereço Completo</TableHead>
           </>
         );
+      case 'condominios_georreferenciados':
+        return (
+          <>
+            <TableHead>UF</TableHead>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>Rota</TableHead>
+            <TableHead>Qtd Medidores</TableHead>
+            <TableHead>Latitude</TableHead>
+            <TableHead>Longitude</TableHead>
+          </>
+        );
       case 'rdo_servicos':
         return (
           <>
