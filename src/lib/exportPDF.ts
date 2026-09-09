@@ -63,6 +63,18 @@ export function exportarPDF(
       ]);
       break;
 
+    case 'cadastro_condominios_uf_completo':
+      colunas = ['UF', 'Condomínio', 'Rota', 'Qtd Medidores', 'Endereço Completo'];
+      linhas = dados.map((item) => [
+        item.uf || '',
+        item.condominio,
+        item.rota != null ? item.rota : '--',
+        item.qtd_medidores,
+        item.endereco || '-',
+      ]);
+      break;
+
+
     case 'rdo_servicos':
       colunas = ['Data', 'Condomínio', 'Bloco', 'Apto', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
       linhas = dados.map((item) => [

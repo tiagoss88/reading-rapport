@@ -41,6 +41,18 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
       ]);
       break;
 
+    case 'cadastro_condominios_uf_completo':
+      headers = ['UF', 'Condomínio', 'Rota', 'Qtd Medidores', 'Endereço Completo'];
+      rows = dados.map((item) => [
+        item.uf || '',
+        item.condominio,
+        item.rota != null ? item.rota : '--',
+        item.qtd_medidores,
+        item.endereco || '',
+      ]);
+      break;
+
+
     case 'rdo_servicos':
       headers = ['Data', 'Condomínio', 'Bloco', 'Apartamento', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
       rows = dados.map((item) => [

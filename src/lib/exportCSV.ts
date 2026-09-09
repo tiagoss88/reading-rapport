@@ -29,6 +29,18 @@ export function exportarCSV(tipoRelatorio: TipoRelatorio, dados: any[]) {
       ]);
       break;
 
+    case 'cadastro_condominios_uf_completo':
+      colunas = ['UF', 'Condomínio', 'Rota', 'Qtd Medidores', 'Endereço Completo'];
+      linhas = dados.map((item) => [
+        item.uf || '',
+        item.condominio,
+        item.rota != null ? String(item.rota) : '--',
+        String(item.qtd_medidores),
+        item.endereco || '',
+      ]);
+      break;
+
+
     case 'rdo_servicos':
       colunas = ['Data', 'Condomínio', 'Bloco', 'Apartamento', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
       linhas = dados.map((item) => [

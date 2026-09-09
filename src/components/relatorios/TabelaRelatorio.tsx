@@ -30,6 +30,16 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead>Qtd Medidores</TableHead>
           </>
         );
+      case 'cadastro_condominios_uf_completo':
+        return (
+          <>
+            <TableHead>UF</TableHead>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>Rota</TableHead>
+            <TableHead>Qtd Medidores</TableHead>
+            <TableHead>Endereço Completo</TableHead>
+          </>
+        );
       case 'rdo_servicos':
         return (
           <>
