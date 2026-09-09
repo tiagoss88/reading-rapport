@@ -142,7 +142,7 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
-          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'coletas_sem_pendencia') && (
+          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia') && (
             <div className="space-y-2">
               <Label htmlFor="ufFiltro">UF</Label>
               <Select
