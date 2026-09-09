@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { smartCompress } from '@/lib/imageCompression'
-import { updateServicoComFotos } from '@/lib/fotosServico'
+import { updateServicoComFotos, caminhoFotoServico } from '@/lib/fotosServico'
 
 interface ServicoData {
   id: string
@@ -145,21 +145,29 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
   }
 
   const uploadFile = async (file: File | Blob, name: string): Promise<string | null> => {
-    const path = `servicos/${Date.now()}_${name}`
-    const { error } = await supabase.storage.from('medidor-fotos').upload(path, file)
-    if (error) return null
+    const path = caminhoFotoServico(name)
+    const { error } = await supabase.storage
+      .from('medidor-fotos')
+      .upload(path, file, { upsert: true })
+    if (error) {
+      console.error('Falha ao enviar arquivo', name, error)
+      return null
+    }
     const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(path)
     return data.publicUrl
   }
 
   const handleSubmit = async () => {
+    if (saving) return
     setSaving(true)
     try {
       // Upload photos
       const fotoUrls: string[] = []
+      const falhasFotos: string[] = []
       for (const foto of fotos) {
         const url = await uploadFile(foto.file, foto.file.name)
         if (url) fotoUrls.push(url)
+        else falhasFotos.push(foto.file.name || 'foto')
       }
 
       // Upload signature
@@ -188,8 +196,20 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
 
       await updateServicoComFotos(supabase, servico.id, updateData, fotoUrls)
 
-
-      toast({ title: 'Serviço concluído', description: 'Registro salvo com sucesso.' })
+      if (falhasFotos.length) {
+        toast({
+          title: `${fotoUrls.length} de ${fotos.length} fotos enviadas`,
+          description: `Não foi possível enviar: ${falhasFotos.join(', ')}`,
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Serviço concluído',
+          description: fotos.length
+            ? `Registro salvo com ${fotoUrls.length} foto(s).`
+            : 'Registro salvo com sucesso.',
+        })
+      }
       onSuccess()
     } catch (error: any) {
       console.error('Erro ao salvar:', error)

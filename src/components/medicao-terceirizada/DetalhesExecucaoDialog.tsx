@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 import { Loader2, Download, Receipt, Upload, X } from 'lucide-react'
 import { exportarRegistroAtendimento } from '@/lib/exportRegistroAtendimento'
 import { exportarComprovantePagamento } from '@/lib/exportComprovantePagamento'
-import { resolverFotos, extrairTextoObservacao, updateServicoComFotos } from '@/lib/fotosServico'
+import { resolverFotos, extrairTextoObservacao, updateServicoComFotos, anexarFotosServico, caminhoFotoServico } from '@/lib/fotosServico'
 import { smartCompress } from '@/lib/imageCompression'
 import { formatCpfCnpj, formatFormaPagamento, formatTelefone } from '@/lib/formatters'
 import { useToast } from '@/hooks/use-toast'
@@ -71,30 +71,59 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
 
   const handleUploadFotos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (!files?.length) return
+    if (!files?.length || !servicoId || uploading) return
     setUploading(true)
+    const selecionados = Array.from(files).filter(f => f.type.startsWith('image/'))
+    const novas: string[] = []
+    const falhas: string[] = []
     try {
-      const novas: string[] = []
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith('image/')) continue
+      for (const file of selecionados) {
         let arquivo: File | Blob = file
         try {
           arquivo = await smartCompress(file)
         } catch {
           /* usa original */
         }
-        const path = `servicos/${Date.now()}_${Math.random().toString(36).slice(2)}_${file.name}`
-        const { error } = await supabase.storage.from('medidor-fotos').upload(path, arquivo)
-        if (error) throw error
+        const path = caminhoFotoServico(file.name)
+        const { error } = await supabase.storage
+          .from('medidor-fotos')
+          .upload(path, arquivo, { upsert: true, contentType: file.type })
+        if (error) {
+          console.error('Falha ao enviar foto', file.name, error)
+          falhas.push(file.name)
+          continue
+        }
         const { data } = supabase.storage.from('medidor-fotos').getPublicUrl(path)
         novas.push(data.publicUrl)
       }
+
+      let totalSalvo = fotos.length
       if (novas.length) {
-        await salvarFotos([...fotos, ...novas])
-        toast({ title: 'Fotos adicionadas' })
+        const finais = await anexarFotosServico(supabase, servicoId, novas)
+        totalSalvo = finais.length
+        await queryClient.invalidateQueries({ queryKey: ['detalhes-execucao', servicoId] })
+        await queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
       }
-    } catch {
-      toast({ title: 'Erro ao enviar fotos', variant: 'destructive' })
+
+      if (falhas.length) {
+        toast({
+          title: `${novas.length} de ${selecionados.length} fotos enviadas`,
+          description: `Não foi possível enviar: ${falhas.join(', ')}`,
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: `${novas.length} foto(s) adicionada(s)`,
+          description: `Total no atendimento: ${totalSalvo}`,
+        })
+      }
+    } catch (error: any) {
+      console.error('Erro ao salvar fotos', error)
+      toast({
+        title: 'Erro ao salvar as fotos',
+        description: error?.message || 'Tente novamente.',
+        variant: 'destructive',
+      })
     } finally {
       setUploading(false)
       if (fileRef.current) fileRef.current.value = ''

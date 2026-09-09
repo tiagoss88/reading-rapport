@@ -81,3 +81,51 @@ export async function updateServicoComFotos(
   if (legacyError) throw legacyError
 }
 
+/**
+ * Lê as fotos atualmente gravadas no serviço, direto do banco,
+ * evitando depender de estado em tela (que pode estar desatualizado).
+ */
+export async function lerFotosAtuais(
+  supabase: any,
+  id: string
+): Promise<{ fotos: string[]; observacao: string | null }> {
+  const { data, error } = await supabase
+    .from('servicos_nacional_gas')
+    .select('fotos_urls, observacao')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  return {
+    fotos: resolverFotos(data?.fotos_urls, data?.observacao),
+    observacao: data?.observacao ?? null,
+  }
+}
+
+/**
+ * Anexa novas fotos ao serviço somando-as às já gravadas no banco
+ * (relidas na hora), sem duplicar URLs. Retorna a lista final.
+ */
+export async function anexarFotosServico(
+  supabase: any,
+  id: string,
+  novasFotos: string[]
+): Promise<string[]> {
+  const { fotos: atuais, observacao } = await lerFotosAtuais(supabase, id)
+  const texto = extrairTextoObservacao(observacao)
+  const finais = Array.from(new Set([...atuais, ...novasFotos]))
+
+  await updateServicoComFotos(supabase, id, { observacao: texto || null }, finais)
+  return finais
+}
+
+/** Gera um caminho único no storage preservando a extensão do arquivo. */
+export function caminhoFotoServico(nomeArquivo: string): string {
+  const ext = (nomeArquivo.match(/\.[a-z0-9]+$/i)?.[0] || '.jpg').toLowerCase()
+  const uid =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return `servicos/${Date.now()}_${uid}${ext}`
+}
+
