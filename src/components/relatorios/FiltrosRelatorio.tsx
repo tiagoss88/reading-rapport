@@ -10,6 +10,7 @@ import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
 import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
 import { useRelatorioCadastroCondominiosCompleto } from '@/hooks/useRelatorioCadastroCondominiosCompleto';
 import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
+import { useRelatorioCondominiosGeorreferenciados } from '@/hooks/useRelatorioCondominiosGeorreferenciados';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Loader2 } from 'lucide-react';
@@ -34,6 +35,7 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
   const { gerarRelatorioCadastroCondominiosCompleto } = useRelatorioCadastroCondominiosCompleto();
   const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
+  const { gerarRelatorioCondominiosGeorreferenciados } = useRelatorioCondominiosGeorreferenciados();
 
   const { data: ufsDisponiveis } = useQuery({
     queryKey: ['ufs_disponiveis'],
@@ -46,7 +48,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
   });
 
   const { data: operadores } = useQuery({
@@ -89,6 +91,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioCadastroCondominios(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf_completo') {
         dados = await gerarRelatorioCadastroCondominiosCompleto(filtros);
+      } else if (tipoRelatorio === 'condominios_georreferenciados') {
+        dados = await gerarRelatorioCondominiosGeorreferenciados(filtros);
       } else if (tipoRelatorio === 'coletas_sem_pendencia') {
         dados = await gerarRelatorioColetasSemPendencia(filtros);
       }
@@ -138,7 +142,7 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
-          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'coletas_sem_pendencia') && (
+          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia') && (
             <div className="space-y-2">
               <Label htmlFor="ufFiltro">UF</Label>
               <Select

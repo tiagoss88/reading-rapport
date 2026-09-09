@@ -9,6 +9,7 @@ const relatorioTitulos: Record<TipoRelatorio, string> = {
   rdo_servicos: 'RDO - Relatório Diário de Obra',
   cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
   cadastro_condominios_uf_completo: 'Cadastro de Condomínios por UF Completo',
+  condominios_georreferenciados: 'Condomínios Georreferenciados',
   coletas_sem_pendencia: 'Coletas Sem Pendência',
 };
 
@@ -18,14 +19,15 @@ export function exportarPDF(
   filtros: FiltrosRelatorioType
 ) {
   const isCompleto = tipoRelatorio === 'cadastro_condominios_uf_completo';
-  const doc = new jsPDF(isCompleto ? { orientation: 'landscape' } : undefined);
+  const isGeo = tipoRelatorio === 'condominios_georreferenciados';
+  const doc = new jsPDF(isCompleto || isGeo ? { orientation: 'landscape' } : undefined);
   const titulo = relatorioTitulos[tipoRelatorio];
 
   doc.setFontSize(18);
   doc.text(titulo, 14, 20);
 
   doc.setFontSize(10);
-  if (tipoRelatorio === 'cadastro_condominios_uf' || isCompleto) {
+  if (tipoRelatorio === 'cadastro_condominios_uf' || isCompleto || isGeo) {
     if (filtros.ufFiltro) {
       doc.text(`UF: ${filtros.ufFiltro}`, 14, 28);
     } else {
@@ -73,6 +75,19 @@ export function exportarPDF(
         item.endereco || '-',
       ]);
       break;
+
+    case 'condominios_georreferenciados':
+      colunas = ['UF', 'Condomínio', 'Rota', 'Qtd Medidores', 'Latitude', 'Longitude'];
+      linhas = dados.map((item) => [
+        item.uf || '',
+        item.condominio,
+        item.rota != null ? item.rota : '--',
+        item.qtd_medidores,
+        item.is_subtotal ? '' : item.latitude != null ? Number(item.latitude).toFixed(6) : 'Não georreferenciado',
+        item.is_subtotal ? '' : item.longitude != null ? Number(item.longitude).toFixed(6) : 'Não georreferenciado',
+      ]);
+      break;
+
 
 
     case 'rdo_servicos':

@@ -52,6 +52,19 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
       ]);
       break;
 
+    case 'condominios_georreferenciados':
+      headers = ['UF', 'Condomínio', 'Rota', 'Qtd Medidores', 'Latitude', 'Longitude'];
+      rows = dados.map((item) => [
+        item.uf || '',
+        item.condominio,
+        item.rota != null ? item.rota : '--',
+        item.qtd_medidores,
+        item.is_subtotal ? '' : item.latitude != null ? Number(item.latitude) : 'Não georreferenciado',
+        item.is_subtotal ? '' : item.longitude != null ? Number(item.longitude) : 'Não georreferenciado',
+      ]);
+      break;
+
+
 
     case 'rdo_servicos':
       headers = ['Data', 'Condomínio', 'Bloco', 'Apartamento', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
