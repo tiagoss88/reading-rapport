@@ -8,6 +8,7 @@ import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
 import { useRelatorioLeituras } from '@/hooks/useRelatorioLeituras';
 import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
 import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
+import { useRelatorioCadastroCondominiosCompleto } from '@/hooks/useRelatorioCadastroCondominiosCompleto';
 import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -31,6 +32,7 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
   const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
+  const { gerarRelatorioCadastroCondominiosCompleto } = useRelatorioCadastroCondominiosCompleto();
   const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
 
   const { data: ufsDisponiveis } = useQuery({
@@ -44,7 +46,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
   });
 
   const { data: operadores } = useQuery({
@@ -85,6 +87,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioServicos(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf') {
         dados = await gerarRelatorioCadastroCondominios(filtros);
+      } else if (tipoRelatorio === 'cadastro_condominios_uf_completo') {
+        dados = await gerarRelatorioCadastroCondominiosCompleto(filtros);
       } else if (tipoRelatorio === 'coletas_sem_pendencia') {
         dados = await gerarRelatorioColetasSemPendencia(filtros);
       }
@@ -134,7 +138,7 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
-          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'coletas_sem_pendencia') && (
+          {(tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'coletas_sem_pendencia') && (
             <div className="space-y-2">
               <Label htmlFor="ufFiltro">UF</Label>
               <Select
