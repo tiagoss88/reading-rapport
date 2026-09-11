@@ -50,7 +50,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
   });
 
   const { data: operadores } = useQuery({
@@ -77,7 +77,7 @@ export default function FiltrosRelatorio({
       if (error) throw error;
       return data;
     },
-    enabled: tipoRelatorio === 'rdo_servicos',
+    enabled: tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
   });
 
   const handleGerarRelatorio = async () => {
