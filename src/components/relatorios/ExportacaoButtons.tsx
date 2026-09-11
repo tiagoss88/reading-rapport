@@ -110,7 +110,7 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
   const wsData = [headers, ...rows];
   const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  if (tipoRelatorio === 'rdo_servicos') {
+  if (tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao') {
     const valorCol = headers.length - 1;
     for (let i = 0; i < rows.length; i++) {
       const ref = XLSX.utils.encode_cell({ r: i + 1, c: valorCol });
