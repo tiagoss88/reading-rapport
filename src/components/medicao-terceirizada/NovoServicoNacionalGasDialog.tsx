@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command'
 import { useToast } from '@/hooks/use-toast'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { buscarServicoDuplicado, descreverUnidade } from '@/lib/duplicidadeServico'
+import { buscarServicoDuplicado, descreverUnidade, descreverStatusServico, STATUS_ABERTO } from '@/lib/duplicidadeServico'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
@@ -185,22 +185,31 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
 
   })
 
-  const [dupAviso, setDupAviso] = useState<{ protocolo: string; dados: FormData } | null>(null)
+  const [dupAviso, setDupAviso] = useState<{ protocolo: string; situacao: string; aberto: boolean; dados: FormData } | null>(null)
   const [checandoDup, setChecandoDup] = useState(false)
 
   const onSubmit = async (data: FormData) => {
     setChecandoDup(true)
     try {
-      const dup = await buscarServicoDuplicado(supabase as any, {
-        uf: data.uf,
-        condominio_nome_original: data.condominio_nome_original,
-        bloco: data.bloco,
-        apartamento: data.apartamento,
-        morador_nome: data.morador_nome,
-        tipo_servico: data.tipo_servico
-      })
+      const dup = await buscarServicoDuplicado(
+        supabase as any,
+        {
+          uf: data.uf,
+          condominio_nome_original: data.condominio_nome_original,
+          bloco: data.bloco,
+          apartamento: data.apartamento,
+          morador_nome: data.morador_nome,
+          tipo_servico: data.tipo_servico
+        },
+        { incluirEncerrados: true }
+      )
       if (dup) {
-        setDupAviso({ protocolo: dup.numero_protocolo || 'sem protocolo', dados: data })
+        setDupAviso({
+          protocolo: dup.numero_protocolo || 'sem protocolo',
+          situacao: descreverStatusServico(dup),
+          aberto: (STATUS_ABERTO as readonly string[]).includes(dup.status_atendimento),
+          dados: data,
+        })
         return
       }
     } catch (err) {
