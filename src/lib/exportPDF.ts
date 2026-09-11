@@ -107,6 +107,23 @@ export function exportarPDF(
       ]);
       break;
 
+    case 'rdo_servicos_execucao':
+      colunas = ['Data Execução', 'Condomínio', 'Bloco', 'Apto', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
+      linhas = dados.map((item) => [
+        item.data_execucao ? format(new Date(item.data_execucao + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+        item.condominio || '-',
+        item.bloco || '-',
+        item.apartamento || '-',
+        item.tipo_servico?.toUpperCase(),
+        item.tecnico || '-',
+        item.status,
+        item.valor_servico != null
+          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.valor_servico))
+          : '-',
+      ]);
+      break;
+
+
     case 'coletas_sem_pendencia':
       colunas = ['Condomínio', 'UF', 'Técnico', 'Data Coleta', 'Observação'];
       linhas = dados.map((item) => [
