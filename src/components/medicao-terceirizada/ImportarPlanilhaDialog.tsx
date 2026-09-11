@@ -477,6 +477,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const matchedCount = parsedData.filter(r => r.matched && !r.isDuplicate).length
   const unmatchedCount = parsedData.filter(r => !r.matched && !r.isDuplicate).length
   const duplicateCount = parsedData.filter(r => r.isDuplicate).length
+  const duplicateAbertoCount = parsedData.filter(r => r.isDuplicate && r.duplicateTipo !== 'historico').length
+  const duplicateHistoricoCount = parsedData.filter(r => r.duplicateTipo === 'historico').length
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
