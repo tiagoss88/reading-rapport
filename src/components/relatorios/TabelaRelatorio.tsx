@@ -64,6 +64,19 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead className="text-right">Valor (R$)</TableHead>
           </>
         );
+      case 'rdo_servicos_execucao':
+        return (
+          <>
+            <TableHead>Data Execução</TableHead>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>Bloco</TableHead>
+            <TableHead>Apartamento</TableHead>
+            <TableHead>Tipo Serviço</TableHead>
+            <TableHead>Técnico</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Valor (R$)</TableHead>
+          </>
+        );
       case 'coletas_sem_pendencia':
         return (
           <>

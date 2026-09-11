@@ -80,6 +80,21 @@ function exportarExcel(tipoRelatorio: TipoRelatorio, dados: any[]) {
       ]);
       break;
 
+    case 'rdo_servicos_execucao':
+      headers = ['Data Execução', 'Condomínio', 'Bloco', 'Apartamento', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
+      rows = dados.map((item) => [
+        item.data_execucao ? format(new Date(item.data_execucao + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '',
+        item.condominio || '',
+        item.bloco || '',
+        item.apartamento || '',
+        item.tipo_servico?.toUpperCase(),
+        item.tecnico || '',
+        item.status,
+        item.valor_servico != null ? Number(item.valor_servico) : null,
+      ]);
+      break;
+
+
     case 'coletas_sem_pendencia':
       headers = ['Condomínio', 'UF', 'Técnico', 'Data Coleta', 'Observação'];
       rows = dados.map((item) => [
