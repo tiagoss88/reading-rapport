@@ -190,7 +190,7 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
-          {tipoRelatorio === 'rdo_servicos' && (
+          {(tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao') && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="dataInicio">Data Início</Label>
