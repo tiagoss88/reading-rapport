@@ -84,17 +84,16 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     }
   })
 
-  // Serviços EM ABERTO existentes, para checagem de duplicidade (paginado)
+  // Serviços existentes (todos os status), para checagem de duplicidade (paginado)
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; numero_protocolo: string | null }> = []
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; numero_protocolo: string | null; status_atendimento: string; data_agendamento: string | null; updated_at: string | null }> = []
       const PAGE = 1000
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from('servicos_nacional_gas')
-          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, numero_protocolo')
-          .in('status_atendimento', STATUS_ABERTO as unknown as string[])
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, numero_protocolo, status_atendimento, data_agendamento, updated_at')
           .range(from, from + PAGE - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -107,11 +106,20 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     staleTime: 0,
   })
 
-  const existingKeyToProtocol = (() => {
-    const map = new Map<string, string>()
+  const existingKeyToServico = (() => {
+    const map = new Map<string, { protocolo: string; status: string; descricao: string; aberto: boolean }>()
     ;(existingServices || []).forEach(s => {
       const k = makeDuplicateKey(s)
-      if (!map.has(k)) map.set(k, s.numero_protocolo || 'já cadastrado')
+      const aberto = (STATUS_ABERTO as readonly string[]).includes(s.status_atendimento)
+      const atual = map.get(k)
+      // serviços em aberto têm prioridade na mensagem
+      if (atual && (atual.aberto || !aberto)) return
+      map.set(k, {
+        protocolo: s.numero_protocolo || 'já cadastrado',
+        status: s.status_atendimento,
+        descricao: descreverStatusServico(s),
+        aberto,
+      })
     })
     return map
   })()
@@ -121,15 +129,20 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     return rows.map((row, idx) => {
 
       const fullKey = makeDuplicateKey(row)
-      const existingProtocol = existingKeyToProtocol.get(fullKey)
+      const existente = existingKeyToServico.get(fullKey)
       const seenIdx = seenIndexByKey.get(fullKey)
       let isDuplicate = false
       let duplicateReason: string | undefined
-      if (existingProtocol) {
+      let duplicateTipo: 'aberto' | 'historico' | undefined
+      if (existente) {
         isDuplicate = true
-        duplicateReason = `Já existe no sistema (protocolo ${existingProtocol})`
+        duplicateTipo = existente.aberto ? 'aberto' : 'historico'
+        duplicateReason = existente.aberto
+          ? `Já existe em aberto (protocolo ${existente.protocolo})`
+          : `Já existe (protocolo ${existente.protocolo} - ${existente.descricao})`
       } else if (seenIdx !== undefined) {
         isDuplicate = true
+        duplicateTipo = 'aberto'
         duplicateReason = `Repetido na planilha (linha ${seenIdx + 2})`
       }
       if (seenIdx === undefined) seenIndexByKey.set(fullKey, idx)
@@ -146,9 +159,10 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
           motivo: duplicateReason,
         })
       }
-      return { ...row, isDuplicate, duplicateReason }
+      return { ...row, isDuplicate, duplicateReason, duplicateTipo }
     })
   }
+
 
 
   const parseExcelDate = (value: any): string | null => {
