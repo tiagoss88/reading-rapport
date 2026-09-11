@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { makeServicoDupKey, STATUS_ABERTO } from '@/lib/duplicidadeServico'
+import { makeServicoDupKey, STATUS_ABERTO, descreverStatusServico } from '@/lib/duplicidadeServico'
 
 
 interface ImportedRow {
@@ -36,6 +36,7 @@ interface ImportedRow {
   matched?: boolean
   isDuplicate?: boolean
   duplicateReason?: string
+  duplicateTipo?: 'aberto' | 'historico'
 }
 
 interface Props {
@@ -84,17 +85,16 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     }
   })
 
-  // Serviços EM ABERTO existentes, para checagem de duplicidade (paginado)
+  // Serviços existentes (todos os status), para checagem de duplicidade (paginado)
   const { data: existingServices } = useQuery({
     queryKey: ['servicos-nacional-gas-duplicates'],
     queryFn: async () => {
-      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; numero_protocolo: string | null }> = []
+      const all: Array<{ uf: string; condominio_nome_original: string; bloco: string | null; apartamento: string | null; morador_nome: string | null; tipo_servico: string | null; numero_protocolo: string | null; status_atendimento: string; data_agendamento: string | null; updated_at: string | null }> = []
       const PAGE = 1000
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await supabase
           .from('servicos_nacional_gas')
-          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, numero_protocolo')
-          .in('status_atendimento', STATUS_ABERTO as unknown as string[])
+          .select('uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, numero_protocolo, status_atendimento, data_agendamento, updated_at')
           .range(from, from + PAGE - 1)
         if (error) throw error
         if (!data || data.length === 0) break
@@ -107,11 +107,20 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     staleTime: 0,
   })
 
-  const existingKeyToProtocol = (() => {
-    const map = new Map<string, string>()
+  const existingKeyToServico = (() => {
+    const map = new Map<string, { protocolo: string; status: string; descricao: string; aberto: boolean }>()
     ;(existingServices || []).forEach(s => {
       const k = makeDuplicateKey(s)
-      if (!map.has(k)) map.set(k, s.numero_protocolo || 'já cadastrado')
+      const aberto = (STATUS_ABERTO as readonly string[]).includes(s.status_atendimento)
+      const atual = map.get(k)
+      // serviços em aberto têm prioridade na mensagem
+      if (atual && (atual.aberto || !aberto)) return
+      map.set(k, {
+        protocolo: s.numero_protocolo || 'já cadastrado',
+        status: s.status_atendimento,
+        descricao: descreverStatusServico(s),
+        aberto,
+      })
     })
     return map
   })()
@@ -121,15 +130,20 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     return rows.map((row, idx) => {
 
       const fullKey = makeDuplicateKey(row)
-      const existingProtocol = existingKeyToProtocol.get(fullKey)
+      const existente = existingKeyToServico.get(fullKey)
       const seenIdx = seenIndexByKey.get(fullKey)
       let isDuplicate = false
       let duplicateReason: string | undefined
-      if (existingProtocol) {
+      let duplicateTipo: 'aberto' | 'historico' | undefined
+      if (existente) {
         isDuplicate = true
-        duplicateReason = `Já existe no sistema (protocolo ${existingProtocol})`
+        duplicateTipo = existente.aberto ? 'aberto' : 'historico'
+        duplicateReason = existente.aberto
+          ? `Já existe em aberto (protocolo ${existente.protocolo})`
+          : `Já existe (protocolo ${existente.protocolo} - ${existente.descricao})`
       } else if (seenIdx !== undefined) {
         isDuplicate = true
+        duplicateTipo = 'aberto'
         duplicateReason = `Repetido na planilha (linha ${seenIdx + 2})`
       }
       if (seenIdx === undefined) seenIndexByKey.set(fullKey, idx)
@@ -146,9 +160,10 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
           motivo: duplicateReason,
         })
       }
-      return { ...row, isDuplicate, duplicateReason }
+      return { ...row, isDuplicate, duplicateReason, duplicateTipo }
     })
   }
+
 
 
   const parseExcelDate = (value: any): string | null => {
@@ -462,6 +477,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const matchedCount = parsedData.filter(r => r.matched && !r.isDuplicate).length
   const unmatchedCount = parsedData.filter(r => !r.matched && !r.isDuplicate).length
   const duplicateCount = parsedData.filter(r => r.isDuplicate).length
+  const duplicateAbertoCount = parsedData.filter(r => r.isDuplicate && r.duplicateTipo !== 'historico').length
+  const duplicateHistoricoCount = parsedData.filter(r => r.duplicateTipo === 'historico').length
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -587,11 +604,19 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                   </span>
                 </div>
               )}
-              {duplicateCount > 0 && (
+              {duplicateAbertoCount > 0 && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 rounded-md">
                   <Ban className="h-4 w-4 text-destructive" />
                   <span className="text-destructive">
-                    {duplicateCount} duplicado(s)
+                    {duplicateAbertoCount} duplicado(s) em aberto
+                  </span>
+                </div>
+              )}
+              {duplicateHistoricoCount > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-yellow-800 dark:text-yellow-400">
+                    {duplicateHistoricoCount} já atendido(s) antes
                   </span>
                 </div>
               )}
@@ -613,7 +638,9 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                     <tr
                       key={idx}
                       className={`border-b ${
-                        row.isDuplicate
+                        row.duplicateTipo === 'historico'
+                          ? 'bg-yellow-100/60 dark:bg-yellow-900/20 opacity-80'
+                          : row.isDuplicate
                           ? 'bg-destructive/5 line-through opacity-60'
                           : !row.matched
                           ? 'bg-yellow-50/50 dark:bg-yellow-900/10'
@@ -621,7 +648,15 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                       }`}
                     >
                       <td className="p-2">
-                        {row.isDuplicate ? (
+                        {row.duplicateTipo === 'historico' ? (
+                          <span
+                            className="flex items-center gap-1 text-yellow-700 dark:text-yellow-400 text-xs font-medium"
+                            title={row.duplicateReason || 'Já atendido antes'}
+                          >
+                            <AlertTriangle className="h-4 w-4" />
+                            Já atendido
+                          </span>
+                        ) : row.isDuplicate ? (
                           <span
                             className="flex items-center gap-1 text-destructive text-xs font-medium"
                             title={row.duplicateReason || 'Duplicado'}

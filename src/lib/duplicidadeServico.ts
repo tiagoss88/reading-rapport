@@ -65,29 +65,67 @@ type MinimalClient = {
   from: (table: string) => any
 }
 
+export interface ServicoDuplicadoAchado {
+  id: string
+  numero_protocolo: string | null
+  status_atendimento: string
+  data_agendamento: string | null
+  updated_at: string | null
+}
+
+/** Formata "executado em 10/08/2026" para mensagens ao usuário */
+export const descreverStatusServico = (s: {
+  status_atendimento: string
+  data_agendamento?: string | null
+  updated_at?: string | null
+}): string => {
+  const iso = s.data_agendamento || (s.updated_at ? s.updated_at.slice(0, 10) : null)
+  let data = ''
+  if (iso && /^\d{4}-\d{2}-\d{2}/.test(iso)) {
+    const [a, m, d] = iso.slice(0, 10).split('-')
+    data = ` em ${d}/${m}/${a}`
+  }
+  return `${s.status_atendimento}${data}`
+}
+
 /**
- * Busca um serviço em aberto com a mesma chave de duplicidade.
- * Retorna o registro existente ou null.
+ * Busca um serviço com a mesma chave de duplicidade.
+ * Por padrão considera apenas serviços em aberto; com `incluirEncerrados`
+ * também considera executados/cancelados (dando prioridade aos em aberto).
  */
 export async function buscarServicoDuplicado(
   client: MinimalClient,
-  row: ServicoChaveInput
-): Promise<{ id: string; numero_protocolo: string | null; status_atendimento: string } | null> {
+  row: ServicoChaveInput,
+  opcoes?: { incluirEncerrados?: boolean }
+): Promise<ServicoDuplicadoAchado | null> {
   const chave = makeServicoDupKey(row)
 
   let query = client
     .from('servicos_nacional_gas')
-    .select('id, numero_protocolo, status_atendimento, uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico')
-    .in('status_atendimento', STATUS_ABERTO as unknown as string[])
+    .select('id, numero_protocolo, status_atendimento, data_agendamento, updated_at, uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico')
     .limit(1000)
 
+  if (!opcoes?.incluirEncerrados) {
+    query = query.in('status_atendimento', STATUS_ABERTO as unknown as string[])
+  }
   if (row.uf) query = query.eq('uf', String(row.uf).toUpperCase())
 
   const { data, error } = await query
   if (error) throw error
 
-  const achado = (data || []).find((s: any) => makeServicoDupKey(s) === chave)
+  const candidatos = (data || []).filter((s: any) => makeServicoDupKey(s) === chave)
+  const achado =
+    candidatos.find((s: any) => (STATUS_ABERTO as readonly string[]).includes(s.status_atendimento)) ||
+    candidatos[0]
+
   return achado
-    ? { id: achado.id, numero_protocolo: achado.numero_protocolo, status_atendimento: achado.status_atendimento }
+    ? {
+        id: achado.id,
+        numero_protocolo: achado.numero_protocolo,
+        status_atendimento: achado.status_atendimento,
+        data_agendamento: achado.data_agendamento ?? null,
+        updated_at: achado.updated_at ?? null,
+      }
     : null
 }
+
