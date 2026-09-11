@@ -638,7 +638,9 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                     <tr
                       key={idx}
                       className={`border-b ${
-                        row.isDuplicate
+                        row.duplicateTipo === 'historico'
+                          ? 'bg-yellow-100/60 dark:bg-yellow-900/20 opacity-80'
+                          : row.isDuplicate
                           ? 'bg-destructive/5 line-through opacity-60'
                           : !row.matched
                           ? 'bg-yellow-50/50 dark:bg-yellow-900/10'
@@ -646,7 +648,15 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                       }`}
                     >
                       <td className="p-2">
-                        {row.isDuplicate ? (
+                        {row.duplicateTipo === 'historico' ? (
+                          <span
+                            className="flex items-center gap-1 text-yellow-700 dark:text-yellow-400 text-xs font-medium"
+                            title={row.duplicateReason || 'Já atendido antes'}
+                          >
+                            <AlertTriangle className="h-4 w-4" />
+                            Já atendido
+                          </span>
+                        ) : row.isDuplicate ? (
                           <span
                             className="flex items-center gap-1 text-destructive text-xs font-medium"
                             title={row.duplicateReason || 'Duplicado'}
