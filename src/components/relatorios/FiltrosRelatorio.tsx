@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
 import { useRelatorioLeituras } from '@/hooks/useRelatorioLeituras';
 import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
+import { useRelatorioServicosExecucao } from '@/hooks/useRelatorioServicosExecucao';
 import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
 import { useRelatorioCadastroCondominiosCompleto } from '@/hooks/useRelatorioCadastroCondominiosCompleto';
 import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
@@ -87,6 +88,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioLeituras(filtros);
       } else if (tipoRelatorio === 'rdo_servicos') {
         dados = await gerarRelatorioServicos(filtros);
+      } else if (tipoRelatorio === 'rdo_servicos_execucao') {
+        dados = await gerarRelatorioServicosExecucao(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf') {
         dados = await gerarRelatorioCadastroCondominios(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf_completo') {
@@ -193,7 +196,7 @@ export default function FiltrosRelatorio({
           {(tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao') && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="dataInicio">Data Início</Label>
+                <Label htmlFor="dataInicio">{tipoRelatorio === 'rdo_servicos_execucao' ? 'Execução — Início' : 'Data Início'}</Label>
                 <Input
                   id="dataInicio"
                   type="date"
@@ -203,7 +206,7 @@ export default function FiltrosRelatorio({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dataFim">Data Fim</Label>
+                <Label htmlFor="dataFim">{tipoRelatorio === 'rdo_servicos_execucao' ? 'Execução — Fim' : 'Data Fim'}</Label>
                 <Input
                   id="dataFim"
                   type="date"
