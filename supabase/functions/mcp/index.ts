@@ -247,14 +247,24 @@ var makeServicoDupKey = (row) => [
   normText(row.morador_nome).replace(/[^a-z0-9]/g, ""),
   normText(row.tipo_servico).replace(/[^a-z0-9]/g, "")
 ].join("|");
-async function buscarServicoDuplicado(client, row) {
+async function buscarServicoDuplicado(client, row, opcoes) {
   const chave = makeServicoDupKey(row);
-  let query = client.from("servicos_nacional_gas").select("id, numero_protocolo, status_atendimento, uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico").in("status_atendimento", STATUS_ABERTO).limit(1e3);
+  let query = client.from("servicos_nacional_gas").select("id, numero_protocolo, status_atendimento, data_agendamento, updated_at, uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico").limit(1e3);
+  if (!opcoes?.incluirEncerrados) {
+    query = query.in("status_atendimento", STATUS_ABERTO);
+  }
   if (row.uf) query = query.eq("uf", String(row.uf).toUpperCase());
   const { data, error } = await query;
   if (error) throw error;
-  const achado = (data || []).find((s) => makeServicoDupKey(s) === chave);
-  return achado ? { id: achado.id, numero_protocolo: achado.numero_protocolo, status_atendimento: achado.status_atendimento } : null;
+  const candidatos = (data || []).filter((s) => makeServicoDupKey(s) === chave);
+  const achado = candidatos.find((s) => STATUS_ABERTO.includes(s.status_atendimento)) || candidatos[0];
+  return achado ? {
+    id: achado.id,
+    numero_protocolo: achado.numero_protocolo,
+    status_atendimento: achado.status_atendimento,
+    data_agendamento: achado.data_agendamento ?? null,
+    updated_at: achado.updated_at ?? null
+  } : null;
 }
 
 // src/lib/mcp/tools/criar-servico.ts
