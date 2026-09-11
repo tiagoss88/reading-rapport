@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import { makeServicoDupKey, STATUS_ABERTO } from '@/lib/duplicidadeServico'
+import { makeServicoDupKey, STATUS_ABERTO, descreverStatusServico } from '@/lib/duplicidadeServico'
 
 
 interface ImportedRow {
@@ -36,6 +36,7 @@ interface ImportedRow {
   matched?: boolean
   isDuplicate?: boolean
   duplicateReason?: string
+  duplicateTipo?: 'aberto' | 'historico'
 }
 
 interface Props {
