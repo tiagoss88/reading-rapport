@@ -604,11 +604,19 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                   </span>
                 </div>
               )}
-              {duplicateCount > 0 && (
+              {duplicateAbertoCount > 0 && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-destructive/10 rounded-md">
                   <Ban className="h-4 w-4 text-destructive" />
                   <span className="text-destructive">
-                    {duplicateCount} duplicado(s)
+                    {duplicateAbertoCount} duplicado(s) em aberto
+                  </span>
+                </div>
+              )}
+              {duplicateHistoricoCount > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-md">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-yellow-800 dark:text-yellow-400">
+                    {duplicateHistoricoCount} já atendido(s) antes
                   </span>
                 </div>
               )}
