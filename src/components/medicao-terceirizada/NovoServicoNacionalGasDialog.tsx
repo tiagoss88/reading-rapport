@@ -555,9 +555,13 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
         <AlertDialog open={!!dupAviso} onOpenChange={(o) => !o && setDupAviso(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Serviço possivelmente duplicado</AlertDialogTitle>
+              <AlertDialogTitle>
+                {dupAviso?.aberto ? 'Serviço possivelmente duplicado' : 'Esta unidade já foi atendida'}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Já existe um serviço em aberto (protocolo <strong>{dupAviso?.protocolo}</strong>) do tipo{' '}
+                {dupAviso?.aberto ? 'Já existe um serviço em aberto' : 'Já existe um serviço registrado'} (protocolo{' '}
+                <strong>{dupAviso?.protocolo}</strong>
+                {dupAviso && !dupAviso.aberto ? ` - ${dupAviso.situacao}` : ''}) do tipo{' '}
                 <strong>{dupAviso?.dados.tipo_servico}</strong> para{' '}
                 <strong>{dupAviso ? descreverUnidade(dupAviso.dados) : ''}</strong>
                 {dupAviso?.dados.morador_nome ? ` (${dupAviso.dados.morador_nome})` : ''}.
