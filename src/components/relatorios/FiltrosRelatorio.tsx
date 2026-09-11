@@ -33,6 +33,7 @@ export default function FiltrosRelatorio({
   const [isLoading, setIsLoading] = useState(false);
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
+  const { gerarRelatorioServicosExecucao } = useRelatorioServicosExecucao();
   const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
   const { gerarRelatorioCadastroCondominiosCompleto } = useRelatorioCadastroCondominiosCompleto();
   const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
