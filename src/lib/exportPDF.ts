@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 const relatorioTitulos: Record<TipoRelatorio, string> = {
   condominios_competencia: 'Condomínios Coletados por Competência',
   rdo_servicos: 'RDO - Relatório Diário de Obra',
+  rdo_servicos_execucao: 'RDO - Relatório por Data de Execução',
   cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
   cadastro_condominios_uf_completo: 'Cadastro de Condomínios por UF Completo',
   condominios_georreferenciados: 'Condomínios Georreferenciados',
@@ -105,6 +106,23 @@ export function exportarPDF(
           : '-',
       ]);
       break;
+
+    case 'rdo_servicos_execucao':
+      colunas = ['Data Execução', 'Condomínio', 'Bloco', 'Apto', 'Tipo Serviço', 'Técnico', 'Status', 'Valor (R$)'];
+      linhas = dados.map((item) => [
+        item.data_execucao ? format(new Date(item.data_execucao + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+        item.condominio || '-',
+        item.bloco || '-',
+        item.apartamento || '-',
+        item.tipo_servico?.toUpperCase(),
+        item.tecnico || '-',
+        item.status,
+        item.valor_servico != null
+          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.valor_servico))
+          : '-',
+      ]);
+      break;
+
 
     case 'coletas_sem_pendencia':
       colunas = ['Condomínio', 'UF', 'Técnico', 'Data Coleta', 'Observação'];

@@ -64,6 +64,19 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
             <TableHead className="text-right">Valor (R$)</TableHead>
           </>
         );
+      case 'rdo_servicos_execucao':
+        return (
+          <>
+            <TableHead>Data Execução</TableHead>
+            <TableHead>Condomínio</TableHead>
+            <TableHead>Bloco</TableHead>
+            <TableHead>Apartamento</TableHead>
+            <TableHead>Tipo Serviço</TableHead>
+            <TableHead>Técnico</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Valor (R$)</TableHead>
+          </>
+        );
       case 'coletas_sem_pendencia':
         return (
           <>
@@ -167,6 +180,39 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
                       : item.status === 'agendado'
                       ? 'bg-yellow-100 text-yellow-800'
                       : 'bg-red-100 text-red-800'
+                  }`}
+                >
+                  {item.status}
+                </span>
+              </TableCell>
+              <TableCell className="text-right font-medium">
+                {item.valor_servico != null
+                  ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.valor_servico))
+                  : '-'}
+              </TableCell>
+            </TableRow>
+          );
+        case 'rdo_servicos_execucao':
+          return (
+            <TableRow key={index}>
+              <TableCell>
+                {item.data_execucao
+                  ? format(new Date(item.data_execucao + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
+                  : '-'}
+              </TableCell>
+              <TableCell>{item.condominio || '-'}</TableCell>
+              <TableCell>{item.bloco || '-'}</TableCell>
+              <TableCell>{item.apartamento || '-'}</TableCell>
+              <TableCell>{item.tipo_servico?.toUpperCase()}</TableCell>
+              <TableCell>{item.tecnico || '-'}</TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded text-xs ${
+                    item.status === 'executado' || item.status === 'concluido'
+                      ? 'bg-green-100 text-green-800'
+                      : item.status === 'agendado'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {item.status}

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TipoRelatorio, FiltrosRelatorioType } from '@/pages/Relatorios';
 import { useRelatorioLeituras } from '@/hooks/useRelatorioLeituras';
 import { useRelatorioServicos } from '@/hooks/useRelatorioServicos';
+import { useRelatorioServicosExecucao } from '@/hooks/useRelatorioServicosExecucao';
 import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCondominios';
 import { useRelatorioCadastroCondominiosCompleto } from '@/hooks/useRelatorioCadastroCondominiosCompleto';
 import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
@@ -32,6 +33,7 @@ export default function FiltrosRelatorio({
   const [isLoading, setIsLoading] = useState(false);
   const { gerarRelatorioLeituras } = useRelatorioLeituras();
   const { gerarRelatorioServicos } = useRelatorioServicos();
+  const { gerarRelatorioServicosExecucao } = useRelatorioServicosExecucao();
   const { gerarRelatorioCadastroCondominios } = useRelatorioCadastroCondominios();
   const { gerarRelatorioCadastroCondominiosCompleto } = useRelatorioCadastroCondominiosCompleto();
   const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
@@ -48,7 +50,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
   });
 
   const { data: operadores } = useQuery({
@@ -75,7 +77,7 @@ export default function FiltrosRelatorio({
       if (error) throw error;
       return data;
     },
-    enabled: tipoRelatorio === 'rdo_servicos',
+    enabled: tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
   });
 
   const handleGerarRelatorio = async () => {
@@ -87,6 +89,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioLeituras(filtros);
       } else if (tipoRelatorio === 'rdo_servicos') {
         dados = await gerarRelatorioServicos(filtros);
+      } else if (tipoRelatorio === 'rdo_servicos_execucao') {
+        dados = await gerarRelatorioServicosExecucao(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf') {
         dados = await gerarRelatorioCadastroCondominios(filtros);
       } else if (tipoRelatorio === 'cadastro_condominios_uf_completo') {
@@ -190,10 +194,10 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
-          {tipoRelatorio === 'rdo_servicos' && (
+          {(tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao') && (
             <>
               <div className="space-y-2">
-                <Label htmlFor="dataInicio">Data Início</Label>
+                <Label htmlFor="dataInicio">{tipoRelatorio === 'rdo_servicos_execucao' ? 'Execução — Início' : 'Data Início'}</Label>
                 <Input
                   id="dataInicio"
                   type="date"
@@ -203,7 +207,7 @@ export default function FiltrosRelatorio({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dataFim">Data Fim</Label>
+                <Label htmlFor="dataFim">{tipoRelatorio === 'rdo_servicos_execucao' ? 'Execução — Fim' : 'Data Fim'}</Label>
                 <Input
                   id="dataFim"
                   type="date"
