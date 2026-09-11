@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 const relatorioTitulos: Record<TipoRelatorio, string> = {
   condominios_competencia: 'Condomínios Coletados por Competência',
   rdo_servicos: 'RDO - Relatório Diário de Obra',
+  rdo_servicos_execucao: 'RDO - Relatório por Data de Execução',
   cadastro_condominios_uf: 'Cadastro de Condomínios por UF',
   cadastro_condominios_uf_completo: 'Cadastro de Condomínios por UF Completo',
   condominios_georreferenciados: 'Condomínios Georreferenciados',
