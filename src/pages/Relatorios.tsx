@@ -7,7 +7,7 @@ import FiltrosRelatorio from '@/components/relatorios/FiltrosRelatorio';
 import TabelaRelatorio from '@/components/relatorios/TabelaRelatorio';
 import ExportacaoButtons from '@/components/relatorios/ExportacaoButtons';
 
-export type TipoRelatorio = 'condominios_competencia' | 'rdo_servicos' | 'rdo_servicos_execucao' | 'cadastro_condominios_uf' | 'cadastro_condominios_uf_completo' | 'condominios_georreferenciados' | 'coletas_sem_pendencia';
+export type TipoRelatorio = 'condominios_competencia' | 'rdo_servicos' | 'rdo_servicos_execucao' | 'cadastro_condominios_uf' | 'cadastro_condominios_uf_completo' | 'condominios_georreferenciados' | 'coletas_sem_pendencia' | 'servicos_recebidos_atraso';
 
 export interface FiltrosRelatorioType {
   competencia?: string; // formato YYYY-MM
@@ -18,6 +18,7 @@ export interface FiltrosRelatorioType {
   tipoServico?: string;
   statusServico?: string;
   ufFiltro?: string;
+  atrasoMinimoDias?: number;
 }
 
 export default function Relatorios() {

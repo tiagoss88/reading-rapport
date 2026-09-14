@@ -12,6 +12,7 @@ const relatorioTitulos: Record<TipoRelatorio, string> = {
   cadastro_condominios_uf_completo: 'Cadastro de Condomínios por UF Completo',
   condominios_georreferenciados: 'Condomínios Georreferenciados',
   coletas_sem_pendencia: 'Coletas Sem Pendência',
+  servicos_recebidos_atraso: 'Serviços Recebidos com Atraso',
 };
 
 export function exportarPDF(
@@ -21,7 +22,8 @@ export function exportarPDF(
 ) {
   const isCompleto = tipoRelatorio === 'cadastro_condominios_uf_completo';
   const isGeo = tipoRelatorio === 'condominios_georreferenciados';
-  const doc = new jsPDF(isCompleto || isGeo ? { orientation: 'landscape' } : undefined);
+  const isAtraso = tipoRelatorio === 'servicos_recebidos_atraso';
+  const doc = new jsPDF(isCompleto || isGeo || isAtraso ? { orientation: 'landscape' } : undefined);
   const titulo = relatorioTitulos[tipoRelatorio];
 
   doc.setFontSize(18);
@@ -37,10 +39,17 @@ export function exportarPDF(
   } else if ((tipoRelatorio === 'condominios_competencia' || tipoRelatorio === 'coletas_sem_pendencia') && filtros.competencia) {
     const [ano, mes] = filtros.competencia.split('-');
     doc.text(`Competência: ${mes}/${ano}`, 14, 28);
+  } else if (isAtraso) {
+    doc.text(
+      `Inclusão no sistema: ${format(new Date(filtros.dataInicio + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })} até ${format(new Date(filtros.dataFim + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}  |  Atraso mínimo: ${filtros.atrasoMinimoDias ?? 1} dia(s)  |  UF: ${filtros.ufFiltro || 'Todas'}`,
+      14,
+      28
+    );
   } else {
     doc.text(`Período: ${format(new Date(filtros.dataInicio), 'dd/MM/yyyy', { locale: ptBR })} até ${format(new Date(filtros.dataFim), 'dd/MM/yyyy', { locale: ptBR })}`, 14, 28);
   }
   doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 34);
+
 
   let colunas: string[] = [];
   let linhas: any[][] = [];
@@ -132,6 +141,22 @@ export function exportarPDF(
         item.tecnico || '-',
         item.data_coleta ? format(new Date(item.data_coleta + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-',
         item.observacao || '-',
+      ]);
+      break;
+
+    case 'servicos_recebidos_atraso':
+      colunas = ['Protocolo', 'UF', 'Condomínio', 'Bloco', 'Apto', 'Tipo Serviço', 'Solicitação', 'Inclusão no Sistema', 'Dias de Atraso', 'Situação'];
+      linhas = dados.map((item) => [
+        item.protocolo || '-',
+        item.uf || '-',
+        item.condominio || '-',
+        item.bloco || '-',
+        item.apartamento || '-',
+        item.tipo_servico?.toUpperCase(),
+        item.data_solicitacao ? format(new Date(item.data_solicitacao + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '-',
+        item.hora_inclusao ? format(new Date(item.hora_inclusao), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-',
+        String(item.dias_atraso),
+        item.status,
       ]);
       break;
   }

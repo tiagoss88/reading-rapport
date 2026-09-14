@@ -12,6 +12,7 @@ import { useRelatorioCadastroCondominios } from '@/hooks/useRelatorioCadastroCon
 import { useRelatorioCadastroCondominiosCompleto } from '@/hooks/useRelatorioCadastroCondominiosCompleto';
 import { useRelatorioColetasSemPendencia } from '@/hooks/useRelatorioColetasSemPendencia';
 import { useRelatorioCondominiosGeorreferenciados } from '@/hooks/useRelatorioCondominiosGeorreferenciados';
+import { useRelatorioServicosRecebidosAtraso } from '@/hooks/useRelatorioServicosRecebidosAtraso';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Loader2 } from 'lucide-react';
@@ -38,6 +39,7 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioCadastroCondominiosCompleto } = useRelatorioCadastroCondominiosCompleto();
   const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
   const { gerarRelatorioCondominiosGeorreferenciados } = useRelatorioCondominiosGeorreferenciados();
+  const { gerarRelatorioServicosRecebidosAtraso } = useRelatorioServicosRecebidosAtraso();
 
   const { data: ufsDisponiveis } = useQuery({
     queryKey: ['ufs_disponiveis'],
@@ -50,7 +52,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao' || tipoRelatorio === 'servicos_recebidos_atraso',
   });
 
   const { data: operadores } = useQuery({
@@ -77,7 +79,7 @@ export default function FiltrosRelatorio({
       if (error) throw error;
       return data;
     },
-    enabled: tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
+    enabled: tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao' || tipoRelatorio === 'servicos_recebidos_atraso',
   });
 
   const handleGerarRelatorio = async () => {
@@ -99,6 +101,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioCondominiosGeorreferenciados(filtros);
       } else if (tipoRelatorio === 'coletas_sem_pendencia') {
         dados = await gerarRelatorioColetasSemPendencia(filtros);
+      } else if (tipoRelatorio === 'servicos_recebidos_atraso') {
+        dados = await gerarRelatorioServicosRecebidosAtraso(filtros);
       }
 
       if (dados.length === 0) {
@@ -192,6 +196,108 @@ export default function FiltrosRelatorio({
                 </SelectContent>
               </Select>
             </div>
+          )}
+
+          {tipoRelatorio === 'servicos_recebidos_atraso' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="dataInicio">Inclusão — Início</Label>
+                <Input
+                  id="dataInicio"
+                  type="date"
+                  value={filtros.dataInicio}
+                  onChange={(e) => onFiltrosChange({ ...filtros, dataInicio: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dataFim">Inclusão — Fim</Label>
+                <Input
+                  id="dataFim"
+                  type="date"
+                  value={filtros.dataFim}
+                  onChange={(e) => onFiltrosChange({ ...filtros, dataFim: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="atrasoMinimo">Atraso mínimo (dias)</Label>
+                <Input
+                  id="atrasoMinimo"
+                  type="number"
+                  min={1}
+                  value={filtros.atrasoMinimoDias ?? 1}
+                  onChange={(e) =>
+                    onFiltrosChange({ ...filtros, atrasoMinimoDias: Math.max(1, Number(e.target.value) || 1) })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ufAtraso">UF</Label>
+                <Select
+                  value={filtros.ufFiltro || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, ufFiltro: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    {ufsDisponiveis?.map((uf) => (
+                      <SelectItem key={uf} value={uf}>
+                        {uf}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tipoServicoAtraso">Tipo de Serviço</Label>
+                <Select
+                  value={filtros.tipoServico || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, tipoServico: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {tiposServico?.map((tipo) => (
+                      <SelectItem key={tipo.id} value={tipo.nome}>
+                        {tipo.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="statusAtraso">Situação</Label>
+                <Select
+                  value={filtros.statusServico || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, statusServico: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="executado">Executado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
           )}
 
           {(tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao') && (
