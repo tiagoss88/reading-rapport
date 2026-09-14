@@ -15,6 +15,7 @@ const relatoriosDisponiveis = [
   { value: 'coletas_sem_pendencia', label: 'Coletas Sem Pendência', categoria: 'Leituras' },
   { value: 'rdo_servicos', label: 'RDO - Relatório Diário de Obra', categoria: 'Serviços' },
   { value: 'rdo_servicos_execucao', label: 'RDO - Data de Execução', categoria: 'Serviços' },
+  { value: 'servicos_recebidos_atraso', label: 'Serviços Recebidos com Atraso', categoria: 'Serviços' },
 ];
 
 export default function RelatorioSelector({ tipoSelecionado, onTipoChange, categoria }: RelatorioSelectorProps) {
