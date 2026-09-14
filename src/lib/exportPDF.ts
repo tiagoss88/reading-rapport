@@ -39,10 +39,17 @@ export function exportarPDF(
   } else if ((tipoRelatorio === 'condominios_competencia' || tipoRelatorio === 'coletas_sem_pendencia') && filtros.competencia) {
     const [ano, mes] = filtros.competencia.split('-');
     doc.text(`Competência: ${mes}/${ano}`, 14, 28);
+  } else if (isAtraso) {
+    doc.text(
+      `Inclusão no sistema: ${format(new Date(filtros.dataInicio + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })} até ${format(new Date(filtros.dataFim + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}  |  Atraso mínimo: ${filtros.atrasoMinimoDias ?? 1} dia(s)  |  UF: ${filtros.ufFiltro || 'Todas'}`,
+      14,
+      28
+    );
   } else {
     doc.text(`Período: ${format(new Date(filtros.dataInicio), 'dd/MM/yyyy', { locale: ptBR })} até ${format(new Date(filtros.dataFim), 'dd/MM/yyyy', { locale: ptBR })}`, 14, 28);
   }
   doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 34);
+
 
   let colunas: string[] = [];
   let linhas: any[][] = [];
