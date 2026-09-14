@@ -12,6 +12,7 @@ const relatorioTitulos: Record<TipoRelatorio, string> = {
   cadastro_condominios_uf_completo: 'Cadastro de Condomínios por UF Completo',
   condominios_georreferenciados: 'Condomínios Georreferenciados',
   coletas_sem_pendencia: 'Coletas Sem Pendência',
+  servicos_recebidos_atraso: 'Serviços Recebidos com Atraso',
 };
 
 export function exportarPDF(
