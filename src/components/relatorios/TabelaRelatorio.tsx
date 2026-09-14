@@ -240,6 +240,33 @@ export default function TabelaRelatorio({ tipoRelatorio, dados }: TabelaRelatori
               </TableCell>
             </TableRow>
           );
+        case 'servicos_recebidos_atraso':
+          return (
+            <TableRow key={index}>
+              <TableCell className="font-medium">{item.protocolo || '-'}</TableCell>
+              <TableCell>{item.uf || '-'}</TableCell>
+              <TableCell>{item.condominio || '-'}</TableCell>
+              <TableCell>{item.bloco || '-'}</TableCell>
+              <TableCell>{item.apartamento || '-'}</TableCell>
+              <TableCell>{item.tipo_servico?.toUpperCase()}</TableCell>
+              <TableCell>
+                {item.data_solicitacao
+                  ? format(new Date(item.data_solicitacao + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })
+                  : '-'}
+              </TableCell>
+              <TableCell>
+                {item.hora_inclusao
+                  ? format(new Date(item.hora_inclusao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                  : '-'}
+              </TableCell>
+              <TableCell className="text-right">
+                <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800 font-medium">
+                  {item.dias_atraso}
+                </span>
+              </TableCell>
+              <TableCell>{item.status}</TableCell>
+            </TableRow>
+          );
         case 'coletas_sem_pendencia':
           return (
             <TableRow key={index}>
