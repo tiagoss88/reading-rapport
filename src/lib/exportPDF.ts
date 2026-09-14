@@ -22,7 +22,8 @@ export function exportarPDF(
 ) {
   const isCompleto = tipoRelatorio === 'cadastro_condominios_uf_completo';
   const isGeo = tipoRelatorio === 'condominios_georreferenciados';
-  const doc = new jsPDF(isCompleto || isGeo ? { orientation: 'landscape' } : undefined);
+  const isAtraso = tipoRelatorio === 'servicos_recebidos_atraso';
+  const doc = new jsPDF(isCompleto || isGeo || isAtraso ? { orientation: 'landscape' } : undefined);
   const titulo = relatorioTitulos[tipoRelatorio];
 
   doc.setFontSize(18);
