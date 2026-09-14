@@ -94,6 +94,23 @@ export function exportarCSV(tipoRelatorio: TipoRelatorio, dados: any[]) {
       ]);
       break;
 
+    case 'servicos_recebidos_atraso':
+      colunas = ['Protocolo', 'UF', 'Condomínio', 'Bloco', 'Apartamento', 'Tipo Serviço', 'Data Solicitação', 'Inclusão no Sistema', 'Dias de Atraso', 'Situação'];
+      linhas = dados.map((item) => [
+        item.protocolo || '',
+        item.uf || '',
+        item.condominio || '',
+        item.bloco || '',
+        item.apartamento || '',
+        item.tipo_servico?.toUpperCase(),
+        item.data_solicitacao ? format(new Date(item.data_solicitacao + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : '',
+        item.hora_inclusao ? format(new Date(item.hora_inclusao), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '',
+        String(item.dias_atraso),
+        item.status,
+      ]);
+      break;
+
+
     default:
       colunas = Object.keys(dados[0]);
       linhas = dados.map((item) => colunas.map((col) => String(item[col] || '')));
