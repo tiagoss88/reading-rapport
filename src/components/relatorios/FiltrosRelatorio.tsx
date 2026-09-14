@@ -39,6 +39,7 @@ export default function FiltrosRelatorio({
   const { gerarRelatorioCadastroCondominiosCompleto } = useRelatorioCadastroCondominiosCompleto();
   const { gerarRelatorioColetasSemPendencia } = useRelatorioColetasSemPendencia();
   const { gerarRelatorioCondominiosGeorreferenciados } = useRelatorioCondominiosGeorreferenciados();
+  const { gerarRelatorioServicosRecebidosAtraso } = useRelatorioServicosRecebidosAtraso();
 
   const { data: ufsDisponiveis } = useQuery({
     queryKey: ['ufs_disponiveis'],
@@ -51,7 +52,7 @@ export default function FiltrosRelatorio({
       const unique = [...new Set(data.map((d) => d.uf).filter(Boolean))];
       return unique as string[];
     },
-    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
+    enabled: tipoRelatorio === 'cadastro_condominios_uf' || tipoRelatorio === 'cadastro_condominios_uf_completo' || tipoRelatorio === 'condominios_georreferenciados' || tipoRelatorio === 'coletas_sem_pendencia' || tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao' || tipoRelatorio === 'servicos_recebidos_atraso',
   });
 
   const { data: operadores } = useQuery({
@@ -78,7 +79,7 @@ export default function FiltrosRelatorio({
       if (error) throw error;
       return data;
     },
-    enabled: tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao',
+    enabled: tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao' || tipoRelatorio === 'servicos_recebidos_atraso',
   });
 
   const handleGerarRelatorio = async () => {
@@ -100,6 +101,8 @@ export default function FiltrosRelatorio({
         dados = await gerarRelatorioCondominiosGeorreferenciados(filtros);
       } else if (tipoRelatorio === 'coletas_sem_pendencia') {
         dados = await gerarRelatorioColetasSemPendencia(filtros);
+      } else if (tipoRelatorio === 'servicos_recebidos_atraso') {
+        dados = await gerarRelatorioServicosRecebidosAtraso(filtros);
       }
 
       if (dados.length === 0) {
