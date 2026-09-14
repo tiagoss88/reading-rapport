@@ -198,6 +198,108 @@ export default function FiltrosRelatorio({
             </div>
           )}
 
+          {tipoRelatorio === 'servicos_recebidos_atraso' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="dataInicio">Inclusão — Início</Label>
+                <Input
+                  id="dataInicio"
+                  type="date"
+                  value={filtros.dataInicio}
+                  onChange={(e) => onFiltrosChange({ ...filtros, dataInicio: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dataFim">Inclusão — Fim</Label>
+                <Input
+                  id="dataFim"
+                  type="date"
+                  value={filtros.dataFim}
+                  onChange={(e) => onFiltrosChange({ ...filtros, dataFim: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="atrasoMinimo">Atraso mínimo (dias)</Label>
+                <Input
+                  id="atrasoMinimo"
+                  type="number"
+                  min={1}
+                  value={filtros.atrasoMinimoDias ?? 1}
+                  onChange={(e) =>
+                    onFiltrosChange({ ...filtros, atrasoMinimoDias: Math.max(1, Number(e.target.value) || 1) })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ufAtraso">UF</Label>
+                <Select
+                  value={filtros.ufFiltro || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, ufFiltro: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    {ufsDisponiveis?.map((uf) => (
+                      <SelectItem key={uf} value={uf}>
+                        {uf}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tipoServicoAtraso">Tipo de Serviço</Label>
+                <Select
+                  value={filtros.tipoServico || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, tipoServico: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {tiposServico?.map((tipo) => (
+                      <SelectItem key={tipo.id} value={tipo.nome}>
+                        {tipo.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="statusAtraso">Situação</Label>
+                <Select
+                  value={filtros.statusServico || 'todos'}
+                  onValueChange={(value) =>
+                    onFiltrosChange({ ...filtros, statusServico: value === 'todos' ? undefined : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="executado">Executado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
           {(tipoRelatorio === 'rdo_servicos' || tipoRelatorio === 'rdo_servicos_execucao') && (
             <>
               <div className="space-y-2">
