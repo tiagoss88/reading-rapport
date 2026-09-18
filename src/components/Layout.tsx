@@ -47,7 +47,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
 
   
-  const operacaoPaths = ['/medicao-terceirizada/servicos', '/medicao-terceirizada/georreferenciamento']
+  const operacaoPaths = ['/medicao-terceirizada/servicos']
   const isOperacaoPath = operacaoPaths.some(p => pathname.startsWith(p))
   const isMedicaoPath = pathname.startsWith('/medicao-terceirizada') && !isOperacaoPath
 
@@ -78,11 +78,11 @@ export default function Layout({ children, title }: LayoutProps) {
     { name: 'Empreendimentos', href: '/medicao-terceirizada/empreendimentos', icon: Building2 },
     { name: 'Planejamento', href: '/medicao-terceirizada/rotas', icon: MapPin },
     { name: 'Notificações', href: '/medicao-terceirizada/notificacoes', icon: Bell },
+    { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
   ]
 
   const operacaoItems = [
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
-    { name: 'Georreferenciamento', href: '/medicao-terceirizada/georreferenciamento', icon: Navigation2 },
   ]
 
   const configuracoesItems = [
