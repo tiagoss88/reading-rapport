@@ -48,10 +48,16 @@ import AdminAtualizarRotasCE from '@/pages/AdminAtualizarRotasCE'
 import AdminGerarSQLRotas from '@/pages/AdminGerarSQLRotas'
 import LimparCache from '@/pages/LimparCache'
 import OAuthConsent from '@/pages/OAuthConsent'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import { lazy, Suspense } from 'react'
+
+// Carregada só ao abrir a página: uma falha no Estoque nunca afeta o resto do sistema
+const Estoque = lazy(() => import('@/pages/Operacao/Estoque'))
 
 const queryClient = new QueryClient();
 
 const App = () => (
+  <ErrorBoundary fullScreen>
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
@@ -59,6 +65,17 @@ const App = () => (
           <BrowserRouter>
             <div className="min-h-screen bg-background">
               <Routes>
+                <Route path="/operacao/estoque" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <ErrorBoundary area="o Estoque">
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+                          <Estoque />
+                        </Suspense>
+                      </ErrorBoundary>
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
                 <Route path="/login" element={<Login />} />
                 <Route path="/empreendimento/login" element={<EmpreendimentoLogin />} />
                 <Route path="/area-cliente" element={<AreaCliente />} />
@@ -290,6 +307,7 @@ const App = () => (
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
