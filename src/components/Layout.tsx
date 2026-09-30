@@ -24,7 +24,9 @@ import {
   BookOpen,
   HardHat,
   Bug,
-  Plug
+  Plug,
+  Package
+
 
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -47,7 +49,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
 
   
-  const operacaoPaths = ['/medicao-terceirizada/servicos']
+  const operacaoPaths = ['/medicao-terceirizada/servicos', '/operacao']
   const isOperacaoPath = operacaoPaths.some(p => pathname.startsWith(p))
   const isMedicaoPath = pathname.startsWith('/medicao-terceirizada') && !isOperacaoPath
 
@@ -83,6 +85,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
   const operacaoItems = [
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
+    { name: 'Estoque', href: '/operacao/estoque', icon: Package },
   ]
 
   const configuracoesItems = [
