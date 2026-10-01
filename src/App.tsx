@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,55 +8,58 @@ import { PermissionsProvider } from '@/contexts/PermissionsContext'
 import Login from '@/pages/Login'
 import Index from '@/pages/Index'
 import Dashboard from '@/pages/Dashboard'
-import Operadores from '@/pages/Operadores'
-import CriarServico from '@/pages/CriarServico'
-import CriarServicoExterno from '@/pages/CriarServicoExterno'
-import Agendamentos from '@/pages/Agendamentos'
-import OperadorApp from '@/pages/OperadorApp'
-import PermissionsManagement from '@/pages/PermissionsManagement'
-import RastreamentoOperadores from '@/pages/RastreamentoOperadores'
-import RelatoriosLeituras from '@/pages/RelatoriosLeituras'
-import RelatoriosServicos from '@/pages/RelatoriosServicos'
-import TiposServico from '@/pages/TiposServico'
-import ConfiguracoesSistema from '@/pages/ConfiguracoesSistema'
-import LogsErro from '@/pages/LogsErro'
-import ConfiguracoesMCP from '@/pages/ConfiguracoesMCP'
+const Operadores = lazy(() => import('@/pages/Operadores'))
+const CriarServico = lazy(() => import('@/pages/CriarServico'))
+const CriarServicoExterno = lazy(() => import('@/pages/CriarServicoExterno'))
+const Agendamentos = lazy(() => import('@/pages/Agendamentos'))
+const OperadorApp = lazy(() => import('@/pages/OperadorApp'))
+const PermissionsManagement = lazy(() => import('@/pages/PermissionsManagement'))
+const RastreamentoOperadores = lazy(() => import('@/pages/RastreamentoOperadores'))
+const RelatoriosLeituras = lazy(() => import('@/pages/RelatoriosLeituras'))
+const RelatoriosServicos = lazy(() => import('@/pages/RelatoriosServicos'))
+const TiposServico = lazy(() => import('@/pages/TiposServico'))
+const ConfiguracoesSistema = lazy(() => import('@/pages/ConfiguracoesSistema'))
+const LogsErro = lazy(() => import('@/pages/LogsErro'))
+const ConfiguracoesMCP = lazy(() => import('@/pages/ConfiguracoesMCP'))
 
-import EmpreendimentosTerceirizados from '@/pages/MedicaoTerceirizada/Empreendimentos'
-import PlanejamentoRotas from '@/pages/MedicaoTerceirizada/PlanejamentoRotas'
-import ServicosNacionalGas from '@/pages/MedicaoTerceirizada/Servicos'
-import GeorreferenciamentoTerceirizado from '@/pages/MedicaoTerceirizada/Georreferenciamento'
-import LeiturasTerceirizadas from '@/pages/MedicaoTerceirizada/Leituras'
+const EmpreendimentosTerceirizados = lazy(() => import('@/pages/MedicaoTerceirizada/Empreendimentos'))
+const PlanejamentoRotas = lazy(() => import('@/pages/MedicaoTerceirizada/PlanejamentoRotas'))
+const ServicosNacionalGas = lazy(() => import('@/pages/MedicaoTerceirizada/Servicos'))
+const GeorreferenciamentoTerceirizado = lazy(() => import('@/pages/MedicaoTerceirizada/Georreferenciamento'))
+const LeiturasTerceirizadas = lazy(() => import('@/pages/MedicaoTerceirizada/Leituras'))
 import PermissionRoute from '@/components/PermissionRoute'
 import ColetorLogin from '@/pages/ColetorLogin'
 import ColetorMenu from '@/pages/ColetorMenu'
-import ColetorCronograma from '@/pages/ColetorCronograma'
-import ColetorLeiturasTerceirizadas from '@/pages/ColetorLeiturasTerceirizadas'
-import ColetorEmpreendimentoDetalhe from '@/pages/ColetorEmpreendimentoDetalhe'
-import ColetorUnidades from '@/pages/ColetorUnidades'
-import ColetorLeitura from '@/pages/ColetorLeitura'
+const ColetorCronograma = lazy(() => import('@/pages/ColetorCronograma'))
+const ColetorLeiturasTerceirizadas = lazy(() => import('@/pages/ColetorLeiturasTerceirizadas'))
+const ColetorEmpreendimentoDetalhe = lazy(() => import('@/pages/ColetorEmpreendimentoDetalhe'))
+const ColetorUnidades = lazy(() => import('@/pages/ColetorUnidades'))
+const ColetorLeitura = lazy(() => import('@/pages/ColetorLeitura'))
 
-import ColetorServicosTerceirizados from '@/pages/ColetorServicosTerceirizados'
-import ColetorNotificacoes from '@/pages/ColetorNotificacoes'
-import NotificacoesMedidores from '@/pages/MedicaoTerceirizada/Notificacoes'
-import EmpreendimentoLogin from '@/pages/EmpreendimentoLogin'
-import AreaCliente from '@/pages/AreaCliente'
+const ColetorServicosTerceirizados = lazy(() => import('@/pages/ColetorServicosTerceirizados'))
+const ColetorNotificacoes = lazy(() => import('@/pages/ColetorNotificacoes'))
+const NotificacoesMedidores = lazy(() => import('@/pages/MedicaoTerceirizada/Notificacoes'))
+const EmpreendimentoLogin = lazy(() => import('@/pages/EmpreendimentoLogin'))
+const AreaCliente = lazy(() => import('@/pages/AreaCliente'))
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ColetorProtectedRoute from '@/components/ColetorProtectedRoute'
-import NotFound from "./pages/NotFound";
-import NotAuthorized from '@/pages/NotAuthorized'
-import AdminAtualizarRotasCE from '@/pages/AdminAtualizarRotasCE'
-import AdminGerarSQLRotas from '@/pages/AdminGerarSQLRotas'
-import LimparCache from '@/pages/LimparCache'
-import OAuthConsent from '@/pages/OAuthConsent'
+const NotFound = lazy(() => import('./pages/NotFound'))
+const NotAuthorized = lazy(() => import('@/pages/NotAuthorized'))
+const AdminAtualizarRotasCE = lazy(() => import('@/pages/AdminAtualizarRotasCE'))
+const AdminGerarSQLRotas = lazy(() => import('@/pages/AdminGerarSQLRotas'))
+const LimparCache = lazy(() => import('@/pages/LimparCache'))
+const OAuthConsent = lazy(() => import('@/pages/OAuthConsent'))
 import ErrorBoundary from '@/components/ErrorBoundary'
-import { lazy, Suspense } from 'react'
 
 // Carregada só ao abrir a página: uma falha no Estoque nunca afeta o resto do sistema
 const Estoque = lazy(() => import('@/pages/Operacao/Estoque'))
 const RelatoriosEstoque = lazy(() => import('@/pages/RelatoriosEstoque'))
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 60_000, refetchOnWindowFocus: false, retry: 1 } },
+});
+
+const PageLoader = () => <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>
 
 const App = () => (
   <ErrorBoundary fullScreen>
@@ -65,6 +69,7 @@ const App = () => (
         <PermissionsProvider>
           <BrowserRouter>
             <div className="min-h-screen bg-background">
+              <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/operacao/estoque" element={
                   <ProtectedRoute>
@@ -312,6 +317,7 @@ const App = () => (
                 <Route path="/not-authorized" element={<NotAuthorized />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
               <Toaster />
             </div>
           </BrowserRouter>
