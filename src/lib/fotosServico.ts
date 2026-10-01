@@ -62,6 +62,31 @@ export async function updateServicoComFotos(
   payload: Record<string, any>,
   fotos: string[]
 ): Promise<void> {
+  try {
+    await updateServicoComFotosInterno(supabase, id, payload, fotos)
+  } catch (err) {
+    if (!('observacao_interna' in payload) || !colunaObsInternaInexistente(err)) throw err
+    await updateServicoComFotosInterno(supabase, id, semObsInterna(payload), fotos)
+  }
+}
+
+/** True quando o banco ainda não tem a coluna observacao_interna. */
+export function colunaObsInternaInexistente(err: any): boolean {
+  const msg = String(err?.message || '') + String(err?.details || '')
+  return msg.includes('observacao_interna')
+}
+
+export function semObsInterna<T extends Record<string, any>>(obj: T): T {
+  const { observacao_interna: _ignored, ...rest } = obj as any
+  return rest as T
+}
+
+async function updateServicoComFotosInterno(
+  supabase: any,
+  id: string,
+  payload: Record<string, any>,
+  fotos: string[]
+): Promise<void> {
   const { error } = await supabase
     .from('servicos_nacional_gas')
     .update({ ...payload, fotos_urls: fotos })

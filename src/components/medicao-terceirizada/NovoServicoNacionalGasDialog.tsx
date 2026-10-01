@@ -1,3 +1,4 @@
+import { colunaObsInternaInexistente } from '@/lib/fotosServico'
 import { useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -125,9 +126,7 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
 
   const mutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const { error } = await supabase
-        .from('servicos_nacional_gas')
-        .insert({
+      const registro: Record<string, any> = {
           uf: data.uf,
           condominio_nome_original: data.condominio_nome_original,
           empreendimento_id: data.empreendimento_id || null,
@@ -142,9 +141,14 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
           turno: data.turno || null,
           tecnico_id: data.tecnico_id || null,
           status_atendimento: data.status_atendimento,
-          observacao: data.observacao || null,
+          observacao_interna: data.observacao || null,
           fonte: data.fonte
-        })
+      }
+      let { error } = await supabase.from('servicos_nacional_gas').insert(registro as any)
+      if (error && colunaObsInternaInexistente(error)) {
+        const { observacao_interna, ...resto } = registro
+        ;({ error } = await supabase.from('servicos_nacional_gas').insert({ ...resto, observacao: observacao_interna } as any))
+      }
       if (error) throw error
     },
 
@@ -527,10 +531,10 @@ export default function NovoServicoNacionalGasDialog({ open, onOpenChange }: Pro
                 name="observacao"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Observação</FormLabel>
+                    <FormLabel>Observação interna (escritório e técnico)</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Informações adicionais..."
+                        placeholder="Não aparece no relatório do cliente"
                         {...field}
                         value={field.value || ''}
                       />

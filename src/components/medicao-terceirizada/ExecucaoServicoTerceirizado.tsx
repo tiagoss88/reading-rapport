@@ -25,6 +25,7 @@ interface ServicoData {
   tipo_servico: string
   uf: string | null
   observacao: string | null
+  observacao_interna?: string | null
 }
 
 interface Props {
@@ -308,10 +309,13 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
               </div>
             )}
 
-            {servico.observacao && (
-              <div className="flex items-start gap-2 text-muted-foreground">
+            {(servico.observacao_interna || servico.observacao) && (
+              <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-2">
                 <FileText className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
-                <span>{servico.observacao}</span>
+                <div>
+                  <p className="text-xs font-semibold text-primary">Observação interna</p>
+                  <span className="text-muted-foreground">{servico.observacao_interna || servico.observacao}</span>
+                </div>
               </div>
             )}
           </CardContent>
@@ -320,7 +324,8 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         {/* Observação */}
         <Card>
           <CardContent className="pt-4 space-y-2">
-            <Label>Observação</Label>
+            <Label>Observação do técnico</Label>
+            <p className="text-xs text-muted-foreground">Esta observação aparece no relatório do cliente.</p>
             <Textarea
               placeholder="Descreva o serviço realizado..."
               value={observacao}
