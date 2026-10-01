@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
-import { fmtQtd, type MaterialSaldo, useMateriaisSaldo } from '@/hooks/useEstoque'
+import { fmtQtd, type MaterialSaldo, useArmazens, useMateriaisSaldo } from '@/hooks/useEstoque'
 
 const vazio = { nome: '', unidade: 'un', categoria: '', estoque_minimo: '0', descricao: '', ativo: true }
 
@@ -19,6 +19,8 @@ export default function MateriaisTab() {
   const { toast } = useToast()
   const qc = useQueryClient()
   const { data: materiais = [], isLoading } = useMateriaisSaldo(true)
+  const { data: armazens = [] } = useArmazens()
+  const armAtivos = armazens.filter((a) => a.ativo)
   const [busca, setBusca] = useState('')
   const [mostrarInativos, setMostrarInativos] = useState(false)
   const [aberto, setAberto] = useState(false)
@@ -33,7 +35,10 @@ export default function MateriaisTab() {
       (!b || m.nome.toLowerCase().includes(b) || (m.categoria ?? '').toLowerCase().includes(b)))
   }, [materiais, busca, mostrarInativos])
 
-  const abaixo = materiais.filter((m) => m.ativo && m.saldo < m.estoque_minimo).length
+  const estaBaixo = (m: MaterialSaldo) =>
+    m.ativo && (armAtivos.length ? armAtivos.some((a) => (m.porArmazem[a.id] ?? 0) < m.estoque_minimo) : m.saldo < m.estoque_minimo)
+  const colunas = 7 + armAtivos.length
+  const abaixo = materiais.filter(estaBaixo).length
 
   const abrirNovo = () => { setEditId(null); setForm(vazio); setAberto(true) }
   const abrirEditar = (m: MaterialSaldo) => {
@@ -92,7 +97,8 @@ export default function MateriaisTab() {
               <TableHead className="h-9">Material</TableHead>
               <TableHead className="h-9">Categoria</TableHead>
               <TableHead className="h-9">Unidade</TableHead>
-              <TableHead className="h-9 text-right">Saldo</TableHead>
+              {armAtivos.map((a) => <TableHead key={a.id} className="h-9 text-right whitespace-nowrap">{a.nome}</TableHead>)}
+              <TableHead className="h-9 text-right">Total</TableHead>
               <TableHead className="h-9 text-right">Mínimo</TableHead>
               <TableHead className="h-9">Situação</TableHead>
               <TableHead className="h-9 w-10" />
@@ -100,17 +106,21 @@ export default function MateriaisTab() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={colunas} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : lista.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Nenhum material cadastrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={colunas} className="text-center py-6 text-muted-foreground">Nenhum material cadastrado.</TableCell></TableRow>
             ) : lista.map((m) => {
-              const baixo = m.ativo && m.saldo < m.estoque_minimo
+              const baixo = estaBaixo(m)
               return (
                 <TableRow key={m.id} className={!m.ativo ? 'opacity-60' : ''}>
                   <TableCell className="font-medium">{m.nome}</TableCell>
                   <TableCell>{m.categoria ?? '—'}</TableCell>
                   <TableCell>{m.unidade}</TableCell>
-                  <TableCell className={`text-right font-semibold ${baixo ? 'text-destructive' : ''}`}>{fmtQtd(m.saldo)}</TableCell>
+                  {armAtivos.map((a) => {
+                    const s = m.porArmazem[a.id] ?? 0
+                    return <TableCell key={a.id} className={`text-right ${m.ativo && s < m.estoque_minimo ? 'text-destructive font-semibold' : ''}`}>{fmtQtd(s)}</TableCell>
+                  })}
+                  <TableCell className="text-right font-semibold">{fmtQtd(m.saldo)}</TableCell>
                   <TableCell className="text-right">{fmtQtd(m.estoque_minimo)}</TableCell>
                   <TableCell>
                     {!m.ativo ? <Badge variant="outline">Inativo</Badge>

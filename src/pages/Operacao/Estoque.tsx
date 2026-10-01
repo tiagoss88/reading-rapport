@@ -21,6 +21,7 @@ function Conteudo() {
     )
   }
   if (estado === 'nao_instalado') return <EstoqueNaoInstalado onVerificar={() => void recarregar()} />
+  if (estado === 'atualizacao_pendente') return <EstoqueNaoInstalado somenteArmazens onVerificar={() => void recarregar()} />
   if (estado === 'erro') {
     return (
       <Card>
