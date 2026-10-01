@@ -902,6 +902,7 @@ export type Database = {
           morador_nome: string | null
           numero_protocolo: string | null
           observacao: string | null
+          observacao_interna: string | null
           status_atendimento: string
           tecnico_id: string | null
           telefone: string | null
@@ -929,6 +930,7 @@ export type Database = {
           morador_nome?: string | null
           numero_protocolo?: string | null
           observacao?: string | null
+          observacao_interna?: string | null
           status_atendimento?: string
           tecnico_id?: string | null
           telefone?: string | null
@@ -956,6 +958,7 @@ export type Database = {
           morador_nome?: string | null
           numero_protocolo?: string | null
           observacao?: string | null
+          observacao_interna?: string | null
           status_atendimento?: string
           tecnico_id?: string | null
           telefone?: string | null

@@ -281,10 +281,10 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
               </div>
 
               {/* === OBSERVAÇÃO DO TÉCNICO === */}
-              {servico?.observacao_interna && (
+              {(servico as any)?.observacao_interna && (
                 <div className="rounded-md border border-dashed p-3">
                   <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Observação interna (não sai no relatório)</p>
-                  <p className="text-sm whitespace-pre-wrap">{servico.observacao_interna}</p>
+                  <p className="text-sm whitespace-pre-wrap">{(servico as any).observacao_interna}</p>
                 </div>
               )}
               {texto && (

@@ -1,0 +1,1 @@
+ALTER TABLE public.servicos_nacional_gas ADD COLUMN IF NOT EXISTS observacao_interna text;
