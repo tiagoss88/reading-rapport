@@ -1,19 +1,17 @@
-# Mostrar a aba Armazéns mesmo antes de rodar o script
+# Fazer a aba Armazéns aparecer
 
-## Por que não aparece
-As abas do Estoque só aparecem depois que o banco é atualizado. Enquanto o script dos armazéns não for rodado, a tela mostra o aviso "Atualização do estoque pendente" no lugar das abas, por isso a aba Armazéns some. No site oficial, ela também só aparece depois de publicar.
+## Causa (confirmada)
+O script funcionou: o banco já tem o armazém "Principal" e os saldos por armazém, e a tela já lê esses dados. O que faltou foi colocar a própria aba "Armazéns" na página de Estoque. A tela de cadastro de armazéns já existe, só não foi ligada à página. Por isso aparecem só três abas.
 
-## O que vai mudar
-- As quatro abas (Materiais, Movimentações, Baixa por serviço, Armazéns) ficam sempre visíveis quando o estoque básico já está instalado.
-- Enquanto o script dos armazéns não for rodado:
-  - uma faixa no topo avisa "Atualização dos armazéns pendente", com os botões **Copiar script** e **Verificar novamente**;
-  - Materiais, Movimentações e Baixa por serviço continuam funcionando como antes (saldo total, sem escolher armazém);
-  - a aba Armazéns abre mostrando o passo a passo e o script, em vez da lista.
-- Depois de rodar o script e clicar em Verificar novamente, tudo passa a funcionar com armazéns, sem recarregar.
+## O que vai ser feito
+- Adicionar a 4ª aba **Armazéns** ao lado de "Baixa por serviço", com a mesma proteção das outras abas (se der erro, só ela mostra aviso).
+- Conferir na pré-visualização que as quatro abas aparecem e que a aba Armazéns lista o "Principal".
+
+## Depois disso, você
+1. Abre Armazéns, renomeia "Principal" para o estado certo (ex.: Armazém BA, UF BA) e cria o Armazém CE (UF CE).
+2. Testa uma transferência em Movimentações > Transferir.
+3. Pede para publicar quando quiser no site oficial.
 
 ## Detalhes técnicos
-- `Estoque.tsx`: o estado `atualizacao_pendente` renderiza as abas mais uma faixa de aviso, com uma prop `modoLegado` repassada às abas.
-- `useEstoque.ts`: `useMateriaisSaldo(modoLegado)` lê `v_estoque_saldo` (total) quando legado; `useMovimentacoes` não seleciona `armazem_id`/`transferencia_id` e não consulta `armazens` quando legado; `useArmazens` fica desligado.
-- `MovimentacoesTab`: em modo legado, esconde o campo/filtro de armazém e o botão Transferir, e grava sem `armazem_id`.
-- `MateriaisTab`: em modo legado, sem colunas por armazém.
-- `ArmazensTab`: em modo legado, mostra `EstoqueNaoInstalado somenteArmazens`.
+- `src/pages/Operacao/Estoque.tsx`: importar `ArmazensTab` de `@/components/estoque/ArmazensTab`, adicionar `<TabsTrigger value="armazens">Armazéns</TabsTrigger>` e o `<TabsContent value="armazens">` envolto em `ErrorBoundary area="a aba Armazéns"`.
+- Nenhuma mudança no banco nem nas outras abas.
