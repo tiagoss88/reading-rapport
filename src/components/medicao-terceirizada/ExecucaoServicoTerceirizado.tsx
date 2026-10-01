@@ -10,6 +10,8 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { smartCompress } from '@/lib/imageCompression'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import MateriaisUtilizadosCard, { type MateriaisState } from './MateriaisUtilizadosCard'
 import { updateServicoComFotos, caminhoFotoServico } from '@/lib/fotosServico'
 
 interface ServicoData {
@@ -58,6 +60,7 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
   const [valorServico, setValorServico] = useState(() => getValorPadrao(servico.tipo_servico))
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [saving, setSaving] = useState(false)
+  const [materiais, setMateriais] = useState<MateriaisState>({ disponivel: false, semMaterial: false, itens: [] })
 
   // Signature canvas
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -194,7 +197,27 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
         assinatura_url: assinaturaUrl,
       }
 
+      let avisoMateriais: string | null = null
+      if (materiais.disponivel) {
+        try {
+          const itens = materiais.semMaterial ? [] : materiais.itens
+            .map((i) => ({ material_id: i.material_id, quantidade: Number(i.quantidade.replace(',', '.')) }))
+            .filter((i) => Number.isFinite(i.quantidade) && i.quantidade > 0)
+          const { error } = await (supabase as any).rpc('registrar_materiais_os', {
+            p_servico_id: servico.id, p_itens: itens, p_sem_material: materiais.semMaterial || itens.length === 0,
+          })
+          if (error) throw error
+        } catch (e: any) {
+          console.error('Erro ao registrar materiais:', e)
+          avisoMateriais = e?.message || 'erro desconhecido'
+        }
+      }
+
       await updateServicoComFotos(supabase, servico.id, updateData, fotoUrls)
+
+      if (avisoMateriais) {
+        toast({ title: 'Materiais não registrados', description: `A OS foi concluída, mas avise o administrador: ${avisoMateriais}`, variant: 'destructive' })
+      }
 
       if (falhasFotos.length) {
         toast({
@@ -338,6 +361,10 @@ export default function ExecucaoServicoTerceirizado({ servico, operadorId, onSuc
             )}
           </CardContent>
         </Card>
+
+        <ErrorBoundary area="os materiais utilizados">
+          <MateriaisUtilizadosCard servicoId={servico.id} value={materiais} onChange={setMateriais} />
+        </ErrorBoundary>
 
         {/* Pagamento */}
         <Card>
