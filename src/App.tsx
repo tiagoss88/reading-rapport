@@ -53,6 +53,7 @@ import { lazy, Suspense } from 'react'
 
 // Carregada só ao abrir a página: uma falha no Estoque nunca afeta o resto do sistema
 const Estoque = lazy(() => import('@/pages/Operacao/Estoque'))
+const RelatoriosEstoque = lazy(() => import('@/pages/RelatoriosEstoque'))
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,17 @@ const App = () => (
                       <ErrorBoundary area="o Estoque">
                         <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
                           <Estoque />
+                        </Suspense>
+                      </ErrorBoundary>
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/relatorios/estoque" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <ErrorBoundary area="os Relatórios de Estoque">
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+                          <RelatoriosEstoque />
                         </Suspense>
                       </ErrorBoundary>
                     </PermissionRoute>

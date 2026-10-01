@@ -73,6 +73,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const relatoriosItems = [
     { name: 'Leituras', href: '/relatorios/leituras', icon: BookOpen },
     { name: 'Serviços', href: '/relatorios/servicos', icon: Wrench },
+    ...(isAdmin ? [{ name: 'Estoque', href: '/relatorios/estoque', icon: Package }] : []),
   ]
 
   const medicaoTerceirizadaItems = [
