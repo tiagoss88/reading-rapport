@@ -103,19 +103,34 @@ export default function MovimentacoesTab() {
           </Select>
         </div>
         <div className="space-y-1">
+          <Label className="text-xs">Armazém</Label>
+          <Select value={filtroArmazem} onValueChange={setFiltroArmazem}>
+            <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              {armazens.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
           <Label className="text-xs">Tipo</Label>
           <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-            <SelectTrigger className="h-9 w-[130px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="entrada">Entrada</SelectItem>
               <SelectItem value="saida">Saída</SelectItem>
               <SelectItem value="ajuste">Ajuste</SelectItem>
+              <SelectItem value="transferencia">Transferência</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="flex-1" />
-        <Button size="sm" onClick={abrir} disabled={ativos.length === 0}><Plus className="h-4 w-4 mr-1" /> Nova movimentação</Button>
+        <Button size="sm" variant="outline" onClick={() => setTransferir(true)} disabled={ativos.length === 0 || armAtivos.length < 2}>
+          <ArrowLeftRight className="h-4 w-4 mr-1" /> Transferir
+        </Button>
+        <Button size="sm" onClick={abrir} disabled={ativos.length === 0 || armAtivos.length === 0}><Plus className="h-4 w-4 mr-1" /> Nova movimentação</Button>
+        <TransferirDialog open={transferir} onOpenChange={setTransferir} materiais={materiais} armazens={armazens} />
       </div>
 
       <div className="rounded-md border overflow-x-auto">
@@ -124,6 +139,7 @@ export default function MovimentacoesTab() {
             <TableRow>
               <TableHead className="h-9">Data/hora</TableHead>
               <TableHead className="h-9">Tipo</TableHead>
+              <TableHead className="h-9">Armazém</TableHead>
               <TableHead className="h-9">Material</TableHead>
               <TableHead className="h-9 text-right">Quantidade</TableHead>
               <TableHead className="h-9">Motivo</TableHead>
@@ -133,15 +149,17 @@ export default function MovimentacoesTab() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : lista.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Nenhuma movimentação no período.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhuma movimentação no período.</TableCell></TableRow>
             ) : lista.map((m) => (
               <TableRow key={m.id}>
                 <TableCell className="whitespace-nowrap">{format(new Date(m.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   <Badge variant={m.tipo === 'entrada' ? 'secondary' : m.tipo === 'saida' ? 'destructive' : 'outline'}>{rotulo[m.tipo]}</Badge>
+                  {m.transferencia_id && <Badge variant="outline" className="ml-1">Transf.</Badge>}
                 </TableCell>
+                <TableCell>{m.armazem_nome}</TableCell>
                 <TableCell className="font-medium">{m.material_nome}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">
                   {m.tipo === 'saida' ? '−' : m.tipo === 'entrada' ? '+' : m.quantidade > 0 ? '+' : ''}{fmtQtd(m.tipo === 'saida' ? m.quantidade : m.quantidade)} {m.material_unidade}
@@ -164,7 +182,16 @@ export default function MovimentacoesTab() {
               <Select value={form.material_id} onValueChange={(v) => setForm({ ...form, material_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {ativos.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome} — saldo {fmtQtd(m.saldo)} {m.unidade}</SelectItem>)}
+                  {ativos.map((m) => <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 space-y-1">
+              <Label>Armazém{saldoArm !== null ? ` — saldo: ${fmtQtd(saldoArm)} ${selecionado?.unidade ?? ''}` : ''}</Label>
+              <Select value={form.armazem_id} onValueChange={(v) => setForm({ ...form, armazem_id: v })}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {armAtivos.map((a) => <SelectItem key={a.id} value={a.id}>{a.nome}{a.uf ? ` (${a.uf})` : ''}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
