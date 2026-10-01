@@ -4,10 +4,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import scriptInstalacao from '../../../supabase/manual/estoque_producao.sql?raw'
 import scriptArmazens from '../../../supabase/manual/estoque_armazens.sql?raw'
+import scriptColetor from '../../../supabase/manual/estoque_coletor.sql?raw'
 
 export default function EstoqueNaoInstalado({ onVerificar, somenteArmazens = false }: { onVerificar: () => void; somenteArmazens?: boolean }) {
   const { toast } = useToast()
-  const script = somenteArmazens ? scriptArmazens : `${scriptInstalacao}\n\n${scriptArmazens}`
+  const script = somenteArmazens ? `${scriptArmazens}\n\n${scriptColetor}` : `${scriptInstalacao}\n\n${scriptArmazens}\n\n${scriptColetor}`
 
   const copiar = async () => {
     try {
@@ -25,7 +26,7 @@ export default function EstoqueNaoInstalado({ onVerificar, somenteArmazens = fal
           <Database className="h-6 w-6 text-primary shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h2 className="text-base font-semibold">
-              {somenteArmazens ? 'Atualização do estoque pendente (armazéns)' : 'Módulo de estoque ainda não instalado no banco'}
+              {somenteArmazens ? 'Atualização do estoque pendente' : 'Módulo de estoque ainda não instalado no banco'}
             </h2>
             <p className="text-sm text-muted-foreground">
               Copie o script, execute no editor SQL do banco e depois clique em "Verificar novamente".

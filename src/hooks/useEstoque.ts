@@ -78,6 +78,8 @@ export function useEstoqueInstalacao() {
       if (arm.some((c: { error: { code?: string; message?: string } | null }) => isTabelaAusente(c.error))) return 'atualizacao_pendente'
       const e2 = arm.find((c: { error: unknown }) => c.error)
       if (e2?.error) throw e2.error
+      const rpc = await sbEstoque.rpc('listar_materiais_os', { p_servico_id: '00000000-0000-0000-0000-000000000000' })
+      if (rpc.error && (rpc.error.code === 'PGRST202' || rpc.error.code === '42883' || /function/i.test(rpc.error.message ?? ''))) return 'atualizacao_pendente'
       return 'instalado'
     },
     retry: false,
