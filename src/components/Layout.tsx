@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import agasenLogo from '@/assets/agasen-logo.png'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/AuthContext'
+import { usePermissions } from '@/contexts/PermissionsContext'
 import ProtectedComponent from '@/components/ProtectedComponent'
 import ProfileDialog from '@/components/ProfileDialog'
 import { 
@@ -38,6 +39,7 @@ interface LayoutProps {
 
 export default function Layout({ children, title }: LayoutProps) {
   const { signOut } = useAuth()
+  const { isAdmin } = usePermissions()
   const { pathname } = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(false)
