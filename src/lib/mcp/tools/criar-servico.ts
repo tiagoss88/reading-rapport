@@ -26,6 +26,7 @@ export default defineTool({
     valor_servico: z.number().optional(),
     forma_pagamento: z.string().trim().optional(),
     observacao: z.string().trim().max(1000).optional(),
+    observacao_interna: z.string().trim().max(1000).optional(),
     permitir_duplicado: z
       .boolean()
       .optional()
@@ -86,6 +87,7 @@ export default defineTool({
         valor_servico: input.valor_servico ?? null,
         forma_pagamento: input.forma_pagamento ?? null,
         observacao: input.observacao ?? null,
+        ...(input.observacao_interna ? { observacao_interna: input.observacao_interna } : {}),
       })
       .select("id, numero_protocolo, condominio_nome_original, status_atendimento, data_agendamento")
       .single();

@@ -1,3 +1,4 @@
+import { colunaObsInternaInexistente } from '@/lib/fotosServico'
 import { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
@@ -340,16 +341,21 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
         status_atendimento: row.status_atendimento,
         turno: row.turno,
         tecnico_id: findTecnico(row.tecnico_nome),
-        observacao: row.observacao
+        observacao_interna: row.observacao
       }))
 
       if (servicesToInsert.length === 0) {
         throw new Error('Nenhum serviço novo para importar')
       }
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('servicos_nacional_gas')
-        .insert(servicesToInsert)
+        .insert(servicesToInsert as any)
+      if (error && colunaObsInternaInexistente(error)) {
+        ;({ error } = await supabase
+          .from('servicos_nacional_gas')
+          .insert(servicesToInsert.map(({ observacao_interna, ...r }) => ({ ...r, observacao: observacao_interna })) as any))
+      }
 
       if (error) throw error
     },

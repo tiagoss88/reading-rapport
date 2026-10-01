@@ -290,6 +290,7 @@ var criar_servico_default = defineTool6({
     valor_servico: z6.number().optional(),
     forma_pagamento: z6.string().trim().optional(),
     observacao: z6.string().trim().max(1e3).optional(),
+    observacao_interna: z6.string().trim().max(1e3).optional(),
     permitir_duplicado: z6.boolean().optional().describe("Cria mesmo que j\xE1 exista servi\xE7o igual em aberto")
   },
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
@@ -332,7 +333,8 @@ var criar_servico_default = defineTool6({
       status_atendimento: input.status_atendimento ?? (input.data_agendamento ? "agendado" : "pendente"),
       valor_servico: input.valor_servico ?? null,
       forma_pagamento: input.forma_pagamento ?? null,
-      observacao: input.observacao ?? null
+      observacao: input.observacao ?? null,
+      ...input.observacao_interna ? { observacao_interna: input.observacao_interna } : {}
     }).select("id, numero_protocolo, condominio_nome_original, status_atendimento, data_agendamento").single();
     if (error) return errorResult(error.message);
     return jsonResult({
@@ -363,7 +365,8 @@ var atualizar_servico_default = defineTool7({
     cpf_cnpj: z7.string().trim().optional(),
     valor_servico: z7.number().optional(),
     forma_pagamento: z7.string().trim().optional(),
-    observacao: z7.string().trim().max(1e3).optional()
+    observacao: z7.string().trim().max(1e3).optional(),
+    observacao_interna: z7.string().trim().max(1e3).optional()
   },
   annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   handler: async (input, ctx) => {

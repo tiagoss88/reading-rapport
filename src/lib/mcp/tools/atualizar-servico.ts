@@ -21,6 +21,7 @@ export default defineTool({
     valor_servico: z.number().optional(),
     forma_pagamento: z.string().trim().optional(),
     observacao: z.string().trim().max(1000).optional(),
+    observacao_interna: z.string().trim().max(1000).optional(),
   },
   annotations: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
   handler: async (input, ctx) => {

@@ -34,7 +34,8 @@ const formSchema = z.object({
   tecnico_id: z.string().optional().nullable(),
   valor_servico: z.string().trim().max(20).optional().nullable(),
   forma_pagamento: z.string().optional().nullable(),
-  observacao: z.string().max(1000).optional().nullable()
+  observacao: z.string().max(1000).optional().nullable(),
+  observacao_interna: z.string().max(1000).optional().nullable()
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -80,6 +81,7 @@ interface Props {
     valor_servico?: number | null
     forma_pagamento?: string | null
     observacao?: string | null
+    observacao_interna?: string | null
     fotos_urls?: string[] | null
   }
 }
@@ -121,7 +123,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
       tecnico_id: '',
       valor_servico: '',
       forma_pagamento: '',
-      observacao: ''
+      observacao: '',
+      observacao_interna: ''
     }
   })
 
@@ -145,7 +148,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
             ? Number(servico.valor_servico).toFixed(2).replace('.', ',')
             : '',
         forma_pagamento: servico.forma_pagamento || '',
-        observacao: extrairTextoObservacao(servico.observacao)
+        observacao: extrairTextoObservacao(servico.observacao),
+        observacao_interna: servico.observacao_interna || ''
       })
     }
   }, [servico, form])
@@ -202,7 +206,8 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
           tecnico_id: data.tecnico_id || null,
           valor_servico: parseValor(data.valor_servico),
           forma_pagamento: data.forma_pagamento || null,
-          observacao: data.observacao?.trim() || null
+          observacao: data.observacao?.trim() || null,
+          observacao_interna: data.observacao_interna?.trim() || null
         },
         fotos
       )
@@ -487,10 +492,24 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
 
                 <FormField
                   control={form.control}
+                  name="observacao_interna"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Observação interna (escritório e técnico)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Não aparece no relatório do cliente" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="observacao"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Observação</FormLabel>
+                      <FormLabel>Observação do técnico (sai no relatório do cliente)</FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Informações adicionais..."

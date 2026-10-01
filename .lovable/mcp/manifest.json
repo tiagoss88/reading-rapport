@@ -277,6 +277,10 @@
               "type": "string",
               "maxLength": 1000
             },
+            "observacao_interna": {
+              "type": "string",
+              "maxLength": 1000
+            },
             "permitir_duplicado": {
               "type": "boolean",
               "description": "Cria mesmo que já exista serviço igual em aberto"
@@ -355,6 +359,10 @@
               "type": "string"
             },
             "observacao": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "observacao_interna": {
               "type": "string",
               "maxLength": 1000
             }
