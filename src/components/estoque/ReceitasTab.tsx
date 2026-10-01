@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
+import BaixaManualTab from './BaixaManualTab'
 import { fmtQtd, useMateriaisSaldo, useReceitas, useTiposServicoNomes } from '@/hooks/useEstoque'
 
-export default function ReceitasTab() {
+function ConfigReceitas() {
   const { toast } = useToast()
   const qc = useQueryClient()
   const { data: tipos = [] } = useTiposServicoNomes(true)
@@ -138,6 +139,19 @@ export default function ReceitasTab() {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+export default function ReceitasTab() {
+  const [modo, setModo] = useState<'manual' | 'config'>('manual')
+  return (
+    <div className="space-y-3">
+      <div className="inline-flex rounded-md border p-0.5 gap-0.5">
+        <Button size="sm" variant={modo === 'manual' ? 'default' : 'ghost'} onClick={() => setModo('manual')}>Baixa manual</Button>
+        <Button size="sm" variant={modo === 'config' ? 'default' : 'ghost'} onClick={() => setModo('config')}>Materiais por tipo de serviço</Button>
+      </div>
+      {modo === 'manual' ? <BaixaManualTab /> : <ConfigReceitas />}
     </div>
   )
 }
