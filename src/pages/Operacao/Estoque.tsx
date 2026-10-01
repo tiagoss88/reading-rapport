@@ -9,6 +9,7 @@ import EstoqueNaoInstalado from '@/components/estoque/EstoqueNaoInstalado'
 import MateriaisTab from '@/components/estoque/MateriaisTab'
 import MovimentacoesTab from '@/components/estoque/MovimentacoesTab'
 import ReceitasTab from '@/components/estoque/ReceitasTab'
+import ArmazensTab from '@/components/estoque/ArmazensTab'
 
 function Conteudo() {
   const { estado, erro, recarregar } = useEstoqueInstalacao()
@@ -43,10 +44,12 @@ function Conteudo() {
         <TabsTrigger value="materiais">Materiais</TabsTrigger>
         <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
         <TabsTrigger value="receitas">Baixa por serviço</TabsTrigger>
+        <TabsTrigger value="armazens">Armazéns</TabsTrigger>
       </TabsList>
       <TabsContent value="materiais"><ErrorBoundary area="a aba Materiais"><MateriaisTab /></ErrorBoundary></TabsContent>
       <TabsContent value="movimentacoes"><ErrorBoundary area="a aba Movimentações"><MovimentacoesTab /></ErrorBoundary></TabsContent>
       <TabsContent value="receitas"><ErrorBoundary area="a aba Baixa por serviço"><ReceitasTab /></ErrorBoundary></TabsContent>
+      <TabsContent value="armazens"><ErrorBoundary area="a aba Armazéns"><ArmazensTab /></ErrorBoundary></TabsContent>
     </Tabs>
   )
 }
