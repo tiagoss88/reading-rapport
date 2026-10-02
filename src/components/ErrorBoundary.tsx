@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { logError } from '@/lib/errorLogger'
+import { isChunkLoadError, recarregarPorChunk } from '@/lib/versionCheck'
 
 interface Props {
   children: ReactNode
