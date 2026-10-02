@@ -12,6 +12,8 @@ import { resolverFotos, extrairTextoObservacao, updateServicoComFotos, anexarFot
 import { smartCompress } from '@/lib/imageCompression'
 import { formatCpfCnpj, formatFormaPagamento, formatTelefone } from '@/lib/formatters'
 import { useToast } from '@/hooks/use-toast'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import MateriaisDaOsCard from './MateriaisDaOsCard'
 
 interface DetalhesExecucaoDialogProps {
   open: boolean
@@ -294,6 +296,12 @@ export default function DetalhesExecucaoDialog({ open, onOpenChange, servicoId }
                     <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{texto}</p>
                   </div>
                 </div>
+              )}
+
+              {servicoId && (
+                <ErrorBoundary area="os materiais da OS">
+                  <MateriaisDaOsCard servicoId={servicoId} />
+                </ErrorBoundary>
               )}
 
               {/* === PAGAMENTO E CADASTRO === */}

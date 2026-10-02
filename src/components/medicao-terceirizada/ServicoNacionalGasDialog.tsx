@@ -16,6 +16,8 @@ import { Loader2, Upload, X } from 'lucide-react'
 import { resolverFotos, extrairTextoObservacao, updateServicoComFotos } from '@/lib/fotosServico'
 import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
+import ErrorBoundary from '@/components/ErrorBoundary'
+import MateriaisDaOsCard from './MateriaisDaOsCard'
 
 const formSchema = z.object({
   morador_nome: z.string().trim().max(255).optional().nullable(),
@@ -521,6 +523,12 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
                     </FormItem>
                   )}
                 />
+
+                {servico?.id && (
+                  <ErrorBoundary area="os materiais da OS">
+                    <MateriaisDaOsCard servicoId={servico.id} />
+                  </ErrorBoundary>
+                )}
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
