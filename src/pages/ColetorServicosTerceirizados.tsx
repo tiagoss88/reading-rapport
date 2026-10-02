@@ -528,14 +528,6 @@ export default function ColetorServicosTerceirizados() {
             )}
           </div>
 
-          {servico.observacao_interna?.trim() && (
-            <div className="px-4 pb-2">
-              <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded px-2 py-1 line-clamp-2 whitespace-pre-wrap">
-                <span className="font-semibold text-primary">Obs. interna: </span>{servico.observacao_interna}
-              </p>
-            </div>
-          )}
-
           {/* Footer */}
           <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
