@@ -23,6 +23,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(erro: Error, info: ErrorInfo) {
+    if (isChunkLoadError(erro) && recarregarPorChunk()) return
     void logError(erro, {
       origem: 'ErrorBoundary',
       area: this.props.area ?? 'app',
