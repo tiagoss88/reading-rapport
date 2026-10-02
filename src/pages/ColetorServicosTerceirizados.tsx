@@ -27,6 +27,7 @@ interface ServicoTerceirizado {
   turno: string | null
   status_atendimento: string
   observacao: string | null
+  observacao_interna?: string | null
   empreendimento?: {
     nome: string
     endereco: string
@@ -80,7 +81,7 @@ export default function ColetorServicosTerceirizados() {
   const fetchServicos = async () => {
     try {
       setLoading(true)
-      const { data, error } = await supabase
+      const montarConsulta = (comObsInterna: boolean) => supabase
         .from('servicos_nacional_gas')
         .select(`
           id,
@@ -96,15 +97,21 @@ export default function ColetorServicosTerceirizados() {
           data_agendamento,
           turno,
           status_atendimento,
-          observacao,
+          observacao,${comObsInterna ? '\n          observacao_interna,' : ''}
           empreendimento:empreendimentos_terceirizados(nome, endereco),
           tecnico:operadores!servicos_nacional_gas_tecnico_id_fkey(nome)
         `)
         .in('status_atendimento', ['pendente', 'agendado'])
         .order('data_agendamento', { ascending: true, nullsFirst: false })
 
+      let { data, error } = await montarConsulta(true)
+      // Banco ainda sem a coluna observacao_interna: busca sem ela
+      if (error && String(error.message || '').includes('observacao_interna')) {
+        ;({ data, error } = await montarConsulta(false))
+      }
+
       if (error) throw error
-      setServicos(data || [])
+      setServicos((data as any) || [])
     } catch (error) {
       console.error('Erro ao buscar serviços:', error)
       toast({
@@ -319,6 +326,20 @@ export default function ColetorServicosTerceirizados() {
                 </div>
               )}
 
+              {/* Observação interna (escritório → técnico) */}
+              {selectedServico.observacao_interna?.trim() && (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex items-start gap-2">
+                    <ClipboardList className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-primary mb-1">Observação interna</p>
+                      <p className="text-sm whitespace-pre-wrap">{selectedServico.observacao_interna}</p>
+                    </div>
+                    <CopyButton text={selectedServico.observacao_interna} />
+                  </div>
+                </div>
+              )}
+
               {/* Observação */}
               {selectedServico.observacao && (
                 <div className="pt-2 border-t">
@@ -506,6 +527,14 @@ export default function ColetorServicosTerceirizados() {
               </p>
             )}
           </div>
+
+          {servico.observacao_interna?.trim() && (
+            <div className="px-4 pb-2">
+              <p className="text-xs text-muted-foreground bg-primary/5 border border-primary/20 rounded px-2 py-1 line-clamp-2 whitespace-pre-wrap">
+                <span className="font-semibold text-primary">Obs. interna: </span>{servico.observacao_interna}
+              </p>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="flex items-center justify-between px-4 py-2 border-t bg-muted/30">
