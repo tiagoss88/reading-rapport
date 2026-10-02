@@ -2,8 +2,10 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 import { instalarCapturaGlobalDeErros } from '@/lib/errorLogger'
+import { instalarVerificacaoDeVersao } from '@/lib/versionCheck'
 
 instalarCapturaGlobalDeErros();
+instalarVerificacaoDeVersao();
 
 
 // Captura o evento beforeinstallprompt ANTES do React montar
