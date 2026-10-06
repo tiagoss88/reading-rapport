@@ -200,3 +200,46 @@ export function useTiposServicoNomes(enabled: boolean) {
 }
 
 export const fmtQtd = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 3 })
+
+/** Marca gravada na observação de um estorno para impedir estorno duplo */
+export const marcaEstorno = (movId: string) => `[estorno:${movId}]`
+
+/** Lança entrada de devolução para uma saída. Retorna false se já estornada. */
+export async function estornarSaida(
+  m: { id: string; material_id: string; armazem_id: string; quantidade: number },
+  motivo: string,
+  obs?: string,
+) {
+  const marca = marcaEstorno(m.id)
+  const ja = await sbEstoque.from('estoque_movimentacoes').select('id').ilike('observacao', `%${marca}%`).limit(1)
+  if (ja.error) throw ja.error
+  if ((ja.data ?? []).length) return false
+  const { data: sess } = await supabase.auth.getSession()
+  const { error } = await sbEstoque.from('estoque_movimentacoes').insert({
+    material_id: m.material_id, armazem_id: m.armazem_id, tipo: 'entrada', quantidade: Number(m.quantidade),
+    motivo, observacao: `${obs?.trim() ? obs.trim() + ' ' : ''}${marca}`,
+    criado_por: sess.session?.user?.id ?? null,
+  })
+  if (error) throw error
+  return true
+}
+
+/** Antes de excluir OS: devolve ao estoque as saídas delas. Nunca lança erro. */
+export async function estornarSaidasDasOs(ids: string[]) {
+  try {
+    const [{ data: saidas, error }, { data: os }] = await Promise.all([
+      sbEstoque.from('estoque_movimentacoes').select('id, material_id, armazem_id, quantidade, servico_id')
+        .in('servico_id', ids).eq('tipo', 'saida'),
+      supabase.from('servicos_nacional_gas').select('id, numero_protocolo').in('id', ids),
+    ])
+    if (error || !saidas?.length) return 0
+    const prot = new Map((os ?? []).map((o) => [o.id, o.numero_protocolo]))
+    let n = 0
+    for (const s of saidas) {
+      if (await estornarSaida(s, `Estorno - OS excluída ${prot.get(s.servico_id) ?? ''}`.trim())) n++
+    }
+    return n
+  } catch {
+    return 0
+  }
+}
