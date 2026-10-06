@@ -245,8 +245,12 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
 
         <ScrollArea className="max-h-[78vh]">
           <div className="px-6 pr-8">
-          <div className="mb-4 p-3 bg-muted rounded-md text-sm">
+          <div className="mb-4 p-3 bg-muted rounded-md text-sm grid grid-cols-2 gap-3">
             <p><strong>Condomínio:</strong> {servico.condominio_nome_original}</p>
+            <div>
+              <Label className="text-xs text-muted-foreground">Nº da OS</Label>
+              <Input value={servico.numero_protocolo || '—'} readOnly tabIndex={-1} className="h-8 mt-1 text-sm font-medium" />
+            </div>
           </div>
 
           <Form {...form}>
