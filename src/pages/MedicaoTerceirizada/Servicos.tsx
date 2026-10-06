@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useDeferredValue } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import Layout from '@/components/Layout'
@@ -12,7 +12,6 @@ import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { format } from 'date-fns'
-import * as XLSX from 'xlsx'
 import { formatCpfCnpj, formatTelefone } from '@/lib/formatters'
 import ImportarPlanilhaDialog from '@/components/medicao-terceirizada/ImportarPlanilhaDialog'
 import ServicoNacionalGasDialog from '@/components/medicao-terceirizada/ServicoNacionalGasDialog'
@@ -111,7 +110,7 @@ export default function ServicosNacionalGas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
-      queryClient.invalidateQueries({ queryKey: ['estoque'] })
+      queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'estoque' && q.queryKey[1] !== 'instalacao' })
       setSelectedIds(new Set())
       setDeleteDialogOpen(false)
       toast({ title: 'Serviços excluídos com sucesso' })
@@ -125,41 +124,45 @@ export default function ServicosNacionalGas() {
     queryKey: ['servicos-nacional-gas'],
     queryFn: async () => {
       const pageSize = 1000
-      let from = 0
-      const all: ServicoNacionalGas[] = []
-      while (true) {
-        const { data, error } = await supabase
-          .from('servicos_nacional_gas')
-          .select(`
-            *,
+      const colunas = `id, data_solicitacao, uf, empreendimento_id, condominio_nome_original, bloco, apartamento, fonte,
+            morador_nome, telefone, email, tipo_servico, data_agendamento, status_atendimento, turno, tecnico_id,
+            observacao, numero_protocolo, cpf_cnpj, valor_servico, forma_pagamento, created_at,
             empreendimento:empreendimentos_terceirizados(nome, endereco, rota),
-            tecnico:operadores(nome)
-          `)
-          .order('created_at', { ascending: false })
-          .range(from, from + pageSize - 1)
-
-        if (error) throw error
-        const batch = (data ?? []) as ServicoNacionalGas[]
-        all.push(...batch)
-        if (batch.length < pageSize) break
-        from += pageSize
+            tecnico:operadores(nome)`
+      const { count, error: errCount } = await supabase
+        .from('servicos_nacional_gas').select('id', { count: 'exact', head: true })
+      if (errCount) throw errCount
+      const paginas = Math.max(1, Math.ceil((count ?? 0) / pageSize))
+      const resultados = await Promise.all(
+        Array.from({ length: paginas }, (_, i) =>
+          supabase.from('servicos_nacional_gas').select(colunas)
+            .order('created_at', { ascending: false }).order('id')
+            .range(i * pageSize, i * pageSize + pageSize - 1))
+      )
+      const all: ServicoNacionalGas[] = []
+      for (const r of resultados) {
+        if (r.error) throw r.error
+        all.push(...((r.data ?? []) as unknown as ServicoNacionalGas[]))
       }
       return all
     }
   })
 
-  const servicosSemLeitura = servicos?.filter(s => !s.tipo_servico?.toLowerCase().includes('leitura'))
+  const buscaAdiada = useDeferredValue(searchTerm)
+  const servicosSemLeitura = useMemo(() => servicos?.filter(s => !s.tipo_servico?.toLowerCase().includes('leitura')), [servicos])
 
-  const tiposServico = servicosSemLeitura
+  const tiposServico = useMemo(() => servicosSemLeitura
     ? [...new Set(servicosSemLeitura.map(s => s.tipo_servico))].filter(Boolean).sort()
-    : []
+    : [], [servicosSemLeitura])
 
-  const filteredServicos = servicosSemLeitura?.filter(servico => {
+  const filteredServicos = useMemo(() => {
+    const termo = buscaAdiada.toLowerCase()
+    return servicosSemLeitura?.filter(servico => {
     const matchesSearch = 
-      servico.condominio_nome_original?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      servico.morador_nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      servico.apartamento?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      servico.numero_protocolo?.toLowerCase().includes(searchTerm.toLowerCase())
+      servico.condominio_nome_original?.toLowerCase().includes(termo) ||
+      servico.morador_nome?.toLowerCase().includes(termo) ||
+      servico.apartamento?.toLowerCase().includes(termo) ||
+      servico.numero_protocolo?.toLowerCase().includes(termo)
     
     const matchesUf = ufFilter === 'all' || servico.uf === ufFilter
     const matchesStatus = statusFilter === 'all' || servico.status_atendimento === statusFilter
@@ -167,6 +170,7 @@ export default function ServicosNacionalGas() {
     
     return matchesSearch && matchesUf && matchesStatus && matchesTipo
   })
+  }, [servicosSemLeitura, buscaAdiada, ufFilter, statusFilter, tipoFilter])
 
   // Sorting
   const sortedServicos = useMemo(() => {
@@ -211,7 +215,8 @@ export default function ServicosNacionalGas() {
   const startIndex = (safePage - 1) * pageSize
   const paginatedServicos = sortedServicos?.slice(startIndex, startIndex + pageSize)
 
-  const handleExportarClientes = () => {
+  const handleExportarClientes = async () => {
+    const XLSX = await import('xlsx')
     const lista = sortedServicos ?? []
     if (lista.length === 0) {
       toast({ title: 'Nada para exportar', description: 'Ajuste os filtros e tente novamente.', variant: 'destructive' })
@@ -255,8 +260,13 @@ export default function ServicosNacionalGas() {
   }
 
 
-  const handleEdit = (servico: ServicoNacionalGas) => {
-    setSelectedServico(servico)
+  const handleEdit = async (servico: ServicoNacionalGas) => {
+    // A lista traz só as colunas exibidas; a edição precisa do registro completo
+    const { data } = await supabase
+      .from('servicos_nacional_gas')
+      .select('*, empreendimento:empreendimentos_terceirizados(nome, endereco, rota), tecnico:operadores(nome)')
+      .eq('id', servico.id).maybeSingle()
+    setSelectedServico((data as unknown as ServicoNacionalGas) ?? servico)
     setEditDialogOpen(true)
   }
 

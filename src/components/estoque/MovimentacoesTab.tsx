@@ -55,7 +55,7 @@ export default function MovimentacoesTab() {
     try {
       const ok = await estornarSaida(m, `Estorno de saída${m.motivo ? ' (' + m.motivo + ')' : ''}`, obs)
       toast({ title: ok ? 'Estorno registrado' : 'Esta saída já foi estornada' })
-      qc.invalidateQueries({ queryKey: ['estoque'] })
+      qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'estoque' && q.queryKey[1] !== 'instalacao' })
     } catch (e) {
       toast({ title: 'Erro ao estornar', description: (e as Error).message, variant: 'destructive' })
     } finally { setEstornando(null) }
@@ -97,7 +97,7 @@ export default function MovimentacoesTab() {
     if (error) return toast({ title: 'Erro ao registrar movimentação', description: error.message, variant: 'destructive' })
     toast({ title: `${rotulo[form.tipo]} registrada` })
     setAberto(false)
-    qc.invalidateQueries({ queryKey: ['estoque'] })
+    qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'estoque' && q.queryKey[1] !== 'instalacao' })
   }
 
   return (

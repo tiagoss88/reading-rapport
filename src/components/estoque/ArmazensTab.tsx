@@ -45,7 +45,7 @@ export default function ArmazensTab() {
     if (error) return toast({ title: 'Erro ao salvar armazém', description: error.message, variant: 'destructive' })
     toast({ title: editId ? 'Armazém atualizado' : 'Armazém cadastrado' })
     setAberto(false)
-    qc.invalidateQueries({ queryKey: ['estoque'] })
+    qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'estoque' && q.queryKey[1] !== 'instalacao' })
   }
 
   return (

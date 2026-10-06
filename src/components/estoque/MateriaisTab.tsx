@@ -68,7 +68,7 @@ export default function MateriaisTab() {
     if (error) return toast({ title: 'Erro ao salvar material', description: error.message, variant: 'destructive' })
     toast({ title: editId ? 'Material atualizado' : 'Material cadastrado' })
     setAberto(false)
-    qc.invalidateQueries({ queryKey: ['estoque'] })
+    qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'estoque' && q.queryKey[1] !== 'instalacao' })
   }
 
   return (

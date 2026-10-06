@@ -43,7 +43,7 @@ export default function TransferirDialog({ open, onOpenChange, materiais, armaze
     if (error) return toast({ title: 'Erro na transferência', description: error.message, variant: 'destructive' })
     toast({ title: 'Transferência registrada' })
     onOpenChange(false)
-    qc.invalidateQueries({ queryKey: ['estoque'] })
+    qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'estoque' && q.queryKey[1] !== 'instalacao' })
   }
 
   const ativos = armazens.filter((a) => a.ativo)
