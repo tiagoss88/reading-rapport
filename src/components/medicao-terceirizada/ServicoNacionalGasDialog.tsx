@@ -68,6 +68,7 @@ interface Props {
   onOpenChange: (open: boolean) => void
   servico: {
     id: string
+    numero_protocolo?: string | null
     condominio_nome_original: string
     bloco?: string | null
     apartamento?: string | null
