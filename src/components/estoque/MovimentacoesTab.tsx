@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { format, startOfMonth } from 'date-fns'
-import { Plus, ArrowLeftRight } from 'lucide-react'
+import { Plus, ArrowLeftRight, Undo2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
-import { fmtQtd, sbEstoque, useArmazens, useMateriaisSaldo, useMovimentacoes } from '@/hooks/useEstoque'
+import { estornarSaida, fmtQtd, sbEstoque, useArmazens, useMateriaisSaldo, useMovimentacoes } from '@/hooks/useEstoque'
 import TransferirDialog from './TransferirDialog'
 
 type Tipo = 'entrada' | 'saida' | 'ajuste'
@@ -41,6 +41,25 @@ export default function MovimentacoesTab() {
   const ativos = materiais.filter((m) => m.ativo)
   const selecionado = materiais.find((m) => m.id === form.material_id)
   const saldoArm = selecionado && form.armazem_id ? selecionado.porArmazem[form.armazem_id] ?? 0 : null
+
+  const estornadas = useMemo(() => {
+    const set = new Set<string>()
+    for (const m of movs) for (const x of (m.observacao ?? '').matchAll(/\[estorno:([0-9a-f-]+)\]/g)) set.add(x[1])
+    return set
+  }, [movs])
+  const [estornando, setEstornando] = useState<string | null>(null)
+  const estornar = async (m: (typeof movs)[number]) => {
+    const obs = window.prompt(`Estornar ${fmtQtd(m.quantidade)} ${m.material_unidade} de ${m.material_nome}? Esse valor volta para ${m.armazem_nome}.\nObservação (opcional):`, '')
+    if (obs === null) return
+    setEstornando(m.id)
+    try {
+      const ok = await estornarSaida(m, `Estorno de saída${m.motivo ? ' (' + m.motivo + ')' : ''}`, obs)
+      toast({ title: ok ? 'Estorno registrado' : 'Esta saída já foi estornada' })
+      qc.invalidateQueries({ queryKey: ['estoque'] })
+    } catch (e) {
+      toast({ title: 'Erro ao estornar', description: (e as Error).message, variant: 'destructive' })
+    } finally { setEstornando(null) }
+  }
 
   const lista = useMemo(() => movs.filter((m) =>
     (filtroMaterial === 'todos' || m.material_id === filtroMaterial) &&
@@ -145,13 +164,14 @@ export default function MovimentacoesTab() {
               <TableHead className="h-9">Motivo</TableHead>
               <TableHead className="h-9">OS</TableHead>
               <TableHead className="h-9">Observação</TableHead>
+              <TableHead className="h-9"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : lista.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nenhuma movimentação no período.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-6 text-muted-foreground">Nenhuma movimentação no período.</TableCell></TableRow>
             ) : lista.map((m) => (
               <TableRow key={m.id}>
                 <TableCell className="whitespace-nowrap">{format(new Date(m.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
@@ -167,6 +187,11 @@ export default function MovimentacoesTab() {
                 <TableCell>{m.motivo ?? '—'}</TableCell>
                 <TableCell className="whitespace-nowrap">{m.protocolo ?? '—'}</TableCell>
                 <TableCell className="max-w-[240px] truncate" title={m.observacao ?? ''}>{m.observacao ?? '—'}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {m.tipo === 'saida' && !m.transferencia_id && (estornadas.has(m.id)
+                    ? <Badge variant="outline">Estornada</Badge>
+                    : <Button size="sm" variant="ghost" className="h-7 px-2" disabled={estornando === m.id} onClick={() => void estornar(m)}><Undo2 className="h-3.5 w-3.5 mr-1" />Estornar</Button>)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -21,6 +21,7 @@ import AgendaSemanal from '@/components/medicao-terceirizada/AgendaSemanal'
 import NovoServicoNacionalGasDialog from '@/components/medicao-terceirizada/NovoServicoNacionalGasDialog'
 import PainelUrgencias, { getServicosUrgentes } from '@/components/medicao-terceirizada/PainelUrgencias'
 import DetalhesExecucaoDialog from '@/components/medicao-terceirizada/DetalhesExecucaoDialog'
+import { estornarSaidasDasOs } from '@/hooks/useEstoque'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
@@ -101,6 +102,7 @@ export default function ServicosNacionalGas() {
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
+      await estornarSaidasDasOs(ids)
       const { error } = await supabase
         .from('servicos_nacional_gas')
         .delete()
@@ -109,6 +111,7 @@ export default function ServicosNacionalGas() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['servicos-nacional-gas'] })
+      queryClient.invalidateQueries({ queryKey: ['estoque'] })
       setSelectedIds(new Set())
       setDeleteDialogOpen(false)
       toast({ title: 'Serviços excluídos com sucesso' })
@@ -618,7 +621,7 @@ export default function ServicosNacionalGas() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {selectedIds.size} serviço(s)? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir {selectedIds.size} serviço(s)? Esta ação não pode ser desfeita. Os materiais lançados nessas OS voltarão ao estoque.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
