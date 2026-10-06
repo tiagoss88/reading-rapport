@@ -61,29 +61,32 @@ export function useEstoqueInstalacao() {
   const q = useQuery({
     queryKey: ['estoque', 'instalacao'],
     queryFn: async (): Promise<EstadoInstalacao> => {
-      const checks = await Promise.all([
-        supabase.from('materiais').select('id').limit(1),
-        supabase.from('estoque_movimentacoes').select('id').limit(1),
-        supabase.from('tipo_servico_materiais').select('id').limit(1),
-        sbEstoque.from('v_estoque_saldo').select('material_id').limit(1),
+      const zero = '00000000-0000-0000-0000-000000000000'
+      const [checks, arm, rpc] = await Promise.all([
+        Promise.all([
+          supabase.from('materiais').select('id').limit(1),
+          supabase.from('estoque_movimentacoes').select('id').limit(1),
+          supabase.from('tipo_servico_materiais').select('id').limit(1),
+          sbEstoque.from('v_estoque_saldo').select('material_id').limit(1),
+        ]),
+        Promise.all([
+          sbEstoque.from('armazens').select('id').limit(1),
+          sbEstoque.from('v_estoque_saldo_armazem').select('material_id').limit(1),
+          sbEstoque.from('estoque_movimentacoes').select('armazem_id').limit(1),
+        ]),
+        sbEstoque.rpc('listar_materiais_os', { p_servico_id: zero }),
       ])
       if (checks.some((c) => isTabelaAusente(c.error))) return 'nao_instalado'
       const outro = checks.find((c) => c.error)
       if (outro?.error) throw outro.error
-      const arm = await Promise.all([
-        sbEstoque.from('armazens').select('id').limit(1),
-        sbEstoque.from('v_estoque_saldo_armazem').select('material_id').limit(1),
-        sbEstoque.from('estoque_movimentacoes').select('armazem_id').limit(1),
-      ])
       if (arm.some((c: { error: { code?: string; message?: string } | null }) => isTabelaAusente(c.error))) return 'atualizacao_pendente'
       const e2 = arm.find((c: { error: unknown }) => c.error)
       if (e2?.error) throw e2.error
-      const rpc = await sbEstoque.rpc('listar_materiais_os', { p_servico_id: '00000000-0000-0000-0000-000000000000' })
       if (rpc.error && (rpc.error.code === 'PGRST202' || rpc.error.code === '42883' || /function/i.test(rpc.error.message ?? ''))) return 'atualizacao_pendente'
       return 'instalado'
     },
     retry: false,
-    staleTime: 60_000,
+    staleTime: 600_000,
   })
   const estado: EstadoInstalacao = q.isLoading ? 'verificando' : q.isError ? 'erro' : (q.data ?? 'verificando')
   return { estado, erro: q.error as Error | null, recarregar: q.refetch }
@@ -107,7 +110,7 @@ export function useMateriaisSaldo(enabled: boolean) {
     enabled,
     queryFn: async (): Promise<MaterialSaldo[]> => {
       const [mats, saldos] = await Promise.all([
-        supabase.from('materiais').select('*').order('nome'),
+        supabase.from('materiais').select('id, nome, descricao, unidade, categoria, estoque_minimo, ativo').order('nome'),
         sbEstoque.from('v_estoque_saldo_armazem').select('material_id, armazem_id, saldo'),
       ])
       if (mats.error) throw mats.error
@@ -136,6 +139,7 @@ export function useMovimentacoes(enabled: boolean, filtros: { inicio: string; fi
     queryKey: ['estoque', 'movimentacoes', filtros],
     enabled,
     queryFn: async (): Promise<Movimentacao[]> => {
+      const armsP = sbEstoque.from('armazens').select('id, nome')
       const { data, error } = await sbEstoque
         .from('estoque_movimentacoes')
         .select('id, material_id, armazem_id, tipo, quantidade, motivo, observacao, servico_id, transferencia_id, created_at')
@@ -155,7 +159,7 @@ export function useMovimentacoes(enabled: boolean, filtros: { inicio: string; fi
         idsServ.length
           ? supabase.from('servicos_nacional_gas').select('id, numero_protocolo').in('id', idsServ)
           : Promise.resolve({ data: [] as { id: string; numero_protocolo: string | null }[], error: null }),
-        sbEstoque.from('armazens').select('id, nome'),
+        armsP,
       ])
       const mapaMat = new Map((mats.data ?? []).map((m) => [m.id, m]))
       const mapaServ = new Map((servs.data ?? []).map((s) => [s.id, s.numero_protocolo]))

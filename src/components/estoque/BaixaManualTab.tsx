@@ -124,7 +124,7 @@ export default function BaixaManualTab() {
     if (error) return toast({ title: 'Erro ao registrar baixa', description: error.message, variant: 'destructive' })
     toast({ title: `Baixa registrada (${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'})` })
     limpar()
-    qc.invalidateQueries({ queryKey: ['estoque'] })
+    qc.invalidateQueries({ predicate: (q) => q.queryKey[0] === 'estoque' && q.queryKey[1] !== 'instalacao' })
   }
 
   const nomeArm = (id: string) => armazens.find((a) => a.id === id)?.nome ?? '—'
