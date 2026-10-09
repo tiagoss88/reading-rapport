@@ -401,7 +401,8 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     doc.setFontSize(8);
     const obsLines = doc.splitTextToSize(data.observacao_texto, cw - 12) as string[];
     const spaceForObservation = getContentBottom(doc) - y - signBlockH;
-    const maxFirstPageLines = Math.max(1, Math.floor((spaceForObservation - 19.5) / obsLineH));
+    const observationChromeH = 18.5; // cabeçalho, respiros e margens internas
+    const maxFirstPageLines = Math.max(1, Math.floor((spaceForObservation - observationChromeH) / obsLineH));
     const firstPageLines = obsLines.slice(0, maxFirstPageLines);
     obsOverflow = obsLines.slice(maxFirstPageLines);
     const obsH = Math.max(firstPageLines.length * obsLineH + 6, 12);
