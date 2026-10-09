@@ -69,6 +69,40 @@ function getCompetenciaAtual() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 }
 
+// Equivalente ao ng_norm_condo do banco
+function normCondo(t: string | null | undefined): string {
+  let s = (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  s = s.replace(/\([^)]*\)/g, ' ').replace(/^\s*ba\s+/, ' ')
+  s = s.replace(/\b(condominio|cond|residencial|resid|edificio|ed)\b/g, ' ')
+  return s.replace(/[^a-z0-9]/g, '')
+}
+
+type IndiceColetas = { porId: Map<string, string>; porNome: Map<string, string> }
+
+function montarIndiceColetas(coletas: { empreendimento_id?: string | null; condominio_nome_original?: string | null; uf?: string | null; data_agendamento?: string | null }[]): IndiceColetas {
+  const porId = new Map<string, string>()
+  const porNome = new Map<string, string>()
+  const guardar = (m: Map<string, string>, k: string, d: string) => {
+    const atual = m.get(k)
+    if (!atual || d > atual) m.set(k, d)
+  }
+  for (const c of coletas) {
+    const d = c.data_agendamento || ''
+    if (c.empreendimento_id) guardar(porId, c.empreendimento_id, d)
+    const n = normCondo(c.condominio_nome_original)
+    if (n) guardar(porNome, `${(c.uf || '').toUpperCase()}|${n}`, d)
+  }
+  return { porId, porNome }
+}
+
+function buscarColeta(idx: IndiceColetas, empId?: string | null, uf?: string | null, nome?: string | null): string | null {
+  if (empId && idx.porId.has(empId)) return idx.porId.get(empId) || null
+  const n = normCondo(nome)
+  if (!n) return null
+  const k = `${(uf || '').toUpperCase()}|${n}`
+  return idx.porNome.has(k) ? idx.porNome.get(k) || null : null
+}
+
 export default function LeiturasTerceirizadas() {
   const [dataSelecionada, setDataSelecionada] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [competencia, setCompetencia] = useState(getCompetenciaAtual())
@@ -104,28 +138,25 @@ export default function LeiturasTerceirizadas() {
     }
   })
 
-  const { data: servicosExecutadosNoDia, isLoading: loadingExecutadosNoDia } = useQuery({
-    queryKey: ['servicos-executados-dia', dataSelecionada],
+  // Coletas executadas no mês da data da rota (print sem pendência conta para o mês inteiro)
+  const { data: coletasMesRota, isLoading: loadingExecutadosNoDia } = useQuery({
+    queryKey: ['servicos-executados-mes-rota', dataSelecionada.slice(0, 7)],
     queryFn: async () => {
+      const [ano, mes] = dataSelecionada.split('-')
+      const ultimoDia = new Date(Number(ano), Number(mes), 0).getDate()
       const { data, error } = await supabase
         .from('servicos_nacional_gas')
-        .select('empreendimento_id')
+        .select('empreendimento_id, condominio_nome_original, uf, data_agendamento')
         .eq('tipo_servico', 'leitura')
         .eq('status_atendimento', 'executado')
-        .eq('data_agendamento', dataSelecionada)
-        .not('empreendimento_id', 'is', null)
-
+        .gte('data_agendamento', `${ano}-${mes}-01`)
+        .lte('data_agendamento', `${ano}-${mes}-${String(ultimoDia).padStart(2, '0')}`)
       if (error) throw error
-      return (data || [])
-        .map(item => item.empreendimento_id)
-        .filter((id): id is string => !!id)
+      return data || []
     }
   })
 
-  const empreendimentoIdsExecutadosNoDia = useMemo(
-    () => new Set(servicosExecutadosNoDia || []),
-    [servicosExecutadosNoDia]
-  )
+  const indiceColetasMes = useMemo(() => montarIndiceColetas(coletasMesRota || []), [coletasMesRota])
 
   // Aba 2 - Coletas Realizadas
   const { data: coletasRealizadas, isLoading: loadingColetas } = useQuery({
@@ -165,29 +196,30 @@ export default function LeiturasTerceirizadas() {
   // Agrupar rotas por empreendimento para evitar duplicação
   const rotasAgrupadas = useMemo(() => {
     if (!rotasDoDia) return []
-    const map = new Map<string, { emp: any; operadores: string[]; statusEfetivo: string }>()
+    const map = new Map<string, { emp: any; operadores: string[]; statusEfetivo: string; dataColeta: string | null }>()
     for (const rota of rotasDoDia) {
       const emp = rota.empreendimentos_terceirizados as any
       const op = rota.operadores as any
       const empId = emp?.id || rota.empreendimento_id
       if (!map.has(empId)) {
-        const isExecutado = empreendimentoIdsExecutadosNoDia.has(empId)
+        const dataColeta = buscarColeta(indiceColetasMes, empId, emp?.uf, emp?.nome)
         map.set(empId, {
           emp,
           operadores: [],
-          statusEfetivo: rota.status === 'concluido' || isExecutado ? 'concluido' : rota.status
+          statusEfetivo: rota.status === 'concluido' || dataColeta ? 'concluido' : rota.status,
+          dataColeta,
         })
       }
       const group = map.get(empId)!
       if (op?.nome && !group.operadores.includes(op.nome)) {
         group.operadores.push(op.nome)
       }
-      if (rota.status === 'concluido' || empreendimentoIdsExecutadosNoDia.has(empId)) {
+      if (rota.status === 'concluido') {
         group.statusEfetivo = 'concluido'
       }
     }
     return Array.from(map.values())
-  }, [rotasDoDia, empreendimentoIdsExecutadosNoDia])
+  }, [rotasDoDia, indiceColetasMes])
 
   // UFs e Rotas únicas para filtros
   const ufsDisponiveis = useMemo(() => {
@@ -200,15 +232,11 @@ export default function LeiturasTerceirizadas() {
     return [...new Set(todosEmpreendimentos.map(e => e.rota))].sort((a, b) => a - b)
   }, [todosEmpreendimentos])
 
-  // Pendentes: empreendimentos sem coleta na competência
+  // Pendentes: empreendimentos sem coleta na competência (por cadastro ou pelo nome)
   const pendentes = useMemo(() => {
     if (!todosEmpreendimentos || !coletasRealizadas) return []
-    const idsColetados = new Set(
-      coletasRealizadas
-        .filter(c => c.empreendimento_id)
-        .map(c => c.empreendimento_id)
-    )
-    return todosEmpreendimentos.filter(e => !idsColetados.has(e.id))
+    const indice = montarIndiceColetas(coletasRealizadas as any[])
+    return todosEmpreendimentos.filter(e => !buscarColeta(indice, e.id, e.uf, e.nome))
   }, [todosEmpreendimentos, coletasRealizadas])
 
   // Filtros aplicados nas coletas
@@ -323,7 +351,14 @@ export default function LeiturasTerceirizadas() {
                           <TableCell>{group.emp?.rota || '-'}</TableCell>
                           <TableCell>{group.emp?.quantidade_medidores || 0}</TableCell>
                           <TableCell>{group.operadores.length > 0 ? group.operadores.join(', ') : 'Não atribuído'}</TableCell>
-                          <TableCell>{statusBadge(group.statusEfetivo)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {statusBadge(group.statusEfetivo)}
+                              {group.statusEfetivo === 'concluido' && group.dataColeta && (
+                                <span className="text-xs text-muted-foreground">coletado em {format(parseISO(group.dataColeta), 'dd/MM')}</span>
+                              )}
+                            </div>
+                          </TableCell>
                         </TableRow>
                     ))}
                   </TableBody>
@@ -791,7 +826,7 @@ export default function LeiturasTerceirizadas() {
               `📋 Rota do Dia - ${dataFormatada}`,
               '',
               `✅ CONCLUÍDOS (${concluidos.length}):`,
-              ...concluidos.map(g => `• ${g.emp?.nome || '-'} - Rota ${g.emp?.rota || '-'}`),
+              ...concluidos.map(g => `• ${g.emp?.nome || '-'} - Rota ${g.emp?.rota || '-'}${g.dataColeta && g.dataColeta !== dataSelecionada ? ` (coletado em ${format(parseISO(g.dataColeta), 'dd/MM')})` : ''}`),
               '',
               `⏳ PENDENTES (${pendentesRota.length}):`,
               ...pendentesRota.map(g => `• ${g.emp?.nome || '-'} - Rota ${g.emp?.rota || '-'}`),
