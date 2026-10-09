@@ -391,11 +391,21 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   }
 
   // ---- Observação do técnico ----
+  // A primeira página sempre reserva a área das assinaturas. Se a observação
+  // for excepcionalmente longa, apenas o excedente continua depois.
+  const obsLineH = 3.5;
+  const signBlockH = 35.5;
+  let obsOverflow: string[] = [];
   if (data.observacao_texto) {
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
-    const obsLines = doc.splitTextToSize(data.observacao_texto, cw - 12);
-    const obsH = Math.max(obsLines.length * 4 + 8, 14);
-    ensure(obsH + 16);
+    const obsLines = doc.splitTextToSize(data.observacao_texto, cw - 12) as string[];
+    const spaceForObservation = getContentBottom(doc) - y - signBlockH;
+    const maxFirstPageLines = Math.max(1, Math.floor((spaceForObservation - 19.5) / obsLineH));
+    const firstPageLines = obsLines.slice(0, maxFirstPageLines);
+    obsOverflow = obsLines.slice(maxFirstPageLines);
+    const obsH = Math.max(firstPageLines.length * obsLineH + 6, 12);
+
     y = drawSectionHead(doc, '04', 'Observação do técnico', y);
     doc.setFillColor(245, 249, 252);
     doc.rect(LEFT, y, cw, obsH, 'F');
@@ -404,18 +414,16 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...INK);
-    doc.text(obsLines, LEFT + 6, y + 6);
-    y += obsH + 6;
+    doc.text(firstPageLines, LEFT + 6, y + 5.5, { lineHeightFactor: 1.24 });
+    y += obsH + 3;
   }
 
   // ---- Assinaturas ----
-  const signBlockH = 36;
-  ensure(signBlockH);
   y = drawSectionHead(doc, data.observacao_texto ? '05' : '04', 'Assinaturas', y);
 
   const sigGap = 14;
   const sigW = (cw - sigGap) / 2;
-  const lineY = y + 19;
+  const lineY = y + 14;
 
   if (data.assinatura_url) {
     const imgData = await getBase64FromUrl(data.assinatura_url);
@@ -423,7 +431,7 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
       try {
         const props = doc.getImageProperties(imgData);
         const maxW = sigW - 10;
-        const maxH = 16;
+        const maxH = 11;
         const ratio = props.width / props.height;
         let w = maxW;
         let h = w / ratio;
@@ -455,7 +463,32 @@ export async function exportarRegistroAtendimento(data: RegistroAtendimentoData)
   doc.text(data.morador_nome || '—', LEFT + sigW / 2, lineY + 8.7, { align: 'center' });
   doc.text(data.tecnico_nome || '—', LEFT + sigW + sigGap + sigW / 2, lineY + 8.7, { align: 'center' });
 
-  y = lineY + 14;
+  y = lineY + 12;
+
+  // ---- Continuação da observação ----
+  if (obsOverflow.length > 0) {
+    let remainingLines = obsOverflow;
+    while (remainingLines.length > 0) {
+      doc.addPage();
+      y = drawHeader(doc, logo, 'RELATÓRIO DE ATENDIMENTO', 'Documento técnico • continuação', protocolo);
+      y = drawSectionHead(doc, '04', 'Observação do técnico — continuação', y);
+
+      const maxLines = Math.max(1, Math.floor((getContentBottom(doc) - y - 8) / obsLineH));
+      const pageLines = remainingLines.slice(0, maxLines);
+      remainingLines = remainingLines.slice(maxLines);
+      const obsH = pageLines.length * obsLineH + 6;
+
+      doc.setFillColor(245, 249, 252);
+      doc.rect(LEFT, y, cw, obsH, 'F');
+      doc.setFillColor(...BLUE);
+      doc.rect(LEFT, y, 1.2, obsH, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...INK);
+      doc.text(pageLines, LEFT + 6, y + 5.5, { lineHeightFactor: 1.24 });
+      y += obsH + 3;
+    }
+  }
 
   // ---- Nota final ----
   const fotos = data.fotos_urls || [];
