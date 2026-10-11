@@ -9,6 +9,13 @@ export const FORMAS_PAGAMENTO = ['Pix', 'Dinheiro', 'Cartão de crédito', 'Cart
 export type Situacao = 'pendente' | 'parcial' | 'pago' | 'isento'
 export const SITUACAO_LABEL: Record<Situacao, string> = { pendente: 'Pendente', parcial: 'Parcial', pago: 'Pago', isento: 'Isento' }
 
+// Tipos de serviço que não entram no controle financeiro (vêm da contratante).
+export const TIPOS_NAO_COBRADOS = ['leitura']
+const normTipo = (t: string | null | undefined) =>
+  (t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+const TIPOS_IGNORADOS = new Set(TIPOS_NAO_COBRADOS.flatMap((t) => [normTipo(t), `${normTipo(t)}s`, `${normTipo(t)}es`]))
+export const tipoNaoCobrado = (t: string | null | undefined) => TIPOS_IGNORADOS.has(normTipo(t))
+
 export const fmtBRL = (n: number) => (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export interface Recebimento {
