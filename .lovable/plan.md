@@ -1,45 +1,52 @@
-# Ativar o módulo Financeiro no site oficial
+# Financeiro: deixar de considerar o tipo "leitura"
 
-O script `financeiro.sql` não precisa de mudança: ele cria as duas tabelas do
-Financeiro (recebimentos e situação da OS), os índices de consulta e libera
-acesso somente a admin. Você vai colar e executar no editor SQL do banco
-oficial.
+Serviços do tipo **leitura** vêm da nossa contratante, então não devem entrar
+no controle financeiro: nem em Contas a receber, nem em Recebimentos, nem nos
+resumos, nem na lista de inadimplência, nem nas exportações.
 
-Depois disso, falta publicar o app — é isso que faz o menu
-**Operação > Financeiro** aparecer no ngd.agasen.com.br.
+## Como vai funcionar
 
-## Passos
+- O módulo Financeiro passa a ignorar automaticamente toda OS cujo tipo é
+  leitura. Ela continua existindo normalmente em Serviços, no coletor, nos
+  relatórios de serviços e no relatório de atendimento — só sai do Financeiro.
+- O reconhecimento do tipo é tolerante a variações de escrita: maiúsculas,
+  minúsculas, acentos e plural (ex.: "leitura", "Leitura", "LEITURA",
+  "leituras") são tratados como o mesmo tipo. Assim a regra vale para as OS já
+  cadastradas, independentemente de como o tipo foi digitado ou importado.
+- Se um recebimento já tiver sido lançado em uma OS de leitura, ele também sai
+  das listas e dos totais do Financeiro, para não aparecer valor que não é
+  nosso para cobrar.
+- Na tela de edição de uma OS de leitura, o bloco de situação financeira deixa
+  de ser exibido (não há o que controlar).
 
-1. **Rodar o script** (você) — colar o conteúdo de `financeiro.sql` no editor
-   SQL do banco oficial e executar. Pode rodar mais de uma vez sem causar dano.
-2. **Confirmar que as tabelas existem** — ao abrir a tela do Financeiro, o
-   sistema já detecta se as tabelas estão lá: se estiverem, as abas aparecem;
-   se não estiverem, aparece o aviso de módulo indisponível em vez de tela
-   em branco.
-3. **Publicar o app** — com o botão Publicar, para a versão no ar passar a
-   trazer o menu e a tela do Financeiro.
-4. **Testar o fluxo real** — entrar como admin, abrir Operação > Financeiro,
-   conferir a aba Contas a receber, registrar um recebimento em uma OS já
-   executada e verificar se a situação passa de pendente para pago (e o saldo
-   zera). Testar também um estorno e uma isenção com motivo.
+## Onde a mudança aparece
 
-## O que o Financeiro mostra
-
-- **Contas a receber**: lista de OS com valor, total já recebido, saldo e
-  situação (pendente, parcial, pago, isento), com filtros e botão Registrar.
-- **Recebimentos**: histórico de lançamentos, com estorno.
-- **Resumo**: totais por mês, forma de pagamento, UF e técnico, além de
-  inadimplência acima de um número de dias que você define.
-- Tudo com exportação em PDF, Excel e CSV.
+- **Contas a receber**: totais (valor dos serviços, recebido, pendente, OS em
+  aberto), a tabela e a exportação PDF/Excel/CSV passam a excluir leitura.
+- **Recebimentos**: lista, total e exportação excluem leitura.
+- **Resumo e relatórios**: por mês, por forma de pagamento, por UF, por técnico
+  e inadimplência excluem leitura.
+- **Serviços e demais telas**: nada muda.
 
 ## Detalhes técnicos
 
-- Tabelas: `public.financeiro_recebimentos` e `public.financeiro_situacao_os`,
-  com RLS restrita a `public.has_role(auth.uid(), 'admin')`.
-- Nenhuma trigger é criada em `servicos_nacional_gas`, então fechar uma OS
-  continua sem depender do Financeiro.
-- Saldos e situações são calculados no app a partir de `servicos_nacional_gas`
-  mais os recebimentos registrados; a data de execução vem do histórico de
-  mudança de status, com alternativa em `updated_at`.
-- Nada é alterado no script: nenhuma edição de código é necessária nesta etapa,
-  apenas rodar o SQL e publicar.
+- A exclusão é feita na origem dos dados do módulo (`useFinanceiroDados`), em
+  `src/hooks/useFinanceiro.ts`: a lista de OS consideradas monta as contas já
+  sem o tipo leitura, usando comparação normalizada (caixa, acentos, plural)
+  contra uma lista única de tipos ignorados, fácil de ampliar no futuro.
+- Recebimentos cujo serviço não está mais na lista de contas ficam de fora das
+  abas Recebimentos e Resumo, mantendo os totais coerentes.
+- `src/components/financeiro/FinanceiroDaOsCard.tsx` deixa de renderizar quando
+  o serviço é do tipo ignorado.
+- Nenhuma alteração de banco de dados e nenhum script novo: é filtro no app.
+- Verificação: abrir Operação > Financeiro, conferir que nenhuma OS de leitura
+  aparece em Contas a receber e que os totais caem exatamente pela soma dessas
+  OS; conferir também que uma OS de outro tipo continua normalmente listada e
+  que a edição dela ainda mostra o bloco financeiro.
+
+## A confirmar na primeira execução
+
+- O valor exato gravado no campo de tipo das OS de leitura (a base que consigo
+  consultar aqui está vazia e o tipo é texto livre, então a regra é feita para
+  pegar as variações mais prováveis). Se aparecer alguma grafia diferente, ela
+  entra na lista de ignorados na mesma hora.
