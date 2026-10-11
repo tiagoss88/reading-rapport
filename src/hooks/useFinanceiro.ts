@@ -10,10 +10,14 @@ export type Situacao = 'pendente' | 'parcial' | 'pago' | 'isento'
 export const SITUACAO_LABEL: Record<Situacao, string> = { pendente: 'Pendente', parcial: 'Parcial', pago: 'Pago', isento: 'Isento' }
 
 // Tipos de serviço que não entram no controle financeiro (vêm da contratante).
-export const TIPOS_NAO_COBRADOS = ['leitura']
+export const TIPOS_NAO_COBRADOS = ['leitura', 'religacao', 'religamento', 'desligamento', 'desligacao']
 const normTipo = (t: string | null | undefined) =>
   (t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-const TERMOS_IGNORADOS = TIPOS_NAO_COBRADOS.flatMap((t) => { const n = normTipo(t); return [n, `${n}s`, `${n}es`] })
+const TERMOS_IGNORADOS = TIPOS_NAO_COBRADOS.flatMap((t) => {
+  const n = normTipo(t)
+  const plural = n.endsWith('ao') ? [`${n.slice(0, -2)}oes`] : []
+  return [n, `${n}s`, `${n}es`, ...plural]
+})
 export const tipoNaoCobrado = (t: string | null | undefined) => {
   const n = normTipo(t)
   return TERMOS_IGNORADOS.some((x) => n === x || (n.startsWith(x) && !/[a-z0-9]/.test(n[x.length] ?? '')))
