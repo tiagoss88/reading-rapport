@@ -64,6 +64,19 @@ function Conteudo() {
 
   const ufs = useMemo(() => [...new Set((data?.contas ?? []).map((c) => c.uf).filter(Boolean))].sort(), [data])
   const noPeriodo = (d: string | null) => { if (!d) return !ini && !fim; const x = d.slice(0, 10); return (!ini || x >= ini) && (!fim || x <= fim) }
+  const periodoAtivo = !!(ini || fim)
+  const fmtPeriodo = (a: string, b: string) => `${a ? fd(a) : 'início'} – ${b ? fd(b) : 'hoje'}`
+  const periodos = useMemo<[string, string, string][]>(() => {
+    const d = new Date(); const y = d.getFullYear(); const m = d.getMonth()
+    const f = (x: Date) => format(x, 'yyyy-MM-dd')
+    return [
+      ['Este mês', f(new Date(y, m, 1)), f(new Date(y, m + 1, 0))],
+      ['Mês passado', f(new Date(y, m - 1, 1)), f(new Date(y, m, 0))],
+      ['Últimos 30 dias', f(new Date(d.getTime() - 29 * 86400000)), f(d)],
+      ['Este ano', f(new Date(y, 0, 1)), f(new Date(y, 11, 31))],
+    ]
+  }, [])
+  const aplicarPeriodo = (a: string | null, b: string | null) => { setIni(a ?? ''); setFim(b ?? '') }
 
   const contas = useMemo(() => {
     const q = busca.trim().toLowerCase()
@@ -117,14 +130,20 @@ function Conteudo() {
   const porUf = agrupar((r) => data?.contaMap.get(r.servico_id)?.uf ?? '')
   const porTec = agrupar((r) => data?.contaMap.get(r.servico_id)?.tecnico ?? '')
   const limite = Date.now() - Number(diasPend || 0) * 86400000
-  const inadimplentes = (data?.contas ?? []).filter((c) => (c.situacao === 'pendente' || c.situacao === 'parcial') && c.saldo > 0 && (uf === 'todas' || c.uf === uf) && c.dataExecucao && new Date(c.dataExecucao).getTime() < limite)
+  const inadimplentes = (data?.contas ?? []).filter((c) => (c.situacao === 'pendente' || c.situacao === 'parcial') && c.saldo > 0 && (uf === 'todas' || c.uf === uf) && noPeriodo(c.dataExecucao) && c.dataExecucao && new Date(c.dataExecucao).getTime() < limite)
 
   const filtrosComuns = (
     <>
       <Select value={uf} onValueChange={setUf}><SelectTrigger className="w-28 h-8"><SelectValue /></SelectTrigger>
         <SelectContent><SelectItem value="todas">Todas UF</SelectItem>{ufs.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
-      <Input type="date" className="w-36 h-8" value={ini} onChange={(e) => setIni(e.target.value)} title="De" />
-      <Input type="date" className="w-36 h-8" value={fim} onChange={(e) => setFim(e.target.value)} title="Até" />
+      <span className="text-xs text-muted-foreground">Período:</span>
+      <Input type="date" className="w-36 h-8" value={ini} onChange={(e) => setIni(e.target.value)} title="Data inicial" aria-label="Data inicial" />
+      <span className="text-xs text-muted-foreground">até</span>
+      <Input type="date" className="w-36 h-8" value={fim} onChange={(e) => setFim(e.target.value)} title="Data final" aria-label="Data final" />
+      {periodos.map(([l, a, b]) => (
+        <Button key={l} size="sm" variant={ini === a && fim === b ? 'secondary' : 'ghost'} className="h-8 px-2 text-xs" onClick={() => aplicarPeriodo(a, b)}>{l}</Button>
+      ))}
+      {periodoAtivo && <Button size="sm" variant="ghost" className="h-8 px-2 text-xs" onClick={() => aplicarPeriodo(null, null)}>Limpar</Button>}
     </>
   )
 
@@ -156,6 +175,7 @@ function Conteudo() {
             {filtrosComuns}
             <div className="ml-auto"><Exportar titulo="Contas a Receber" rel={() => relContas(contas)} /></div>
           </div>
+          {periodoAtivo && <p className="text-xs text-muted-foreground">Período {fmtPeriodo(ini, fim)}: {contas.length} OS · {fmtBRL(soma(contas, 'valor'))} em valores · {fmtBRL(soma(contas, 'recebido'))} recebidos · {fmtBRL(soma(contas, 'saldo'))} em aberto.</p>}
           <Card><Table>
             <TableHeader><TableRow className="h-9"><TableHead>OS</TableHead><TableHead>Execução</TableHead><TableHead>Condomínio / Unidade</TableHead><TableHead>Morador</TableHead><TableHead>Tipo</TableHead><TableHead>Técnico</TableHead>
               <TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Recebido</TableHead><TableHead className="text-right">Saldo</TableHead><TableHead>Situação</TableHead><TableHead /></TableRow></TableHeader>
@@ -189,6 +209,7 @@ function Conteudo() {
               rodape: [['Total válido', fmtBRL(ativos.reduce((a, r) => a + Number(r.valor), 0))]],
             })} /></div>
           </div>
+          {periodoAtivo && <p className="text-xs text-muted-foreground">Período {fmtPeriodo(ini, fim)}: {recebs.length} recebimentos · {fmtBRL(ativos.reduce((a, r) => a + Number(r.valor), 0))} válidos.</p>}
           <Card><Table>
             <TableHeader><TableRow className="h-9"><TableHead>Data</TableHead><TableHead>OS</TableHead><TableHead>Condomínio</TableHead><TableHead>Morador</TableHead><TableHead>Forma</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Observação</TableHead><TableHead /></TableRow></TableHeader>
             <TableBody className="text-xs">
