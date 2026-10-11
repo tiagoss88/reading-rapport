@@ -4,3 +4,4 @@
 - New modules that depend on new tables are loaded with `React.lazy` inside an `ErrorBoundary` and check table existence (PGRST205) first — a missing table must never blank the whole app.
 - Database triggers on `servicos_nacional_gas` that touch other modules must swallow their own errors (`exception when others`) — closing an OS must never fail because of a side feature.
 - Field operators never touch stock tables directly; they record materials through security-definer RPCs (`registrar_materiais_os`) — stock tables stay admin-only under RLS.
+- The Financeiro module lives in its own tables (`financeiro_recebimentos`, `financeiro_situacao_os`, admin-only RLS) and computes balances client-side from `servicos_nacional_gas` — no triggers on the OS table, so closing an OS never depends on finance.

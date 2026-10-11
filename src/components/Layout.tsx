@@ -1,3 +1,4 @@
+import { Wallet } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import agasenLogo from '@/assets/agasen-logo.png'
 import { Button } from '@/components/ui/button'
@@ -75,7 +76,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const relatoriosItems = [
     { name: 'Leituras', href: '/relatorios/leituras', icon: BookOpen },
     { name: 'Serviços', href: '/relatorios/servicos', icon: Wrench },
-    ...(isAdmin ? [{ name: 'Estoque', href: '/relatorios/estoque', icon: Package }] : []),
+    ...(isAdmin ? [{ name: 'Estoque', href: '/relatorios/estoque', icon: Package }, { name: 'Financeiro', href: '/operacao/financeiro?aba=resumo', icon: Wallet }] : []),
   ]
 
   const medicaoTerceirizadaItems = [
@@ -89,6 +90,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const operacaoItems = [
     { name: 'Serviços', href: '/medicao-terceirizada/servicos', icon: Wrench },
     { name: 'Estoque', href: '/operacao/estoque', icon: Package },
+    ...(isAdmin ? [{ name: 'Financeiro', href: '/operacao/financeiro', icon: Wallet }] : []),
   ]
 
   const configuracoesItems = [

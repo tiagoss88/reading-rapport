@@ -53,6 +53,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 
 // Carregada só ao abrir a página: uma falha no Estoque nunca afeta o resto do sistema
 const Estoque = lazy(() => import('@/pages/Operacao/Estoque'))
+const Financeiro = lazy(() => import('@/pages/Operacao/Financeiro'))
 const RelatoriosEstoque = lazy(() => import('@/pages/RelatoriosEstoque'))
 
 const queryClient = new QueryClient({
@@ -77,6 +78,17 @@ const App = () => (
                       <ErrorBoundary area="o Estoque">
                         <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
                           <Estoque />
+                        </Suspense>
+                      </ErrorBoundary>
+                    </PermissionRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/operacao/financeiro" element={
+                  <ProtectedRoute>
+                    <PermissionRoute role="admin">
+                      <ErrorBoundary area="o Financeiro">
+                        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>}>
+                          <Financeiro />
                         </Suspense>
                       </ErrorBoundary>
                     </PermissionRoute>
