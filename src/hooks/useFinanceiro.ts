@@ -16,7 +16,7 @@ const normTipo = (t: string | null | undefined) =>
 const TERMOS_IGNORADOS = TIPOS_NAO_COBRADOS.flatMap((t) => { const n = normTipo(t); return [n, `${n}s`, `${n}es`] })
 export const tipoNaoCobrado = (t: string | null | undefined) => {
   const n = normTipo(t)
-  return TERMOS_IGNORADOS.includes(n) || TERMOS_IGNORADOS.some((x) => n.startsWith(`${x} `))
+  return TERMOS_IGNORADOS.some((x) => n === x || (n.startsWith(x) && !/[a-z0-9]/.test(n[x.length] ?? '')))
 }
 
 export const fmtBRL = (n: number) => (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
