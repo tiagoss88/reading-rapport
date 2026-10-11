@@ -3,14 +3,15 @@ import { Wallet } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { usePermissions } from '@/contexts/PermissionsContext'
 import { isTabelaAusente } from '@/hooks/useEstoque'
-import { sbFin, fmtBRL } from '@/hooks/useFinanceiro'
+import { sbFin, fmtBRL, tipoNaoCobrado } from '@/hooks/useFinanceiro'
 
 /** Situação financeira da OS (somente leitura, só admin). */
-export default function FinanceiroDaOsCard({ servicoId, valor }: { servicoId: string; valor: number | null | undefined }) {
+export default function FinanceiroDaOsCard({ servicoId, valor, tipo }: { servicoId: string; valor: number | null | undefined; tipo?: string | null }) {
   const { isAdmin } = usePermissions()
+  const ignorado = tipoNaoCobrado(tipo)
   const { data } = useQuery({
     queryKey: ['financeiro', 'os', servicoId],
-    enabled: isAdmin && !!servicoId,
+    enabled: isAdmin && !!servicoId && !ignorado,
     queryFn: async () => {
       const [r, s] = await Promise.all([
         sbFin.from('financeiro_recebimentos').select('valor, estornado_em').eq('servico_id', servicoId),
@@ -22,7 +23,7 @@ export default function FinanceiroDaOsCard({ servicoId, valor }: { servicoId: st
       return { recebido, isento: !!s.data?.isento }
     },
   })
-  if (!isAdmin || !data) return null
+  if (!isAdmin || ignorado || !data) return null
   const v = Number(valor) || 0
   const sit = data.isento ? 'Isento' : data.recebido <= 0 ? 'Pendente' : data.recebido + 0.009 < v ? 'Parcial' : 'Pago'
   return (

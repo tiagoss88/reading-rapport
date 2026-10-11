@@ -9,6 +9,16 @@ export const FORMAS_PAGAMENTO = ['Pix', 'Dinheiro', 'Cartão de crédito', 'Cart
 export type Situacao = 'pendente' | 'parcial' | 'pago' | 'isento'
 export const SITUACAO_LABEL: Record<Situacao, string> = { pendente: 'Pendente', parcial: 'Parcial', pago: 'Pago', isento: 'Isento' }
 
+// Tipos de serviço que não entram no controle financeiro (vêm da contratante).
+export const TIPOS_NAO_COBRADOS = ['leitura']
+const normTipo = (t: string | null | undefined) =>
+  (t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+const TERMOS_IGNORADOS = TIPOS_NAO_COBRADOS.flatMap((t) => { const n = normTipo(t); return [n, `${n}s`, `${n}es`] })
+export const tipoNaoCobrado = (t: string | null | undefined) => {
+  const n = normTipo(t)
+  return TERMOS_IGNORADOS.some((x) => n === x || (n.startsWith(x) && !/[a-z0-9]/.test(n[x.length] ?? '')))
+}
+
 export const fmtBRL = (n: number) => (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export interface Recebimento {
@@ -58,7 +68,7 @@ export function useFinanceiroDados(enabled: boolean) {
     enabled,
     staleTime: 30_000,
     queryFn: async () => {
-      const [servicos, recebs, sits, ops] = await Promise.all([
+      const [todos, recebs, sits, ops] = await Promise.all([
         buscarTodos<any>((f, t) => sbFin.from('servicos_nacional_gas')
           .select('id, numero_protocolo, uf, condominio_nome_original, bloco, apartamento, morador_nome, tipo_servico, tecnico_id, valor_servico, forma_pagamento, updated_at, status_atendimento')
           .in('status_atendimento', STATUS_FECHADO).order('updated_at', { ascending: false }).range(f, t)),
@@ -66,6 +76,8 @@ export function useFinanceiroDados(enabled: boolean) {
         buscarTodos<any>((f, t) => sbFin.from('financeiro_situacao_os').select('*').range(f, t)),
         sbFin.from('operadores').select('id, nome').then((r: any) => r.data ?? []),
       ])
+      const servicos = todos.filter((s: any) => !tipoNaoCobrado(s.tipo_servico))
+      const idsIgnorados = new Set<string>(todos.filter((s: any) => tipoNaoCobrado(s.tipo_servico)).map((s: any) => s.id))
       const ids = servicos.map((s) => s.id)
       const execMap = new Map<string, string>()
       for (let i = 0; i < ids.length; i += 200) {
@@ -97,7 +109,7 @@ export function useFinanceiroDados(enabled: boolean) {
         }
       })
       const contaMap = new Map(contas.map((c) => [c.id, c]))
-      return { contas, recebimentos: recebs, contaMap }
+      return { contas, recebimentos: recebs.filter((r) => !idsIgnorados.has(r.servico_id)), contaMap }
     },
   })
 }
