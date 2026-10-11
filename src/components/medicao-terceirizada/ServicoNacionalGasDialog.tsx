@@ -537,7 +537,7 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
                 )}
                 {servico?.id && (
                   <ErrorBoundary area="o financeiro da OS">
-                    <FinanceiroDaOsCard servicoId={servico.id} valor={servico.valor_servico} />
+                    <FinanceiroDaOsCard servicoId={servico.id} valor={servico.valor_servico} tipo={servico.tipo_servico} />
                   </ErrorBoundary>
                 )}
 
