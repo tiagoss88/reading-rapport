@@ -13,8 +13,11 @@ export const SITUACAO_LABEL: Record<Situacao, string> = { pendente: 'Pendente', 
 export const TIPOS_NAO_COBRADOS = ['leitura']
 const normTipo = (t: string | null | undefined) =>
   (t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-const TIPOS_IGNORADOS = new Set(TIPOS_NAO_COBRADOS.flatMap((t) => [normTipo(t), `${normTipo(t)}s`, `${normTipo(t)}es`]))
-export const tipoNaoCobrado = (t: string | null | undefined) => TIPOS_IGNORADOS.has(normTipo(t))
+const TERMOS_IGNORADOS = TIPOS_NAO_COBRADOS.flatMap((t) => { const n = normTipo(t); return [n, `${n}s`, `${n}es`] })
+export const tipoNaoCobrado = (t: string | null | undefined) => {
+  const n = normTipo(t)
+  return TERMOS_IGNORADOS.includes(n) || TERMOS_IGNORADOS.some((x) => n.startsWith(`${x} `))
+}
 
 export const fmtBRL = (n: number) => (n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
