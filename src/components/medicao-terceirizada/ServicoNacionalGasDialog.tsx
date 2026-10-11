@@ -18,6 +18,7 @@ import { smartCompress } from '@/lib/imageCompression'
 import { useToast } from '@/hooks/use-toast'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import MateriaisDaOsCard from './MateriaisDaOsCard'
+import FinanceiroDaOsCard from '@/components/financeiro/FinanceiroDaOsCard'
 
 const formSchema = z.object({
   morador_nome: z.string().trim().max(255).optional().nullable(),
@@ -532,6 +533,11 @@ export default function ServicoNacionalGasDialog({ open, onOpenChange, servico }
                 {servico?.id && (
                   <ErrorBoundary area="os materiais da OS">
                     <MateriaisDaOsCard servicoId={servico.id} />
+                  </ErrorBoundary>
+                )}
+                {servico?.id && (
+                  <ErrorBoundary area="o financeiro da OS">
+                    <FinanceiroDaOsCard servicoId={servico.id} valor={servico.valor_servico} />
                   </ErrorBoundary>
                 )}
 
