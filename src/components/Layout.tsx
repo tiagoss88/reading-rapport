@@ -129,7 +129,7 @@ export default function Layout({ children, title }: LayoutProps) {
                 alt="Agasen Logo" 
                 className="h-8 w-auto object-contain flex-shrink-0"
               />
-              <h1 className="text-lg font-semibold whitespace-nowrap">Sistema de Leituras</h1>
+              <h1 className="text-lg font-semibold whitespace-nowrap">AG-Flow</h1>
             </div>
           )}
           {isCompact && (
