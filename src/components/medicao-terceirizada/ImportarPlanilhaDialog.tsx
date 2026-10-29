@@ -645,10 +645,10 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                     <tr
                       key={idx}
                       className={`border-b ${
-                        row.duplicateTipo === 'historico'
-                          ? 'bg-yellow-100/60 dark:bg-yellow-900/20 opacity-80'
-                          : row.isDuplicate && row.forceImport
+                        row.isDuplicate && row.forceImport
                           ? 'bg-blue-50 dark:bg-blue-900/20'
+                          : row.duplicateTipo === 'historico'
+                          ? 'bg-yellow-100/60 dark:bg-yellow-900/20 opacity-80'
                           : row.isDuplicate
                           ? 'bg-destructive/5 line-through opacity-60'
                           : !row.matched
