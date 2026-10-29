@@ -657,18 +657,18 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                       }`}
                     >
                       <td className="p-2 text-center">
-                        {row.isDuplicate && (
-                          <input
-                            type="checkbox"
-                            aria-label={`Forçar importação de ${row.condominio_nome_original}, ${row.bloco || ''} ${row.apartamento || ''}, ${row.tipo_servico}`}
-                            title="Forçar a importação deste serviço, mesmo identificado como duplicado"
-                            checked={!!row.forceImport}
-                            onChange={(e) => setParsedData(current => current.map((item, itemIdx) =>
-                              itemIdx === idx ? { ...item, forceImport: e.target.checked } : item
-                            ))}
-                            className="h-4 w-4 accent-primary cursor-pointer"
-                          />
-                        )}
+                        <input
+                          type="checkbox"
+                          aria-label={`Forçar importação de ${row.condominio_nome_original}, ${row.bloco || ''} ${row.apartamento || ''}, ${row.tipo_servico}`}
+                          title={row.isDuplicate
+                            ? "Marcar para importar este serviço mesmo identificado como duplicado"
+                            : "Este serviço não foi identificado como duplicado; marcar não altera a verificação automática"}
+                          checked={!!row.forceImport}
+                          onChange={(e) => setParsedData(current => current.map((item, itemIdx) =>
+                            itemIdx === idx ? { ...item, forceImport: e.target.checked } : item
+                          ))}
+                          className="h-4 w-4 accent-primary cursor-pointer"
+                        />
                       </td>
                       <td className="p-2">
                         {row.duplicateTipo === 'historico' ? (
