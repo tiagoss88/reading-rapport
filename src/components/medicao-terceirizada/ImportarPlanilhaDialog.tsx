@@ -38,6 +38,7 @@ interface ImportedRow {
   isDuplicate?: boolean
   duplicateReason?: string
   duplicateTipo?: 'aberto' | 'historico'
+  forceImport?: boolean
 }
 
 interface Props {
@@ -57,7 +58,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
   const [pastedText, setPastedText] = useState('')
   const [importMethod, setImportMethod] = useState<'file' | 'paste'>('file')
   const [origemSelecionada, setOrigemSelecionada] = useState<string>('NGD')
-  const [importarDuplicados, setImportarDuplicados] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -161,7 +161,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
           motivo: duplicateReason,
         })
       }
-      return { ...row, isDuplicate, duplicateReason, duplicateTipo }
+      return { ...row, isDuplicate, duplicateReason, duplicateTipo, forceImport: false }
     })
   }
 
@@ -321,7 +321,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     reader.readAsBinaryString(file)
   }
 
-  const newRows = importarDuplicados ? parsedData : parsedData.filter(r => !r.isDuplicate)
+  const newRows = parsedData.filter(r => !r.isDuplicate || r.forceImport)
+  const skippedDuplicateCount = parsedData.filter(r => r.isDuplicate && !r.forceImport).length
 
   const importMutation = useMutation({
     mutationFn: async () => {
@@ -385,7 +386,6 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
     setPastedText('')
     setImportMethod('file')
     setOrigemSelecionada('NGD')
-    setImportarDuplicados(false)
     onOpenChange(false)
   }
 
@@ -632,6 +632,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-background border-b">
                   <tr>
+                    <th className="text-left p-2">Forçar</th>
                     <th className="text-left p-2">Status</th>
                     <th className="text-left p-2">Condomínio</th>
                     <th className="text-left p-2">Bloco/Apto</th>
@@ -646,6 +647,8 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                       className={`border-b ${
                         row.duplicateTipo === 'historico'
                           ? 'bg-yellow-100/60 dark:bg-yellow-900/20 opacity-80'
+                          : row.isDuplicate && row.forceImport
+                          ? 'bg-blue-50 dark:bg-blue-900/20'
                           : row.isDuplicate
                           ? 'bg-destructive/5 line-through opacity-60'
                           : !row.matched
@@ -653,6 +656,20 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
                           : ''
                       }`}
                     >
+                      <td className="p-2 text-center">
+                        {row.isDuplicate && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Forçar importação de ${row.condominio_nome_original}, ${row.bloco || ''} ${row.apartamento || ''}, ${row.tipo_servico}`}
+                            title="Forçar a importação deste serviço, mesmo identificado como duplicado"
+                            checked={!!row.forceImport}
+                            onChange={(e) => setParsedData(current => current.map((item, itemIdx) =>
+                              itemIdx === idx ? { ...item, forceImport: e.target.checked } : item
+                            ))}
+                            className="h-4 w-4 accent-primary cursor-pointer"
+                          />
+                        )}
+                      </td>
                       <td className="p-2">
                         {row.duplicateTipo === 'historico' ? (
                           <span
@@ -697,15 +714,11 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
 
             <div className="flex justify-between items-center gap-2 shrink-0 pt-2 border-t">
               {duplicateCount > 0 ? (
-                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={importarDuplicados}
-                    onChange={(e) => setImportarDuplicados(e.target.checked)}
-                    className="h-4 w-4"
-                  />
-                  Importar mesmo os {duplicateCount} marcados como duplicados
-                </label>
+                <span className="text-xs text-muted-foreground">
+                  Marque “Forçar” apenas nos serviços que deseja importar novamente.
+                  {parsedData.some(r => r.isDuplicate && r.forceImport) &&
+                    ` ${parsedData.filter(r => r.isDuplicate && r.forceImport).length} duplicado(s) selecionado(s).`}
+                </span>
               ) : <span />}
               <div className="flex gap-2">
                 <Button variant="outline" onClick={handleClose}>
@@ -732,7 +745,7 @@ export default function ImportarPlanilhaDialog({ open, onOpenChange }: Props) {
             <h3 className="text-lg font-medium mb-2">Importação Concluída!</h3>
             <p className="text-muted-foreground mb-4">
               {newRows.length} serviço(s) foram importados com sucesso.
-              {duplicateCount > 0 && ` ${duplicateCount} duplicado(s) foram ignorados.`}
+              {skippedDuplicateCount > 0 && ` ${skippedDuplicateCount} duplicado(s) foram ignorados.`}
             </p>
             <Button onClick={handleClose}>Fechar</Button>
           </div>
