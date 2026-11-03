@@ -118,7 +118,8 @@ export default function PlanejamentoRotas() {
   }
 
   const getRotasLeituraParaData = (data: string) => {
-    return rotasLeitura?.filter(r => r.data === data) || []
+    // A contagem da rota deve considerar somente os registros da UF selecionada.
+    return rotasLeitura?.filter(r => r.data === data && r.empreendimento?.uf === uf) || []
   }
 
   const handleVerDetalhes = (diaUtil: any) => {
