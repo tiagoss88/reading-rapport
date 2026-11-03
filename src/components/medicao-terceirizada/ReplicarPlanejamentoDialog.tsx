@@ -255,31 +255,31 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
         }
 
 
-        const jaTemPlanejamento = datasComPlanejamento.has(dataDestino)
-        if (jaTemPlanejamento && !substituir) {
-          ignorados += linha.totalEmpreendimentos
-          rotasIgnoradas++
-          continue
+        // O destino é identificado pela data dentro da UF consultada.
+        // Se já houver registros, mesclamos apenas os vínculos que ainda não existem.
+        // A opção "substituir" continua sendo a única que remove o planejamento existente.
+        const registrosExistentes = (rotasAtuais || []).filter(
+          (rota: any) => rota.data === dataDestino
+        )
+
+        if (registrosExistentes.length > 0 && substituir) {
+          const idsDaUf = registrosExistentes.map((rota: any) => rota.id)
+          const { error: delError } = await supabase
+            .from('rotas_leitura')
+            .delete()
+            .in('id', idsDaUf)
+          if (delError) throw delError
         }
 
-        if (jaTemPlanejamento && substituir) {
-          const idsDaUf = (rotasAtuais || [])
-            .filter((rota: any) => rota.data === dataDestino)
-            .map((rota: any) => rota.id)
-
-          if (idsDaUf.length > 0) {
-            const { error: delError } = await supabase
-              .from('rotas_leitura')
-              .delete()
-              .in('id', idsDaUf)
-            if (delError) throw delError
-          }
-        }
-
-        // Deduplica: no máximo uma linha por (empreendimento + operador).
-        // Sem "manter operadores", uma única linha por empreendimento.
+        const existentesPorEmpreendimento = new Set(
+          substituir ? [] : registrosExistentes.map((rota: any) => rota.empreendimento_id)
+        )
+        const existentesPorVinculo = new Set(
+          substituir ? [] : registrosExistentes.map((rota: any) => `${rota.empreendimento_id}|${rota.operador_id ?? ''}`)
+        )
         const vistos = new Set<string>()
         const registros: any[] = []
+
         linha.itens
           .filter(r => r.empreendimento && r.empreendimento_id)
           .forEach(r => {
@@ -290,6 +290,17 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
             const chave = `${r.empreendimento_id}|${operadorId ?? ''}`
             if (vistos.has(chave)) return
             vistos.add(chave)
+
+            // Sem preservar operadores, basta que o empreendimento já esteja planejado.
+            // Preservando operadores, cada vínculo empreendimento/operador é considerado.
+            const jaExiste = manterOperadores
+              ? existentesPorVinculo.has(chave)
+              : existentesPorEmpreendimento.has(r.empreendimento_id)
+            if (jaExiste) {
+              ignorados++
+              return
+            }
+
             registros.push({
               data: dataDestino,
               empreendimento_id: r.empreendimento_id,
@@ -302,6 +313,8 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
           const { error } = await supabase.from('rotas_leitura').insert(registros)
           if (error) throw error
           inseridos += new Set(registros.map(r => r.empreendimento_id)).size
+        } else if (registrosExistentes.length > 0 && !substituir) {
+          rotasIgnoradas++
         }
       }
 
@@ -319,7 +332,7 @@ export default function ReplicarPlanejamentoDialog({ open, onOpenChange, uf, ano
       })
       toast({
         title: 'Planejamento replicado',
-        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${rotasIgnoradas ? ` • ${rotasIgnoradas} rota(s) puladas (${ignorados} empreend.) porque o dia destino já tinha planejamento em ${uf} — marque "substituir" para sobrescrever` : ''}`
+        description: `${inseridos} empreendimento(s) copiado(s)${diasCriados ? ` • ${diasCriados} dia(s) útil(eis) criado(s)` : ''}${rotasIgnoradas ? ` • ${ignorados} vínculo(s) já existente(s) foram preservados sem duplicação` : ''}`
       })
       onOpenChange(false)
     },
