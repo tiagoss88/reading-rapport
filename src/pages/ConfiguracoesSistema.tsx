@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Map, Save, ExternalLink, Loader2, Trash2, RefreshCw, Route, ClipboardPaste } from 'lucide-react';
+import { Map, Save, ExternalLink, Loader2, Trash2, RefreshCw, Route, ClipboardPaste, FileSpreadsheet, Search, Download } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -250,6 +251,102 @@ const ConfiguracoesSistema = () => {
     toast.success(`Atualização concluída: ${updated} alterados, ${skipped} já corretos, ${notFound} não encontrados`);
   };
 
+  // ---- Consulta e exportação de planejamento (somente leitura) ----
+  const hoje = new Date();
+  const [consultaUf, setConsultaUf] = useState('BA');
+  const [consultaMes, setConsultaMes] = useState(String(hoje.getMonth() + 1).padStart(2, '0'));
+  const [consultaAno, setConsultaAno] = useState(String(hoje.getFullYear()));
+  const [consultaBusca, setConsultaBusca] = useState('');
+  const [consultaRotas, setConsultaRotas] = useState<any[]>([]);
+  const [consultaExecutada, setConsultaExecutada] = useState(false);
+  const [consultandoRotas, setConsultandoRotas] = useState(false);
+
+  const consultarPlanejamento = async () => {
+    setConsultandoRotas(true);
+    setConsultaExecutada(false);
+    setConsultaRotas([]);
+    try {
+      const inicio = `${consultaAno}-${consultaMes}-01`;
+      const ultimoDia = new Date(Number(consultaAno), Number(consultaMes), 0).getDate();
+      const fim = `${consultaAno}-${consultaMes}-${String(ultimoDia).padStart(2, '0')}`;
+      const lote = 1000;
+      let offset = 0;
+      let todos: any[] = [];
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('rotas_leitura')
+          .select('id, data, status, empreendimento:empreendimentos_terceirizados!inner(id, nome, uf, rota, quantidade_medidores), operador:operadores(id, nome)')
+          .eq('empreendimento.uf', consultaUf)
+          .gte('data', inicio)
+          .lte('data', fim)
+          .order('data', { ascending: true })
+          .range(offset, offset + lote - 1);
+
+        if (error) throw error;
+        const pagina = data || [];
+        todos = todos.concat(pagina);
+        if (pagina.length < lote) break;
+        offset += lote;
+      }
+
+      todos.sort((a, b) => {
+        const dataCompare = String(a.data).localeCompare(String(b.data));
+        if (dataCompare !== 0) return dataCompare;
+        const rotaCompare = Number(a.empreendimento?.rota || 0) - Number(b.empreendimento?.rota || 0);
+        if (rotaCompare !== 0) return rotaCompare;
+        return String(a.operador?.nome || '').localeCompare(String(b.operador?.nome || ''), 'pt-BR');
+      });
+
+      setConsultaRotas(todos);
+      setConsultaExecutada(true);
+      toast.success(`Consulta concluída: ${todos.length} vínculo(s) encontrado(s).`);
+    } catch (error: any) {
+      console.error('Erro ao consultar planejamento:', error);
+      toast.error(error?.message || 'Não foi possível consultar o planejamento.');
+    } finally {
+      setConsultandoRotas(false);
+    }
+  };
+
+  const linhasConsulta = consultaRotas.filter((r) => {
+    const termo = consultaBusca.trim().toLocaleLowerCase('pt-BR');
+    if (!termo) return true;
+    return [
+      r.empreendimento?.nome,
+      r.operador?.nome,
+      r.empreendimento?.rota,
+      r.status,
+      r.data,
+    ].some((v) => String(v ?? '').toLocaleLowerCase('pt-BR').includes(termo));
+  });
+
+  const exportarPlanejamento = () => {
+    if (linhasConsulta.length === 0) {
+      toast.error('Não há registros para exportar.');
+      return;
+    }
+
+    const dados = linhasConsulta.map((r) => ({
+      UF: r.empreendimento?.uf || consultaUf,
+      Data: r.data ? new Date(`${r.data}T12:00:00`).toLocaleDateString('pt-BR') : '',
+      Rota: r.empreendimento?.rota ? `Rota ${String(r.empreendimento.rota).padStart(2, '0')}` : '',
+      Condomínio: r.empreendimento?.nome || 'Empreendimento não identificado',
+      Operador: r.operador?.nome || 'Não atribuído',
+      Medidores: Number(r.empreendimento?.quantidade_medidores || 0),
+      Status: r.status || '',
+      'ID do vínculo': r.id,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dados);
+    ws['!cols'] = [{ wch: 8 }, { wch: 14 }, { wch: 12 }, { wch: 34 }, { wch: 28 }, { wch: 12 }, { wch: 18 }, { wch: 38 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Planejamento');
+    const nomeArquivo = `planejamento_${consultaUf}_${consultaAno}-${consultaMes}.xlsx`;
+    XLSX.writeFile(wb, nomeArquivo);
+    toast.success('Planilha exportada com sucesso.');
+  };
+
   if (isLoading) {
     return (
       <Layout title="Configurações do Sistema">
@@ -263,6 +360,123 @@ const ConfiguracoesSistema = () => {
   return (
     <Layout title="Configurações do Sistema">
       <div className="space-y-6">
+        {/* Consulta e exportação do planejamento — somente leitura */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-5 w-5" />
+              Consulta e Exportação de Planejamento
+            </CardTitle>
+            <CardDescription>
+              Consulte os empreendimentos e operadores atribuídos a cada rota por período e exporte os resultados para Excel. Esta ferramenta é somente de leitura: não altera os planejamentos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="w-28 space-y-1">
+                <Label>UF</Label>
+                <Select value={consultaUf} onValueChange={setConsultaUf}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['BA', 'CE', 'PE', 'RN', 'PB', 'MA', 'PI', 'SE', 'AL'].map(uf => (
+                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-36 space-y-1">
+                <Label>Mês</Label>
+                <Select value={consultaMes} onValueChange={setConsultaMes}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[
+                      ['01', 'Janeiro'], ['02', 'Fevereiro'], ['03', 'Março'], ['04', 'Abril'],
+                      ['05', 'Maio'], ['06', 'Junho'], ['07', 'Julho'], ['08', 'Agosto'],
+                      ['09', 'Setembro'], ['10', 'Outubro'], ['11', 'Novembro'], ['12', 'Dezembro']
+                    ].map(([valor, nome]) => <SelectItem key={valor} value={valor}>{nome}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-28 space-y-1">
+                <Label>Ano</Label>
+                <Select value={consultaAno} onValueChange={setConsultaAno}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 7 }, (_, i) => String(hoje.getFullYear() - 3 + i)).map(ano => (
+                      <SelectItem key={ano} value={ano}>{ano}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={consultarPlanejamento} disabled={consultandoRotas}>
+                {consultandoRotas ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+                Consultar
+              </Button>
+              <Button onClick={exportarPlanejamento} variant="outline" disabled={!consultaExecutada || linhasConsulta.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
+
+            {consultaExecutada && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-md border p-3">
+                    <p className="text-sm text-muted-foreground">Vínculos encontrados</p>
+                    <p className="text-2xl font-semibold">{consultaRotas.length}</p>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <p className="text-sm text-muted-foreground">Condomínios distintos</p>
+                    <p className="text-2xl font-semibold">{new Set(consultaRotas.map(r => r.empreendimento?.id).filter(Boolean)).size}</p>
+                  </div>
+                  <div className="rounded-md border p-3">
+                    <p className="text-sm text-muted-foreground">Operadores distintos</p>
+                    <p className="text-2xl font-semibold">{new Set(consultaRotas.map(r => r.operador?.id).filter(Boolean)).size}</p>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input className="pl-9" placeholder="Filtrar por rota, condomínio, operador ou status..." value={consultaBusca} onChange={e => setConsultaBusca(e.target.value)} />
+                </div>
+
+                <div className="rounded-md border overflow-auto max-h-[520px]">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-muted z-10">
+                      <tr className="text-left">
+                        <th className="p-3 font-medium">Data</th>
+                        <th className="p-3 font-medium">Rota</th>
+                        <th className="p-3 font-medium">Condomínio</th>
+                        <th className="p-3 font-medium">Operador</th>
+                        <th className="p-3 font-medium text-right">Medidores</th>
+                        <th className="p-3 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {linhasConsulta.map((r) => (
+                        <tr key={r.id} className="border-t">
+                          <td className="p-3 whitespace-nowrap">{r.data ? new Date(`${r.data}T12:00:00`).toLocaleDateString('pt-BR') : '—'}</td>
+                          <td className="p-3 whitespace-nowrap">{r.empreendimento?.rota ? `Rota ${String(r.empreendimento.rota).padStart(2, '0')}` : '—'}</td>
+                          <td className="p-3">{r.empreendimento?.nome || 'Não identificado'}</td>
+                          <td className="p-3">{r.operador?.nome || <span className="text-muted-foreground">Não atribuído</span>}</td>
+                          <td className="p-3 text-right tabular-nums">{Number(r.empreendimento?.quantidade_medidores || 0).toLocaleString('pt-BR')}</td>
+                          <td className="p-3">{r.status || '—'}</td>
+                        </tr>
+                      ))}
+                      {linhasConsulta.length === 0 && (
+                        <tr><td colSpan={6} className="p-6 text-center text-muted-foreground">Nenhum registro encontrado para os filtros informados.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Exibindo {linhasConsulta.length} de {consultaRotas.length} vínculo(s). Um condomínio pode aparecer mais de uma vez quando estiver atribuído a operadores diferentes ou em datas distintas. A exportação respeita o filtro de pesquisa.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Card Mapbox */}
         <Card>
           <CardHeader>
